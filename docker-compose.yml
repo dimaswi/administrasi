@@ -37,4 +37,4 @@ services:
       - ./:/var/www/html
     working_dir: /var/www/html
     networks:
-      - pos
+      - administrasi
