@@ -113,6 +113,7 @@ interface Props {
 
 export default function Show({ letter, can_edit, can_delete, can_create_disposition }: Props) {
     const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     // Helper function to check if all dispositions are completed (recursively)
     const areAllDispositionsCompleted = (dispositions: Disposition[]): boolean => {
@@ -133,11 +134,15 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
                                        !areAllDispositionsCompleted(letter.dispositions);
 
     const handleDelete = () => {
-        if (confirm('Apakah Anda yakin ingin menghapus surat masuk ini?')) {
-            router.delete(route('arsip.incoming-letters.destroy', letter.id), {
-                onError: () => toast.error('Gagal menghapus surat masuk'),
-            });
-        }
+        router.delete(route('arsip.incoming-letters.destroy', letter.id), {
+            onSuccess: () => {
+                toast.success('Surat masuk berhasil dihapus');
+                setShowDeleteDialog(false);
+            },
+            onError: () => {
+                toast.error('Gagal menghapus surat masuk');
+            },
+        });
     };
 
     const handleArchive = () => {
@@ -326,7 +331,7 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
                             </Link>
                         )}
                         {can_delete && (
-                            <Button variant="destructive" className="gap-2" onClick={handleDelete}>
+                            <Button variant="destructive" className="gap-2" onClick={() => setShowDeleteDialog(true)}>
                                 <Trash2 className="h-4 w-4" />
                                 Hapus
                             </Button>
@@ -570,6 +575,56 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
                         >
                             <Archive className="h-4 w-4 mr-2" />
                             Ya, Arsipkan
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Dialog */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus Surat Masuk</DialogTitle>
+                        <DialogDescription>
+                            Apakah Anda yakin ingin menghapus surat masuk ini?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-sm text-red-800">
+                                <strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!
+                            </p>
+                            <ul className="list-disc list-inside text-sm text-red-800 mt-2 space-y-1">
+                                <li>Surat masuk akan dihapus secara permanen</li>
+                                <li>File yang terlampir akan ikut terhapus</li>
+                                <li>Data tidak dapat dipulihkan kembali</li>
+                            </ul>
+                        </div>
+                        <div className="border rounded-lg p-4 space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Nomor Surat:</span>
+                                <span className="font-medium">{letter.incoming_number}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Pengirim:</span>
+                                <span className="font-medium">{letter.sender}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Perihal:</span>
+                                <span className="font-medium">{letter.subject}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                            Batal
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleDelete}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Ya, Hapus
                         </Button>
                     </DialogFooter>
                 </DialogContent>

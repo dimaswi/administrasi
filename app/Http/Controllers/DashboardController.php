@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Meeting;
 use App\Models\Room;
 use App\Models\User;
+use App\Models\Archive;
+use App\Models\IncomingLetter;
+use App\Models\Letter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -112,6 +115,96 @@ class DashboardController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
+        // =====================
+        // Archive Statistics
+        // =====================
+        $totalArchives = Archive::count();
+        $archivesThisMonth = Archive::whereDate('created_at', '>=', $currentMonth)->count();
+        $archivesThisYear = Archive::whereDate('created_at', '>=', $currentYear)->count();
+
+        // Archives by type
+        $archivesByType = Archive::select('type', DB::raw('count(*) as total'))
+            ->groupBy('type')
+            ->pluck('total', 'type')
+            ->toArray();
+
+        // Archives by classification
+        $archivesByClassification = Archive::select('classification', DB::raw('count(*) as total'))
+            ->groupBy('classification')
+            ->pluck('total', 'classification')
+            ->toArray();
+
+        // Archive trend (last 6 months)
+        $archivesTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthName = $date->format('M');
+            $count = Archive::whereYear('created_at', $date->year)
+                ->whereMonth('created_at', $date->month)
+                ->count();
+            
+            $archivesTrend[] = [
+                'month' => $monthName,
+                'count' => $count,
+            ];
+        }
+
+        // Expiring archives (in next 30 days)
+        $expiringArchives = Archive::whereNotNull('retention_until')
+            ->where('retention_until', '<=', now()->addDays(30))
+            ->where('retention_until', '>=', now())
+            ->count();
+
+        // Recent archives
+        $recentArchives = Archive::with(['letter', 'incomingLetter', 'archiver'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($archive) {
+                return [
+                    'id' => $archive->id,
+                    'type' => $archive->type,
+                    'title' => $archive->title,
+                    'document_number' => $archive->document_number,
+                    'document_date' => $archive->document_date->format('Y-m-d'),
+                    'classification' => $archive->classification,
+                    'archiver' => $archive->archiver->name ?? 'Unknown',
+                    'created_at' => $archive->created_at->format('Y-m-d H:i'),
+                ];
+            });
+
+        // Storage size by type
+        $storageByType = Archive::select('type', DB::raw('SUM(file_size) as total_size'))
+            ->groupBy('type')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'type' => $item->type,
+                    'size' => $item->total_size,
+                    'size_human' => $this->formatBytes($item->total_size),
+                ];
+            });
+
+        // =====================
+        // Letter Statistics
+        // =====================
+        $totalIncomingLetters = IncomingLetter::count();
+        $incomingLettersThisMonth = IncomingLetter::whereDate('received_date', '>=', $currentMonth)->count();
+        
+        $totalOutgoingLetters = Letter::count();
+        $outgoingLettersThisMonth = Letter::whereDate('created_at', '>=', $currentMonth)->count();
+
+        // Letters by status
+        $incomingLettersByStatus = IncomingLetter::select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $outgoingLettersByStatus = Letter::select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
         return Inertia::render('dashboard', [
             'statistics' => [
                 'total_meetings' => $totalMeetings,
@@ -120,12 +213,47 @@ class DashboardController extends Controller
                 'meetings_by_status' => $meetingsByStatus,
                 'attendance_rate' => $attendanceRate,
             ],
+            'archive_statistics' => [
+                'total_archives' => $totalArchives,
+                'archives_this_month' => $archivesThisMonth,
+                'archives_this_year' => $archivesThisYear,
+                'archives_by_type' => $archivesByType,
+                'archives_by_classification' => $archivesByClassification,
+                'expiring_archives' => $expiringArchives,
+                'storage_by_type' => $storageByType,
+            ],
+            'letter_statistics' => [
+                'total_incoming_letters' => $totalIncomingLetters,
+                'incoming_letters_this_month' => $incomingLettersThisMonth,
+                'incoming_letters_by_status' => $incomingLettersByStatus,
+                'total_outgoing_letters' => $totalOutgoingLetters,
+                'outgoing_letters_this_month' => $outgoingLettersThisMonth,
+                'outgoing_letters_by_status' => $outgoingLettersByStatus,
+            ],
             'upcoming_meetings' => $upcomingMeetings,
             'recent_completed_meetings' => $recentCompletedMeetings,
             'todays_meetings' => $todaysMeetings,
             'meetings_trend' => $meetingsTrend,
             'most_used_rooms' => $mostUsedRooms,
             'top_participants' => $topParticipants,
+            'recent_archives' => $recentArchives,
+            'archives_trend' => $archivesTrend,
         ]);
+    }
+
+    /**
+     * Format bytes to human readable format
+     */
+    private function formatBytes($bytes, $precision = 2)
+    {
+        if ($bytes == 0) return '0 B';
+        
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        
+        $bytes /= pow(1024, $pow);
+        
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }
