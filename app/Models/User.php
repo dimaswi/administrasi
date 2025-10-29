@@ -23,6 +23,9 @@ class User extends Authenticatable
         'nip',
         'password',
         'role_id',
+        'organization_unit_id',
+        'position',
+        'phone',
     ];
 
     /**
@@ -75,5 +78,30 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->hasRole('admin');
+    }
+
+    public function organizationUnit(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationUnit::class);
+    }
+
+    public function organizedMeetings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Meeting::class, 'organizer_id');
+    }
+
+    public function meetingParticipations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MeetingParticipant::class);
+    }
+
+    public function headedOrganizationUnits(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OrganizationUnit::class, 'head_id');
+    }
+
+    public function notifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Notification::class);
     }
 }

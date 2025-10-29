@@ -56,7 +56,6 @@ export default function EditRole() {
 
         put(`/master/roles/${role.id}`, {
             onSuccess: () => {
-                toast.success('Role berhasil diupdate');
                 router.visit('/master/roles');
             },
             onError: () => {

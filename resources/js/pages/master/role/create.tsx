@@ -47,7 +47,6 @@ export default function CreateRole() {
 
         post('/master/roles', {
             onSuccess: () => {
-                toast.success('Role berhasil dibuat');
                 router.visit('/master/roles');
             },
             onError: () => {

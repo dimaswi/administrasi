@@ -1,0 +1,806 @@
+import { useState, useEffect, useRef } from 'react';
+import { Head, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TipTapEditor, type TipTapEditorRef } from '@/components/tiptap/tiptap-editor';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Save, X, Plus, FileText, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import type { BreadcrumbItem, SharedData } from '@/types';
+
+interface Variable {
+    name: string;
+    type: 'text' | 'textarea' | 'richtext' | 'date' | 'select' | 'user_select' | 'auto';
+    label: string;
+    required: boolean;
+    default?: string;
+    options?: string[];
+}
+
+interface Signature {
+    label: string;
+    position: string;
+    user_id?: number;
+}
+
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    position: string;
+    organization_unit: string;
+}
+
+interface Template {
+    id: number;
+    name: string;
+    code: string;
+    category: string | null;
+    description: string | null;
+    content: any;
+    variables: Variable[];
+    letterhead: any;
+    signature_layout?: string;
+    signatures?: Signature[];
+    numbering_format: string | null;
+    is_active: boolean;
+    letters_count: number;
+}
+
+interface Props extends SharedData {
+    template: Template;
+    users: User[];
+}
+
+export default function EditTemplate({ template, users }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Arsip', href: '/arsip' },
+        { title: 'Template Surat', href: '/arsip/templates' },
+        { title: template.name, href: `/arsip/templates/${template.id}` },
+        { title: 'Edit', href: `/arsip/templates/${template.id}/edit` },
+    ];
+
+    const [name, setName] = useState(template.name);
+    const [code, setCode] = useState(template.code);
+    const [category, setCategory] = useState(template.category || '');
+    const [description, setDescription] = useState(template.description || '');
+    const [content, setContent] = useState<any>(
+        typeof template.content === 'string' ? JSON.parse(template.content) : template.content
+    );
+    const [variables, setVariables] = useState<Variable[]>(
+        Array.isArray(template.variables) ? template.variables : []
+    );
+    const [letterhead, setLetterhead] = useState<any>(template.letterhead || {});
+    const [signatureLayout, setSignatureLayout] = useState(template.signature_layout || 'bottom_right_1');
+    const [signatures, setSignatures] = useState<Signature[]>(
+        template.signatures && template.signatures.length > 0 
+            ? template.signatures 
+            : [{ label: '', position: '', user_id: undefined }]
+    );
+    const [numberingFormat, setNumberingFormat] = useState(template.numbering_format || '');
+    const [isActive, setIsActive] = useState(template.is_active);
+
+    const [showVariableDialog, setShowVariableDialog] = useState(false);
+    const [showLetterheadDialog, setShowLetterheadDialog] = useState(false);
+    const [showInsertVariableDialog, setShowInsertVariableDialog] = useState(false);
+    const [currentVariable, setCurrentVariable] = useState<Variable>({
+        name: '',
+        type: 'text',
+        label: '',
+        required: false,
+    });
+
+    const editorRef = useRef<TipTapEditorRef>(null);
+
+    // Update signatures count based on layout
+    useEffect(() => {
+        const signatureCount = {
+            'bottom_right_1': 1,
+            'bottom_left_right': 2,
+            'three_signatures': 3,
+            'four_signatures': 4,
+        }[signatureLayout] || 1;
+
+        setSignatures((prev) => {
+            const newSignatures = Array.from({ length: signatureCount }, (_, i) => 
+                prev[i] || { label: '', position: '', user_id: undefined }
+            );
+            return newSignatures;
+        });
+    }, [signatureLayout]);
+
+    const variableTypeOptions: SearchableSelectOption[] = [
+        { value: 'text', label: 'Text', description: 'Input teks satu baris' },
+        { value: 'textarea', label: 'Text Area', description: 'Input teks multi baris' },
+        { value: 'richtext', label: 'Rich Text', description: 'Editor teks dengan formatting' },
+        { value: 'date', label: 'Date', description: 'Pemilih tanggal' },
+        { value: 'select', label: 'Select/Dropdown', description: 'Pilihan dropdown' },
+        { value: 'user_select', label: 'User Select', description: 'Pemilih user' },
+        { value: 'auto', label: 'Auto Generate', description: 'Otomatis diisi sistem' },
+    ];
+
+    const hasLetters = template.letters_count > 0;
+
+    const handleAddVariable = () => {
+        if (!currentVariable.name || !currentVariable.label) {
+            toast.error('Nama dan label variable harus diisi');
+            return;
+        }
+
+        setVariables([...variables, currentVariable]);
+        setCurrentVariable({
+            name: '',
+            type: 'text',
+            label: '',
+            required: false,
+        });
+        setShowVariableDialog(false);
+        toast.success('Variable ditambahkan');
+    };
+
+    const handleRemoveVariable = (index: number) => {
+        setVariables(variables.filter((_, i) => i !== index));
+    };
+
+    const handleInsertVariable = () => {
+        if (variables.length === 0) {
+            setShowVariableDialog(true);
+        } else {
+            setShowInsertVariableDialog(true);
+        }
+    };
+
+    const handleInsertVariableToEditor = (variableName: string) => {
+        if (editorRef.current) {
+            editorRef.current.insertVariable(variableName);
+            setShowInsertVariableDialog(false);
+        }
+    };
+
+    const handleInsertLetterhead = () => {
+        // Selalu buka dialog untuk konfigurasi
+        setShowLetterheadDialog(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!name || !code || !content) {
+            toast.error('Nama, kode, dan konten template harus diisi');
+            return;
+        }
+
+        if (variables.length === 0) {
+            toast.error('Tambahkan minimal satu variable');
+            return;
+        }
+
+        const data = {
+            name,
+            code: code.toUpperCase(),
+            category: category || null,
+            description: description || null,
+            content: JSON.stringify(content),
+            variables: JSON.stringify(variables),
+            letterhead: JSON.stringify(letterhead),
+            signature_layout: signatureLayout,
+            signatures: JSON.stringify(signatures),
+            numbering_format: numberingFormat || null,
+            is_active: isActive,
+            _method: 'PUT',
+        };
+
+        router.post(`/arsip/templates/${template.id}`, data, {
+            onSuccess: () => {
+            },
+            onError: (errors) => {
+                const firstError = Object.values(errors)[0] as string;
+                toast.error(firstError || 'Gagal memperbarui template');
+            },
+        });
+    };
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Edit Template - ${template.name}`} />
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Header */}
+               <div className="my-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-semibold">Edit Template Surat</h2>
+                            <p className="text-xs md:text-sm text-muted-foreground font-mono">Perbarui template surat yang sudah ada</p>
+                        </div>
+                    <div className="flex flex-wrap gap-2">
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => router.visit(`/arsip/templates/${template.id}`)}
+                        >
+                            <X className="h-4 w-4 mr-2" />
+                            Batal
+                        </Button>
+                        <Button type="submit">
+                            <Save className="h-4 w-4 mr-2" />
+                            Simpan Perubahan
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Warning if has letters */}
+                {hasLetters && (
+                    <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            Template ini sudah digunakan oleh {template.letters_count} surat. 
+                            Perubahan yang Anda buat tidak akan mempengaruhi surat yang sudah ada.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {/* Basic Info */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Informasi Template</CardTitle>
+                        <CardDescription>Data dasar template surat</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">
+                                    Nama Template <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="name"
+                                    placeholder="e.g., Surat Keputusan Pengangkatan"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="code">
+                                    Kode <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="code"
+                                    placeholder="e.g., SK"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                                    disabled={hasLetters}
+                                    required
+                                />
+                                {hasLetters && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Kode tidak dapat diubah karena template sudah digunakan
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="category">Kategori</Label>
+                            <Input
+                                id="category"
+                                placeholder="e.g., Kepegawaian"
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Deskripsi</Label>
+                            <Textarea
+                                id="description"
+                                placeholder="Deskripsi template..."
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                rows={3}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="numbering_format">Format Penomoran</Label>
+                            <Input
+                                id="numbering_format"
+                                placeholder="e.g., {{seq}}/{{code}}/{{unit}}/{{month}}/{{year}}"
+                                value={numberingFormat}
+                                onChange={(e) => setNumberingFormat(e.target.value)}
+                            />
+                            <div className="text-xs text-muted-foreground space-y-1">
+                                <p className="font-medium">Placeholder yang tersedia:</p>
+                                <ul className="list-disc list-inside space-y-0.5 ml-2">
+                                    <li><code className="bg-muted px-1 py-0.5 rounded">{'{{seq}}'}</code> - Nomor urut otomatis (001, 002, ...)</li>
+                                    <li><code className="bg-muted px-1 py-0.5 rounded">{'{{code}}'}</code> - Kode template (contoh: SK, SPT)</li>
+                                    <li><code className="bg-muted px-1 py-0.5 rounded">{'{{unit}}'}</code> - Kode unit/bagian (diisi saat buat surat)</li>
+                                    <li><code className="bg-muted px-1 py-0.5 rounded">{'{{month}}'}</code> - Bulan romawi (I-XII)</li>
+                                    <li><code className="bg-muted px-1 py-0.5 rounded">{'{{year}}'}</code> - Tahun penuh (2025)</li>
+                                </ul>
+                                <p className="mt-2">
+                                    <span className="font-medium">Contoh:</span> <code className="bg-muted px-1 py-0.5 rounded">{'{{seq}}/{{code}}/{{unit}}/{{month}}/{{year}}'}</code>
+                                    <br />
+                                    <span className="font-medium">Hasil:</span> <code className="bg-muted px-1 py-0.5 rounded">001/SK/HRD/X/2025</code>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {/* Letterhead Section */}
+                        <div className="border-t pt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <Label>Kop Surat <span className="text-destructive">*</span></Label>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => setShowLetterheadDialog(true)}
+                                >
+                                    {letterhead?.logo ? 'Ubah Kop Surat' : 'Upload Kop Surat'}
+                                </Button>
+                            </div>
+                            {letterhead?.logo ? (
+                                <div className="border rounded-lg p-2 bg-gray-50">
+                                    <div className="bg-white rounded overflow-hidden" style={{ width: '100%', height: '120px' }}>
+                                        <img 
+                                            src={letterhead.logo} 
+                                            alt="Preview Kop Surat" 
+                                            style={{
+                                                width: '100%',
+                                                height: '120px',
+                                                objectFit: 'cover',
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-center mt-2 text-muted-foreground">
+                                        ✓ Kop surat sudah diupload (700 x 178 px saat cetak)
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground">
+                                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">Belum ada kop surat</p>
+                                    <p className="text-xs mt-1">Klik "Upload Kop Surat" untuk menambahkan</p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                id="is_active"
+                                checked={isActive}
+                                onCheckedChange={setIsActive}
+                            />
+                            <Label htmlFor="is_active">Template aktif</Label>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Signature Section */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tanda Tangan</CardTitle>
+                        <CardDescription>Konfigurasi layout dan penandatangan surat</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label>Layout Tanda Tangan</Label>
+                            <SearchableSelect
+                                options={[
+                                    { value: 'bottom_right_1', label: '1 TTD - Kanan Bawah', description: 'Satu tanda tangan di pojok kanan bawah' },
+                                    { value: 'bottom_left_right', label: '2 TTD - Kiri & Kanan', description: 'Dua tanda tangan di kiri dan kanan bawah' },
+                                    { value: 'three_signatures', label: '3 TTD - 2 Atas + 1 Tengah', description: 'Dua di atas kiri-kanan, satu di tengah bawah' },
+                                    { value: 'four_signatures', label: '4 TTD - 2 Atas + 2 Bawah', description: 'Dua di atas dan dua di bawah, kiri-kanan' },
+                                ]}
+                                value={signatureLayout}
+                                onValueChange={setSignatureLayout}
+                                placeholder="Pilih layout tanda tangan"
+                            />
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label>Penandatangan</Label>
+                            {signatures.map((signature, index) => (
+                                <Card key={index} className="bg-muted/30">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm">Penandatangan {index + 1}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <div>
+                                            <Label htmlFor={`signature_user_${index}`}>Pilih User Penandatangan</Label>
+                                            <SearchableSelect
+                                                options={users.map((user) => ({
+                                                    value: user.id.toString(),
+                                                    label: `${user.name} - ${user.position}`,
+                                                    description: user.organization_unit,
+                                                }))}
+                                                value={signature.user_id?.toString() || ''}
+                                                onValueChange={(value) => {
+                                                    const newSignatures = [...signatures];
+                                                    newSignatures[index].user_id = value ? Number(value) : undefined;
+                                                    // Auto-fill label and position with user data
+                                                    const selectedUser = users.find(u => u.id === Number(value));
+                                                    if (selectedUser) {
+                                                        newSignatures[index].label = selectedUser.name;
+                                                        newSignatures[index].position = selectedUser.position || '';
+                                                    }
+                                                    setSignatures(newSignatures);
+                                                }}
+                                                placeholder="-- Pilih User --"
+                                                emptyText="User tidak ditemukan"
+                                                searchPlaceholder="Cari nama atau unit..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor={`signature_label_${index}`}>Nama / Jabatan</Label>
+                                            <Input
+                                                id={`signature_label_${index}`}
+                                                placeholder="Contoh: Dr. John Doe"
+                                                value={signature.label}
+                                                onChange={(e) => {
+                                                    const newSignatures = [...signatures];
+                                                    newSignatures[index].label = e.target.value;
+                                                    setSignatures(newSignatures);
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor={`signature_position_${index}`}>Posisi / Keterangan</Label>
+                                            <Input
+                                                id={`signature_position_${index}`}
+                                                placeholder="Contoh: Direktur Utama"
+                                                value={signature.position}
+                                                onChange={(e) => {
+                                                    const newSignatures = [...signatures];
+                                                    newSignatures[index].position = e.target.value;
+                                                    setSignatures(newSignatures);
+                                                }}
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Variables */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Variables</CardTitle>
+                                <CardDescription>Field yang akan diisi saat membuat surat</CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                                {!variables.some(v => v.name === 'nomor_surat') && (
+                                    <Button 
+                                        type="button" 
+                                        variant="outline"
+                                        onClick={() => {
+                                            setVariables([...variables, {
+                                                name: 'nomor_surat',
+                                                type: 'auto',
+                                                label: 'Nomor Surat',
+                                                required: true,
+                                                default: 'Auto-generated'
+                                            }]);
+                                            toast.success('Variable nomor_surat ditambahkan');
+                                        }}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Tambah Nomor Surat
+                                    </Button>
+                                )}
+                                <Button type="button" onClick={() => setShowVariableDialog(true)}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Tambah Variable
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {variables.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                <p>Belum ada variable</p>
+                                <p className="text-xs mt-1">Klik "Tambah Variable" untuk menambahkan</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {variables.map((variable, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center justify-between p-3 border rounded-lg"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                                                    {'{{' + variable.name + '}}'}
+                                                </code>
+                                                <Badge variant={variable.type === 'auto' ? 'default' : 'outline'}>
+                                                    {variable.type === 'auto' ? '🤖 Auto' : variable.type}
+                                                </Badge>
+                                                {variable.required && (
+                                                    <Badge variant="destructive" className="text-xs">
+                                                        Required
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                {variable.label}
+                                                {variable.type === 'auto' && (
+                                                    <span className="text-xs ml-2 text-blue-600 dark:text-blue-400">
+                                                        (Sistem generate otomatis)
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRemoveVariable(index)}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Content Editor */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Konten Template</CardTitle>
+                        <CardDescription>
+                            Desain isi surat dengan editor. Gunakan variable untuk data dinamis.
+                            <br />
+                            <strong className="text-amber-600">Catatan:</strong> Kop surat dan tanda tangan akan otomatis ditambahkan saat cetak. 
+                            Anda hanya perlu mendesain isi surat.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <TipTapEditor
+                            ref={editorRef}
+                            content={content}
+                            onChange={setContent}
+                            onInsertVariable={handleInsertVariable}
+                            onInsertLetterhead={handleInsertLetterhead}
+                        />
+                    </CardContent>
+                </Card>
+            </form>
+
+            {/* Insert Variable Dialog */}
+            <Dialog open={showInsertVariableDialog} onOpenChange={setShowInsertVariableDialog}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Pilih Variable</DialogTitle>
+                        <DialogDescription>
+                            Pilih variable yang akan dimasukkan ke dalam konten template
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-4">
+                        {variables.map((variable, index) => (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={() => handleInsertVariableToEditor(variable.name)}
+                                className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors text-left"
+                            >
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                                            {'{{' + variable.name + '}}'}
+                                        </code>
+                                        <Badge variant={variable.type === 'auto' ? 'default' : 'outline'}>
+                                            {variable.type === 'auto' ? '🤖 Auto' : variable.type}
+                                        </Badge>
+                                        {variable.required && (
+                                            <Badge variant="destructive" className="text-xs">
+                                                Required
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {variable.label}
+                                        {variable.type === 'auto' && (
+                                            <span className="text-xs ml-2 text-blue-600 dark:text-blue-400">
+                                                (Sistem generate otomatis)
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowInsertVariableDialog(false)}>
+                            Batal
+                        </Button>
+                        <Button type="button" onClick={() => {
+                            setShowInsertVariableDialog(false);
+                            setShowVariableDialog(true);
+                        }}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Tambah Variable Baru
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Variable Dialog */}
+            <Dialog open={showVariableDialog} onOpenChange={setShowVariableDialog}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Tambah Variable</DialogTitle>
+                        <DialogDescription>
+                            Variable akan tersedia saat membuat surat dari template ini
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="var_name">Nama Variable</Label>
+                            <Input
+                                id="var_name"
+                                placeholder="e.g., nomor_surat"
+                                value={currentVariable.name}
+                                onChange={(e) =>
+                                    setCurrentVariable({ ...currentVariable, name: e.target.value.toLowerCase().replace(/\s+/g, '_') })
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="var_label">Label</Label>
+                            <Input
+                                id="var_label"
+                                placeholder="e.g., Nomor Surat"
+                                value={currentVariable.label}
+                                onChange={(e) =>
+                                    setCurrentVariable({ ...currentVariable, label: e.target.value })
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="var_type">Tipe Input</Label>
+                            <SearchableSelect
+                                options={variableTypeOptions}
+                                value={currentVariable.type}
+                                onValueChange={(value: any) =>
+                                    setCurrentVariable({ ...currentVariable, type: value })
+                                }
+                                placeholder="Pilih tipe input"
+                                searchPlaceholder="Cari tipe input..."
+                            />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                id="var_required"
+                                checked={currentVariable.required}
+                                onCheckedChange={(checked) =>
+                                    setCurrentVariable({ ...currentVariable, required: checked })
+                                }
+                            />
+                            <Label htmlFor="var_required">Field wajib diisi</Label>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowVariableDialog(false)}>
+                            Batal
+                        </Button>
+                        <Button type="button" onClick={handleAddVariable}>
+                            Tambah
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Letterhead Dialog */}
+            <Dialog open={showLetterheadDialog} onOpenChange={setShowLetterheadDialog}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Upload Kop Surat</DialogTitle>
+                        <DialogDescription>
+                            Upload gambar kop surat lengkap. Gambar akan ditampilkan dengan ukuran 700x178px saat cetak.
+                            <br />
+                            <strong className="text-amber-600">Catatan:</strong> Kop surat akan otomatis muncul di bagian atas surat, tidak perlu dimasukkan ke konten.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="logo">Gambar Kop Surat <span className="text-destructive">*</span></Label>
+                            <Input
+                                id="logo"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        // Check file size (max 2MB)
+                                        if (file.size > 2 * 1024 * 1024) {
+                                            toast.error('Ukuran file maksimal 2MB');
+                                            return;
+                                        }
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            setLetterhead({ 
+                                                logo: event.target?.result as string,
+                                                width: 700,
+                                                height: 178
+                                            });
+                                        };
+                                        reader.readAsDataURL(file);
+                                        toast.success('Gambar berhasil diupload');
+                                    }
+                                }}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Upload gambar kop surat lengkap (PNG/JPG, max 2MB). 
+                                Ukuran render: <strong>700 x 178 px</strong>
+                            </p>
+                            {letterhead?.logo && (
+                                <div className="mt-2 border rounded-lg p-2">
+                                    <div className="bg-gray-50 rounded overflow-hidden" style={{ width: '100%', height: '178px' }}>
+                                        <img 
+                                            src={letterhead.logo} 
+                                            alt="Preview Kop Surat" 
+                                            style={{
+                                                width: '700px',
+                                                height: '178px',
+                                                objectFit: 'cover',
+                                                maxWidth: '100%',
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-center mt-2 text-muted-foreground">
+                                        Preview: 700 x 178 px (ukuran sebenarnya saat cetak)
+                                    </p>
+                                    
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        className="mt-2 w-full"
+                                        onClick={() => setLetterhead(null)}
+                                    >
+                                        Hapus Gambar
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowLetterheadDialog(false)}>
+                            Batal
+                        </Button>
+                        <Button 
+                            type="button" 
+                            onClick={() => {
+                                if (!letterhead?.logo) {
+                                    toast.error('Upload gambar kop surat terlebih dahulu');
+                                    return;
+                                }
+                                setShowLetterheadDialog(false);
+                            }}
+                        >
+                            Simpan Kop Surat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </AppLayout>
+    );
+}

@@ -39,6 +39,41 @@ class RolePermissionSeeder extends Seeder
             // Settings
             ['name' => 'settings.view', 'display_name' => 'Lihat Settings', 'description' => 'Dapat melihat pengaturan', 'module' => 'Settings'],
             ['name' => 'settings.edit', 'display_name' => 'Edit Settings', 'description' => 'Dapat mengedit pengaturan', 'module' => 'Settings'],
+            
+            // Incoming Letters (Surat Masuk)
+            ['name' => 'incoming_letter.view', 'display_name' => 'Lihat Surat Masuk', 'description' => 'Dapat melihat daftar surat masuk', 'module' => 'Surat Masuk'],
+            ['name' => 'incoming_letter.create', 'display_name' => 'Registrasi Surat Masuk', 'description' => 'Dapat meregistrasi surat masuk baru', 'module' => 'Surat Masuk'],
+            ['name' => 'incoming_letter.edit', 'display_name' => 'Edit Surat Masuk', 'description' => 'Dapat mengedit data surat masuk', 'module' => 'Surat Masuk'],
+            ['name' => 'incoming_letter.delete', 'display_name' => 'Hapus Surat Masuk', 'description' => 'Dapat menghapus surat masuk', 'module' => 'Surat Masuk'],
+            
+            // Dispositions
+            ['name' => 'disposition.view', 'display_name' => 'Lihat Disposisi', 'description' => 'Dapat melihat disposisi', 'module' => 'Disposisi'],
+            ['name' => 'disposition.create', 'display_name' => 'Buat Disposisi', 'description' => 'Dapat membuat disposisi baru', 'module' => 'Disposisi'],
+            ['name' => 'disposition.edit', 'display_name' => 'Edit Disposisi', 'description' => 'Dapat mengedit disposisi', 'module' => 'Disposisi'],
+            ['name' => 'disposition.delete', 'display_name' => 'Hapus Disposisi', 'description' => 'Dapat menghapus disposisi', 'module' => 'Disposisi'],
+            ['name' => 'disposition.update_status', 'display_name' => 'Update Status Disposisi', 'description' => 'Dapat mengubah status disposisi (mulai kerjakan, selesaikan)', 'module' => 'Disposisi'],
+            ['name' => 'disposition.add_follow_up', 'display_name' => 'Tambah Tindak Lanjut', 'description' => 'Dapat menambahkan tindak lanjut pada disposisi', 'module' => 'Disposisi'],
+            ['name' => 'disposition.create_child', 'display_name' => 'Buat Sub-Disposisi', 'description' => 'Dapat membuat disposisi turunan/delegasi', 'module' => 'Disposisi'],
+            
+            // Templates
+            ['name' => 'template.view', 'display_name' => 'Lihat Template', 'description' => 'Dapat melihat template surat', 'module' => 'Template'],
+            ['name' => 'template.create', 'display_name' => 'Buat Template', 'description' => 'Dapat membuat template surat', 'module' => 'Template'],
+            ['name' => 'template.edit', 'display_name' => 'Edit Template', 'description' => 'Dapat mengedit template surat', 'module' => 'Template'],
+            ['name' => 'template.delete', 'display_name' => 'Hapus Template', 'description' => 'Dapat menghapus template surat', 'module' => 'Template'],
+            
+            // Letters (Surat Keluar)
+            ['name' => 'letter.view', 'display_name' => 'Lihat Surat', 'description' => 'Dapat melihat surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'letter.create', 'display_name' => 'Buat Surat', 'description' => 'Dapat membuat surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'letter.edit', 'display_name' => 'Edit Surat', 'description' => 'Dapat mengedit surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'letter.delete', 'display_name' => 'Hapus Surat', 'description' => 'Dapat menghapus surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'letter.approve', 'display_name' => 'Approve Surat', 'description' => 'Dapat menyetujui surat keluar', 'module' => 'Surat Keluar'],
+            
+            // Archives
+            ['name' => 'archive.view', 'display_name' => 'Lihat Arsip', 'description' => 'Dapat melihat daftar arsip', 'module' => 'Arsip'],
+            ['name' => 'archive.create', 'display_name' => 'Tambah Arsip', 'description' => 'Dapat menambah arsip baru', 'module' => 'Arsip'],
+            ['name' => 'archive.edit', 'display_name' => 'Edit Arsip', 'description' => 'Dapat mengedit data arsip', 'module' => 'Arsip'],
+            ['name' => 'archive.delete', 'display_name' => 'Hapus Arsip', 'description' => 'Dapat menghapus arsip', 'module' => 'Arsip'],
+            ['name' => 'archive.download', 'display_name' => 'Download Arsip', 'description' => 'Dapat mendownload file arsip', 'module' => 'Arsip'],
         ];
 
         foreach ($permissions as $permission) {
@@ -56,9 +91,28 @@ class RolePermissionSeeder extends Seeder
             ]
         );
 
+        $userRole = Role::firstOrCreate(
+            ['name' => 'user'],
+            [
+                'display_name' => 'User',
+                'description' => 'User biasa dengan akses terbatas'
+            ]
+        );
+
         
         $allPermissions = Permission::all();
         $adminRole->permissions()->sync($allPermissions->pluck('id'));
+        
+        // User role hanya dapat akses dashboard dan meeting
+        $userPermissions = Permission::whereIn('name', [
+            'dashboard.view',
+            'meeting.view',
+            'meeting.create',
+            'meeting.edit',
+            'organization.view',
+            'room.view',
+        ])->pluck('id');
+        $userRole->permissions()->sync($userPermissions);
 
     }
 }

@@ -37,32 +37,36 @@ export interface SharedData {
 export interface User {
     id: number;
     name: string;
-    email: string;
-    avatar?: string;
-    email_verified_at: string | null;
+    nip: string;
+    password?: string;
+    role_id?: number | null;
+    organization_unit_id?: number | null;
+    position?: string | null;
+    phone?: string | null;
+    remember_token?: string | null;
     created_at: string;
     updated_at: string;
-    role_id?: number;
     role?: Role;
-    [key: string]: unknown; // This allows for additional properties...
+    organization_unit?: OrganizationUnit;
 }
 
 export interface Role {
     id: number;
     name: string;
     display_name: string;
-    description?: string;
+    description?: string | null;
     created_at: string;
     updated_at: string;
     permissions?: Permission[];
     users?: User[];
+    users_count?: number;
 }
 
 export interface Permission {
     id: number;
     name: string;
     display_name: string;
-    description?: string;
+    description?: string | null;
     module: string;
     created_at: string;
     updated_at: string;
@@ -88,3 +92,90 @@ export interface PaginatedData<T> {
     to: number;
     total: number;
 }
+
+// Meeting Module Types
+export interface OrganizationUnit {
+    id: number;
+    code: string;
+    name: string;
+    description?: string | null;
+    parent_id?: number | null;
+    level: number;
+    head_id?: number | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    parent?: OrganizationUnit | null;
+    head?: User | null;
+    children?: OrganizationUnit[];
+    users?: User[];
+    meetings?: Meeting[];
+    users_count?: number;
+    children_count?: number;
+    full_path?: string;
+}
+
+export interface Room {
+    id: number;
+    code: string;
+    name: string;
+    building?: string | null;
+    floor?: string | null;
+    capacity: number;
+    facilities?: string | null;
+    description?: string | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    meetings?: Meeting[];
+    meetings_count?: number;
+    location?: string;
+}
+
+export interface Meeting {
+    id: number;
+    meeting_number: string;
+    title: string;
+    agenda: string;
+    meeting_date: string;
+    start_time: string;
+    end_time: string;
+    room_id: number;
+    organizer_id: number;
+    organization_unit_id?: number | null;
+    status: 'draft' | 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
+    notes?: string | null;
+    minutes_of_meeting?: string | null;
+    memo_content?: string | null;
+    invitation_file?: string | null;
+    memo_file?: string | null;
+    attendance_file?: string | null;
+    created_at: string;
+    updated_at: string;
+    room?: Room;
+    organizer?: User;
+    organization_unit?: OrganizationUnit | null;
+    participants?: MeetingParticipant[];
+    participants_count?: number;
+    attended_participants_count?: number;
+    status_label?: string;
+    status_color?: string;
+}
+
+export interface MeetingParticipant {
+    id: number;
+    meeting_id: number;
+    user_id: number;
+    role: 'participant' | 'moderator' | 'secretary' | 'observer';
+    attendance_status: 'invited' | 'confirmed' | 'attended' | 'absent' | 'excused';
+    check_in_time?: string | null;
+    notes?: string | null;
+    created_at: string;
+    updated_at: string;
+    meeting?: Meeting;
+    user?: User;
+    role_label?: string;
+    attendance_status_label?: string;
+    attendance_status_color?: string;
+}
+

@@ -6,12 +6,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserMenuContent } from '@/components/user-menu-content';
+import { NotificationBell } from '@/components/notification-bell';
 import { useInitials } from '@/hooks/use-initials';
 import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Cog, Folder, Home, LayoutGrid, Menu, Search, Users, Shield, Key } from 'lucide-react';
+import { BookOpen, Cog, Folder, Home, LayoutGrid, Menu, Search, Users, Shield, Key, Calendar, FileText, Archive, MailIcon, FileSignature } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 
@@ -20,6 +21,68 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: '/dashboard',
         icon: Home,
+    },
+    {
+        title: 'Rapat',
+        href: '/meeting',
+        icon: Calendar,
+        children: [
+            {
+                title: 'Daftar Rapat',
+                href: '/meeting/meetings',
+                icon: Folder,
+                permission: 'meeting.view',
+            },
+            {
+                title: 'Daftar Ruangan',
+                href: '/meeting/rooms',
+                icon: Users,
+                permission: 'room.view',
+            },
+            {
+                title: 'Unit Organisasi',
+                href: '/meeting/organizations',
+                icon: BookOpen,
+                permission: 'organization.view',
+            },
+        ],
+    },
+    {
+        title: 'Arsip',
+        href: '/arsip',
+        icon: Archive,
+        children: [
+            {
+                title: 'Surat Masuk',
+                href: '/arsip/incoming-letters',
+                icon: MailIcon,
+                permission: 'incoming_letter.view',
+            },
+            {
+                title: 'Disposisi Saya',
+                href: '/arsip/dispositions',
+                icon: FileSignature,
+                permission: 'disposition.view',
+            },
+            {
+                title: 'Template Surat',
+                href: '/arsip/templates',
+                icon: FileText,
+                permission: 'template.view',
+            },
+            {
+                title: 'Surat',
+                href: '/arsip/letters',
+                icon: FileText,
+                permission: 'letter.view',
+            },
+            {
+                title: 'Arsip Dokumen',
+                href: '/arsip/archives',
+                icon: Archive,
+                permission: 'archive.view',
+            },
+        ],
     },
     {
         title: 'Settings',
@@ -269,12 +332,14 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             </div>
                         </div> */}
 
+                        {/* Notifications */}
+                        <NotificationBell />
+
                         {/* AUTH */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="size-10 rounded-full p-1">
                                     <Avatar className="size-8 overflow-hidden rounded-full">
-                                        <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
                                         <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
                                             {getInitials(auth.user.name)}
                                         </AvatarFallback>
