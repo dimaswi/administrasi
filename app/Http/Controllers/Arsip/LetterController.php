@@ -14,6 +14,7 @@ use App\Services\PDFService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class LetterController extends Controller
@@ -154,7 +155,12 @@ class LetterController extends Controller
             // Update nomor_surat in data for template rendering
             $validated['data']['nomor_surat'] = $letterNumber;
 
-            // Render HTML from template
+            // Clone template content and replace variables in TipTap JSON
+            $letterContent = $this->templateService->replaceVariablesInContent($template->content, $validated['data']);
+            $validated['data']['content'] = $letterContent;
+
+            // Render HTML with kop surat + content with replaced variables
+            // This HTML will be used for preview and PDF generation
             $renderedHtml = $this->templateService->renderTemplate($template, $validated['data']);
 
             // Create letter
@@ -171,9 +177,26 @@ class LetterController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            // Create approval records if submitted for approval
-            if ($validated['submit_type'] === 'submit' && $template->signatures) {
-                $this->createApprovalRecords($letter, $template->signatures);
+            // Extract signatures from template content (yang sudah ada di editor)
+            // Create approval records based on signatures embedded in content
+            // Only if letter is submitted (not draft)
+            if ($validated['submit_type'] === 'submit') {
+                $signatures = $this->templateService->extractSignatures($template->content);
+                
+                Log::info('Creating approval records', [
+                    'letter_id' => $letter->id,
+                    'signatures_found' => count($signatures),
+                    'signatures' => $signatures,
+                ]);
+                
+                foreach ($signatures as $signature) {
+                    $letter->approvals()->create([
+                        'user_id' => $signature['userId'],
+                        'signature_index' => $signature['signatureIndex'],
+                        'position_name' => $signature['position'],
+                        'status' => 'pending',
+                    ]);
+                }
             }
 
             DB::commit();
@@ -202,7 +225,7 @@ class LetterController extends Controller
         }
 
         $letter->load([
-            'template', 
+            'template:id,name,code,letterhead,content', // Include content for frontend rendering
             'creator', 
             'updater',
             'approvals.user.organizationUnit',
@@ -210,23 +233,32 @@ class LetterController extends Controller
             'archive'
         ]);
 
-        // Re-render HTML to ensure nomor_surat is up-to-date
-        // (for backward compatibility with old letters)
+        // Always regenerate HTML from data to ensure latest formatting (e.g., date format)
+        // This ensures any changes to TemplateService formatters are applied
         $letterData = $letter->data;
         $letterData['nomor_surat'] = $letter->letter_number;
-        $renderedHtml = $this->templateService->renderTemplate($letter->template, $letterData);
         
-        // Append signature blocks with approval data
-        $letter->rendered_html = $this->templateService->appendSignatures(
-            $renderedHtml, 
-            $letter->template, 
-            $letter->approvals
-        );
+        // Use renderTemplate which handles both old and new format + applies date formatting
+        $letter->rendered_html = $this->templateService->renderTemplate($letter->template, $letterData);
+        
+        // If letter is approved/fully_signed, inject real QR codes for preview
+        if (in_array($letter->status, ['approved', 'fully_signed'])) {
+            $letter->rendered_html = $this->injectQRCodesForPreview($letter);
+        }
 
         // Check if current user has pending approval
         $userApproval = $letter->approvals()
             ->where('user_id', Auth::id())
             ->first();
+
+        // Debug: Log approval info
+        Log::info('Letter Show Debug', [
+            'letter_id' => $letter->id,
+            'total_approvals' => $letter->approvals()->count(),
+            'user_approval_exists' => $userApproval ? true : false,
+            'user_approval_status' => $userApproval ? $userApproval->status : null,
+            'can_approve' => $userApproval && $userApproval->isPending(),
+        ]);
 
         return Inertia::render('arsip/letters/show', [
             'letter' => $letter,
@@ -447,38 +479,291 @@ class LetterController extends Controller
     }
 
     /**
-     * Approve letter
+     * Approve letter (individual approval)
      */
-    public function approve(Letter $letter)
+    public function approve(Request $request, Letter $letter)
     {
-        if ($letter->status !== 'pending_approval') {
-            return back()->with('error', 'Surat tidak dalam status pending approval');
-        }
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+        ]);
 
         DB::beginTransaction();
         try {
-            // Update letter status
-            $letter->update([
+            $user = Auth::user();
+            
+            // Find pending approval for this user
+            $approval = $letter->approvals()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if (!$approval) {
+                return back()->with('error', 'Anda tidak memiliki approval pending untuk surat ini');
+            }
+
+            // Generate certificate for this signature
+            $certificate = $this->certificateService->generateCertificate($letter, $user, $approval->id);
+            
+            // Generate signature hash
+            $signatureHash = $this->certificateService->generateSignatureHash(
+                $approval->id,
+                $user->id,
+                $letter->letter_number
+            );
+
+            // Update approval status with certificate
+            $approval->update([
                 'status' => 'approved',
-                'approved_by' => Auth::id(),
-                'approved_at' => now(),
+                'notes' => $validated['notes'] ?? null,
+                'signature_data' => json_encode([
+                    'certificate_id' => $certificate->certificate_id,
+                    'signature_hash' => $signatureHash,
+                    'signed_at' => now()->toISOString(),
+                ]),
+                'signed_at' => now(),
             ]);
 
-            // Generate certificate
-            $certificate = $this->certificateService->generateCertificate($letter, Auth::user());
+            // Check if all approvals are completed
+            $allApproved = $letter->approvals()->where('status', '!=', 'approved')->count() === 0;
 
-            // Generate PDF
-            $pdfPath = $this->pdfService->generatePDF($letter, $certificate);
-            $letter->update(['pdf_path' => $pdfPath]);
+            if ($allApproved) {
+                // Update letter status
+                $letter->update([
+                    'status' => 'approved',
+                    'approved_by' => $user->id,
+                    'approved_at' => now(),
+                ]);
+
+                // Generate PDF with all signatures
+                $this->generateLetterPDF($letter);
+
+                DB::commit();
+                return back()->with('success', 'Surat berhasil disetujui. Semua approval telah selesai dan PDF telah dibuat.');
+            }
 
             DB::commit();
-
-            return back()->with('success', 'Surat berhasil disetujui dan PDF telah dibuat');
+            return back()->with('success', 'Approval Anda berhasil disimpan. Menunggu approval dari penandatangan lainnya.');
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal menyetujui surat: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Inject QR codes for preview (approved letters)
+     */
+    private function injectQRCodesForPreview(Letter $letter): string
+    {
+        $html = $letter->rendered_html;
+        
+        // Get all approved approvals
+        $approvals = $letter->approvals()
+            ->where('status', 'approved')
+            ->with('user')
+            ->get();
+        
+        Log::info('Preview QR Injection', [
+            'letter_id' => $letter->id,
+            'approved_count' => $approvals->count(),
+            'html_has_signature' => strpos($html, 'data-type="signature"') !== false,
+        ]);
+        
+        foreach ($approvals as $approval) {
+            $signatureData = json_decode($approval->signature_data, true);
+            
+            // Generate certificate if not exists (for old approvals)
+            if (!$signatureData || !isset($signatureData['certificate_id'])) {
+                $certificate = $this->certificateService->generateCertificate(
+                    $letter, 
+                    $approval->user, 
+                    $approval->id
+                );
+                
+                $signatureHash = $this->certificateService->generateSignatureHash(
+                    $approval->id,
+                    $approval->user->id,
+                    $letter->letter_number
+                );
+                
+                $signatureData = [
+                    'certificate_id' => $certificate->certificate_id,
+                    'signature_hash' => $signatureHash,
+                    'signed_at' => $approval->signed_at ? $approval->signed_at->toISOString() : now()->toISOString(),
+                ];
+                
+                $approval->update(['signature_data' => json_encode($signatureData)]);
+            }
+            
+            // Generate QR code
+            $qrCode = $this->certificateService->generateApprovalQRCodeBase64(
+                $signatureData['certificate_id'],
+                $approval->id
+            );
+            
+            // Replace signature placeholder with QR code image
+            $qrImage = '<img src="data:image/png;base64,' . $qrCode . '" style="width: 56px; height: 56px; display: inline-block; vertical-align: middle; border: 1px solid #333; margin: 0 2px;" alt="QR" title="Scan untuk verifikasi - ' . $approval->user->name . '" />';
+            
+            // Try multiple patterns to match signature spans
+            $patterns = [
+                '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $approval->user_id . '"[^>]*\/>/i',
+                '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $approval->user_id . '"[^>]*><\/span>/i',
+                '/<span[^>]*data-user-id="' . $approval->user_id . '"[^>]*data-type="signature"[^>]*><\/span>/i',
+                '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $approval->user_id . '"[^>]*>.*?<\/span>/is',
+            ];
+            
+            foreach ($patterns as $pattern) {
+                $count = 0;
+                $html = preg_replace($pattern, $qrImage, $html, -1, $count);
+                if ($count > 0) {
+                    Log::info('Preview QR Replaced', [
+                        'user_id' => $approval->user_id,
+                        'user_name' => $approval->user->name,
+                        'count' => $count,
+                        'certificate_id' => $signatureData['certificate_id'],
+                    ]);
+                    break;
+                }
+            }
+        }
+        
+        Log::info('Preview QR Injection Complete', [
+            'has_img_tag' => strpos($html, '<img src="data:image/png;base64,') !== false,
+        ]);
+        
+        // Remove any remaining signature placeholders that weren't replaced with QR codes
+        $html = preg_replace('/<span[^>]*data-type="signature"[^>]*>.*?<\/span>/is', '', $html);
+        
+        // Replace text-based signatures in content with QR codes (tanpa hapus CSS wrapper)
+        foreach ($approvals as $approval) {
+            $signatureData = json_decode($approval->signature_data, true);
+            if ($signatureData && isset($signatureData['certificate_id'])) {
+                $qrCode = $this->certificateService->generateApprovalQRCodeBase64(
+                    $signatureData['certificate_id'],
+                    $approval->id
+                );
+                
+                $userName = $approval->user->name;
+                
+                // Replace entire <span>QR</span> with QR image (ganti seluruh span, bukan hanya teks)
+                // Pattern untuk struktur: <span><span>Label</span><span>QR</span><span>Nama</span></span>
+                $pattern = '/(<span[^>]*>[^<]*<span[^>]*>[^<]*<\/span>[^<]*)<span[^>]*>QR<\/span>([^<]*<span[^>]*>' . preg_quote($userName, '/') . '<\/span><\/span>)/is';
+                $replacement = '$1<img src="data:image/png;base64,' . $qrCode . '" style="width: 85px; height: 85px; display: block; margin: 4px auto;" alt="QR Code" />$2';
+                
+                $count = 0;
+                $html = preg_replace($pattern, $replacement, $html, 1, $count);
+                
+                // Remove border from wrapper span (hapus border dari kotak signature)
+                if ($count > 0) {
+                    // Remove "border: 1px solid ..." from the outermost span
+                    $html = preg_replace(
+                        '/(<span[^>]*style="[^"]*?)border:\s*1px\s+solid[^;]*;?([^"]*")/is',
+                        '$1$2',
+                        $html
+                    );
+                }
+                
+                Log::info('Replaced text QR with image', [
+                    'user_name' => $userName,
+                    'replaced' => $count > 0,
+                ]);
+            }
+        }
+        
+        // If no signatures were replaced (old template without embedded signatures), append QR codes at bottom
+        if (strpos($html, '<img src="data:image/png;base64,') === false && $approvals->count() > 0) {
+            $html .= '<div style="margin-top: 40px; text-align: right; padding-right: 80px;">';
+            foreach ($approvals as $approval) {
+                $signatureData = json_decode($approval->signature_data, true);
+                if ($signatureData && isset($signatureData['certificate_id'])) {
+                    $qrCode = $this->certificateService->generateApprovalQRCodeBase64(
+                        $signatureData['certificate_id'],
+                        $approval->id
+                    );
+                    $html .= '<div style="display: inline-block; text-align: center; margin: 0 10px; vertical-align: top;">';
+                    $html .= '<div style="margin-bottom: 50px; font-size: 12px; font-weight: normal; min-height: 20px;"></div>';
+                    $html .= '<img src="data:image/png;base64,' . $qrCode . '" style="width: 80px; height: 80px; border: 1px solid #333; display: block; margin: 0 auto;" alt="QR" title="Scan untuk verifikasi" />';
+                    $html .= '<div style="margin-top: 5px; font-size: 12px; font-weight: bold; text-decoration: underline;">' . $approval->user->name . '</div>';
+                    $html .= '<div style="font-size: 11px; color: #333;">' . $approval->position_name . '</div>';
+                    if ($approval->user->nip) {
+                        $html .= '<div style="font-size: 10px; color: #666;">NIP: ' . $approval->user->nip . '</div>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            $html .= '</div>';
+            
+            Log::info('Appended QR codes at bottom for old template');
+        }
+        
+        return $html;
+    }
+    
+    /**
+     * Generate PDF for letter with all signatures
+     */
+    private function generateLetterPDF(Letter $letter): void
+    {
+        // Get all approved approvals with certificates
+        $approvals = $letter->approvals()
+            ->where('status', 'approved')
+            ->with('user')
+            ->orderBy('order')
+            ->get();
+
+        $approvalSignatures = [];
+        
+        foreach ($approvals as $approval) {
+            $signatureData = json_decode($approval->signature_data, true);
+            
+            // If approval doesn't have signature_data (old approvals), generate certificate now
+            if (!$signatureData || !isset($signatureData['certificate_id'])) {
+                // Generate certificate for this old approval
+                $certificate = $this->certificateService->generateCertificate(
+                    $letter, 
+                    $approval->user, 
+                    $approval->id
+                );
+                
+                // Generate signature hash
+                $signatureHash = $this->certificateService->generateSignatureHash(
+                    $approval->id,
+                    $approval->user->id,
+                    $letter->letter_number
+                );
+                
+                // Update approval with certificate data
+                $signatureData = [
+                    'certificate_id' => $certificate->certificate_id,
+                    'signature_hash' => $signatureHash,
+                    'signed_at' => $approval->signed_at ? $approval->signed_at->toISOString() : now()->toISOString(),
+                ];
+                
+                $approval->update([
+                    'signature_data' => json_encode($signatureData)
+                ]);
+            }
+            
+            // Generate QR code for this signature
+            $qrCode = $this->certificateService->generateApprovalQRCodeBase64(
+                $signatureData['certificate_id'],
+                $approval->id
+            );
+            
+            $approvalSignatures[] = [
+                'user_id' => $approval->user_id,
+                'signer_name' => $approval->user->name,
+                'position' => $approval->position_name,
+                'nip' => $approval->user->nip,
+                'certificate_id' => $signatureData['certificate_id'],
+                'signed_at' => $approval->signed_at,
+                'qr_code' => $qrCode,
+            ];
+        }
+
+        // Generate PDF with signatures
+        $pdfPath = $this->pdfService->generatePDF($letter, $approvalSignatures);
+        $letter->update(['pdf_path' => $pdfPath]);
     }
 
     /**
@@ -514,6 +799,25 @@ class LetterController extends Controller
         }
 
         return $this->pdfService->downloadPDF($letter);
+    }
+    
+    /**
+     * Regenerate/Generate PDF with signatures
+     */
+    public function regeneratePDF(Letter $letter)
+    {
+        try {
+            // Allow generate PDF for approved or fully_signed status
+            if (!in_array($letter->status, ['approved', 'fully_signed'])) {
+                return back()->with('error', 'Hanya surat yang sudah disetujui yang dapat di-generate PDF');
+            }
+
+            $this->generateLetterPDF($letter);
+
+            return back()->with('success', 'PDF berhasil di-generate dengan semua tanda tangan');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal generate PDF: ' . $e->getMessage());
+        }
     }
 
     /**

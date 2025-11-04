@@ -18,6 +18,7 @@ class LetterTemplate extends Model
         'organization_unit_id',
         'description',
         'content',
+        'content_html',
         'variables',
         'letterhead',
         'signature_layout',

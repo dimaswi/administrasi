@@ -24,186 +24,21 @@ import { toast } from 'sonner';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-
-// Helper function to render TipTap JSON content to HTML
-function renderTipTapContent(content: any): string {
-    if (!content) return '';
-    
-    const renderNode = (node: any): string => {
-        if (!node) return '';
-        
-        // Handle text nodes
-        if (node.type === 'text') {
-            let text = node.text || '';
-            
-            // Only preserve multiple consecutive spaces (for indentation)
-            // Single spaces are handled normally for justify to work
-            text = text.replace(/  +/g, (match: string) => '&nbsp;'.repeat(match.length));
-            
-            // Apply marks (bold, italic, textStyle, etc.)
-            if (node.marks) {
-                node.marks.forEach((mark: any) => {
-                    if (mark.type === 'bold') text = `<strong>${text}</strong>`;
-                    if (mark.type === 'italic') text = `<em>${text}</em>`;
-                    if (mark.type === 'underline') text = `<u>${text}</u>`;
-                    if (mark.type === 'strike') text = `<s>${text}</s>`;
-                    if (mark.type === 'code') text = `<code>${text}</code>`;
-                    
-                    // Handle textStyle mark with fontSize, fontFamily, etc.
-                    if (mark.type === 'textStyle') {
-                        const styles: string[] = [];
-                        if (mark.attrs?.fontSize) styles.push(`font-size: ${mark.attrs.fontSize}`);
-                        if (mark.attrs?.fontFamily) styles.push(`font-family: ${mark.attrs.fontFamily}`);
-                        if (styles.length > 0) {
-                            text = `<span style="${styles.join('; ')}">${text}</span>`;
-                        }
-                    }
-                });
-            }
-            
-            return text;
-        }
-        
-        // Handle block nodes
-        const content = node.content ? node.content.map(renderNode).join('') : '';
-        
-        switch (node.type) {
-            case 'doc':
-                return content;
-            case 'paragraph':
-                const styles: string[] = [];
-                if (node.attrs?.textAlign) {
-                    styles.push(`text-align: ${node.attrs.textAlign}`);
-                }
-                // Handle indent (margin-left from indent extension)
-                if (node.attrs?.indent && node.attrs.indent > 0) {
-                    styles.push(`margin-left: ${node.attrs.indent}px`);
-                }
-                // Handle line-height (don't force default, let CSS handle it)
-                if (node.attrs?.lineHeight && node.attrs.lineHeight !== 'normal') {
-                    styles.push(`line-height: ${node.attrs.lineHeight}`);
-                }
-                const styleAttr = styles.length > 0 ? ` style="${styles.join('; ')}"` : '';
-                // Handle empty paragraph for line breaks
-                const paraContent = content || '&nbsp;';
-                return `<p${styleAttr}>${paraContent}</p>`;
-            case 'heading':
-                const level = node.attrs?.level || 1;
-                const headingStyles: string[] = [];
-                if (node.attrs?.textAlign) {
-                    headingStyles.push(`text-align: ${node.attrs.textAlign}`);
-                }
-                // Handle indent
-                if (node.attrs?.indent && node.attrs.indent > 0) {
-                    headingStyles.push(`margin-left: ${node.attrs.indent}px`);
-                }
-                // Handle line-height
-                if (node.attrs?.lineHeight && node.attrs.lineHeight !== 'normal') {
-                    headingStyles.push(`line-height: ${node.attrs.lineHeight}`);
-                }
-                const headingStyleAttr = headingStyles.length > 0 ? ` style="${headingStyles.join('; ')}"` : '';
-                return `<h${level}${headingStyleAttr}>${content}</h${level}>`;
-            case 'bulletList':
-                return `<ul>${content}</ul>`;
-            case 'orderedList':
-                return `<ol>${content}</ol>`;
-            case 'listItem':
-                return `<li>${content}</li>`;
-            case 'blockquote':
-                return `<blockquote>${content}</blockquote>`;
-            case 'codeBlock':
-                return `<pre><code>${content}</code></pre>`;
-            case 'hardBreak':
-                return '<br>';
-            case 'horizontalRule':
-                return '<hr>';
-            case 'variable':
-                const varName = node.attrs?.name || '';
-                return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{{${varName}}}</span>`;
-            default:
-                return content;
-        }
-    };
-    
-    return renderNode(content);
-}
-
-// Helper function to render signatures based on layout
-function renderSignatures(layout: string, signatures: Signature[]) {
-    const SignatureBox = ({ label, position }: { label: string; position: string }) => (
-        <div className="text-center" style={{ minWidth: '120px', transform: 'scale(0.6)', transformOrigin: 'center' }}>
-            <div style={{ marginBottom: '50px' }}>
-                <div className="text-sm mb-1">{position}</div>
-                <div style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    border: '1px dashed #ccc',
-                    margin: '0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    color: '#999'
-                }}>
-                    QR / TTD
-                </div>
-            </div>
-            <div style={{ borderBottom: '1px solid #000', width: '160px', margin: '0 auto' }}></div>
-            <div className="text-sm mt-1 font-semibold">{label}</div>
-        </div>
-    );
-
-    switch (layout) {
-        case 'bottom_right_1':
-            // Opsi 1: Kanan bawah (1 ttd)
-            return (
-                <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'flex-end', paddingRight: '80px' }}>
-                    <SignatureBox label={signatures[0]?.label || 'Penandatangan'} position={signatures[0]?.position || 'Direktur'} />
-                </div>
-            );
-        
-        case 'bottom_left_right':
-            // Opsi 2: Kiri dan Kanan bawah (2 ttd)
-            return (
-                <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', paddingLeft: '60px', paddingRight: '60px' }}>
-                    <SignatureBox label={signatures[0]?.label || 'Penandatangan 1'} position={signatures[0]?.position || 'Jabatan 1'} />
-                    <SignatureBox label={signatures[1]?.label || 'Penandatangan 2'} position={signatures[1]?.position || 'Jabatan 2'} />
-                </div>
-            );
-        
-        case 'three_signatures':
-            // Opsi 3: Kiri-Kanan atas, Tengah bawah (3 ttd)
-            return (
-                <div style={{ marginTop: '40px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '60px', paddingRight: '60px', marginBottom: '15px' }}>
-                        <SignatureBox label={signatures[0]?.label || 'Penandatangan 1'} position={signatures[0]?.position || 'Jabatan 1'} />
-                        <SignatureBox label={signatures[1]?.label || 'Penandatangan 2'} position={signatures[1]?.position || 'Jabatan 2'} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <SignatureBox label={signatures[2]?.label || 'Mengetahui'} position={signatures[2]?.position || 'Jabatan 3'} />
-                    </div>
-                </div>
-            );
-        
-        case 'four_signatures':
-            // Opsi 4: Kiri-Kanan atas, Kiri-Kanan bawah (4 ttd)
-            return (
-                <div style={{ marginTop: '40px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '60px', paddingRight: '60px', marginBottom: '15px' }}>
-                        <SignatureBox label={signatures[0]?.label || 'Penandatangan 1'} position={signatures[0]?.position || 'Jabatan 1'} />
-                        <SignatureBox label={signatures[1]?.label || 'Penandatangan 2'} position={signatures[1]?.position || 'Jabatan 2'} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '60px', paddingRight: '60px' }}>
-                        <SignatureBox label={signatures[2]?.label || 'Penandatangan 3'} position={signatures[2]?.position || 'Jabatan 3'} />
-                        <SignatureBox label={signatures[3]?.label || 'Penandatangan 4'} position={signatures[3]?.position || 'Jabatan 4'} />
-                    </div>
-                </div>
-            );
-        
-        default:
-            return null;
-    }
-}
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Image } from '@tiptap/extension-image';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { Variable, VariableNode } from '@/components/tiptap/variable-extension';
+import { Letterhead } from '@/components/tiptap/letterhead-extension';
+import { Signature } from '@/components/tiptap/signature-extension';
+import { FontSize, LineHeight } from '@/components/tiptap/font-extensions';
+import { Indent } from '@/extensions/indent';
 
 interface Variable {
     name: string;
@@ -255,6 +90,41 @@ export default function ShowTemplate({ template }: Props) {
         { title: 'Template Surat', href: '/arsip/templates' },
         { title: template.name, href: `/arsip/templates/${template.id}` },
     ];
+
+    // Create read-only editor for preview
+    const previewEditor = useEditor({
+        extensions: [
+            StarterKit.configure({
+                // StarterKit sudah include: underline, gapcursor, dropcursor
+            }),
+            Table.configure({ resizable: true }),
+            TableRow,
+            TableHeader,
+            TableCell,
+            Image,
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            TextStyle,
+            FontFamily.configure({ types: ['textStyle'] }),
+            FontSize,
+            LineHeight,
+            Indent.configure({
+                types: ['paragraph', 'heading', 'listItem'],
+                indentLevels: [0, 30, 60, 90, 120, 150, 180, 210, 240],
+                defaultIndentLevel: 0,
+            }),
+            Variable,
+            VariableNode,
+            Letterhead,
+            Signature,
+        ],
+        content: template.content,
+        editable: false,
+        editorProps: {
+            attributes: {
+                class: 'tiptap-preview focus:outline-none',
+            },
+        },
+    });
 
     const handleDuplicate = () => {
         router.post(`/arsip/templates/${template.id}/duplicate`, {}, {
@@ -529,12 +399,12 @@ export default function ShowTemplate({ template }: Props) {
                     <CardHeader>
                         <CardTitle>Preview Surat</CardTitle>
                         <CardDescription>
-                            Preview tampilan surat lengkap dengan kop surat (seperti saat dicetak)
+                            Preview tampilan surat PERSIS dari editor (TipTap read-only)
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="bg-gray-100 p-6 rounded-lg overflow-auto">
-                            {/* A4 Paper - Same styling as letter preview */}
+                            {/* A4 Paper */}
                             <div 
                                 className="mx-auto bg-white shadow-sm" 
                                 style={{ 
@@ -543,54 +413,8 @@ export default function ShowTemplate({ template }: Props) {
                                     padding: '48px',
                                 }}
                             >
-                                {/* Content with letterhead */}
-                                <div 
-                                    className="template-content"
-                                    style={{
-                                        fontSize: '12pt',
-                                        fontFamily: 'Times New Roman, serif',
-                                        color: '#000',
-                                    }}
-                                >
-                                    <style dangerouslySetInnerHTML={{
-                                        __html: `
-                                            .template-content p {
-                                                margin-bottom: 1em;
-                                            }
-                                            .template-content p:empty {
-                                                min-height: 1em;
-                                            }
-                                            .template-content br {
-                                                display: block;
-                                                content: "";
-                                                margin-top: 0.5em;
-                                            }
-                                            .template-content .variable-placeholder,
-                                            .template-content span[data-variable] {
-                                                display: inline !important;
-                                                line-height: inherit !important;
-                                                vertical-align: baseline !important;
-                                                padding: 2px 8px !important;
-                                                margin: 0 2px !important;
-                                                background: #dbeafe !important;
-                                                color: #1e40af !important;
-                                                border: 1px solid #93c5fd !important;
-                                                border-radius: 4px !important;
-                                                font-family: monospace !important;
-                                                font-size: 0.9em !important;
-                                            }
-                                        `
-                                    }} />
-                                    <div dangerouslySetInnerHTML={{ __html: renderTipTapContent(template.content) }} />
-                                </div>
-
-                                {/* Signature Area */}
-                                {renderSignatures(
-                                    template.signature_layout || 'bottom_right_1', 
-                                    template.signatures && template.signatures.length > 0 
-                                        ? template.signatures 
-                                        : [{ label: 'Penandatangan', position: 'Direktur' }]
-                                )}
+                                {/* Render menggunakan TipTap Editor read-only - output 100% sama dengan editor */}
+                                {previewEditor && <EditorContent editor={previewEditor} />}
                             </div>
                         </div>
                     </CardContent>

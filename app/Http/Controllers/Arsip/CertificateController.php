@@ -29,6 +29,38 @@ class CertificateController extends Controller
             'result' => $result,
         ]);
     }
+    
+    /**
+     * Verify signature on approval (public route)
+     */
+    public function verifySignature(string $certificateId, int $approvalId)
+    {
+        $result = $this->certificateService->verifyCertificate($certificateId);
+        
+        // Load approval data
+        $approval = \App\Models\LetterApproval::with(['user', 'letter'])
+            ->find($approvalId);
+        
+        if ($approval) {
+            $signatureData = json_decode($approval->signature_data, true);
+            
+            $result['approval'] = [
+                'id' => $approval->id,
+                'signer_name' => $approval->user->name,
+                'position' => $approval->position_name,
+                'nip' => $approval->user->nip,
+                'signed_at' => $approval->signed_at,
+                'status' => $approval->status,
+                'letter_number' => $approval->letter->letter_number,
+                'letter_subject' => $approval->letter->subject,
+                'signature_hash' => $signatureData['signature_hash'] ?? null,
+            ];
+        }
+
+        return Inertia::render('arsip/verify-signature', [
+            'result' => $result,
+        ]);
+    }
 
     /**
      * Revoke certificate

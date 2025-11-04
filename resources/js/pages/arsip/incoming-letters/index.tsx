@@ -171,7 +171,8 @@ export default function IncomingLettersIndex({ auth, letters, filters, statuses,
                 {/* Header */}
                 <div className="flex justify-between items-center my-6">
                     <div>
-                        
+                        <h2 className="text-xl font-semibold md:text-2xl">Surat Masuk</h2>
+                        <p className="font-mono text-xs text-muted-foreground md:text-sm">Kelola dan cari surat masuk</p>
                     </div>
                     <div className="flex gap-2">
                         <Button 

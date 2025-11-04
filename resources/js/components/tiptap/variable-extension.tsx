@@ -1,23 +1,22 @@
-import { Node, mergeAttributes } from '@tiptap/core';
-import { ReactNodeViewRenderer } from '@tiptap/react';
-import { NodeViewWrapper } from '@tiptap/react';
+import { Mark, mergeAttributes, Node } from '@tiptap/core';
 
-// Variable Node Extension
-export const Variable = Node.create({
+// Variable as Mark (like bold/italic) - the ONLY way to not disrupt line-height
+export const Variable = Mark.create({
     name: 'variable',
-    group: 'inline',
-    inline: true,
-    atom: true,
-    selectable: true,
-    draggable: false,
 
     addAttributes() {
         return {
             name: {
                 default: null,
-            },
-            label: {
-                default: null,
+                parseHTML: element => element.getAttribute('data-variable'),
+                renderHTML: attributes => {
+                    if (!attributes.name) {
+                        return {};
+                    }
+                    return {
+                        'data-variable': attributes.name,
+                    };
+                },
             },
         };
     },
@@ -30,71 +29,52 @@ export const Variable = Node.create({
         ];
     },
 
-    renderHTML({ node, HTMLAttributes }) {
-        return [
-            'span',
-            mergeAttributes(HTMLAttributes, {
-                'data-variable': node.attrs.name,
-                'class': 'variable-placeholder',
-                'style': 'display: inline-block;',
-            }),
-            `{{${node.attrs.name}}}`,
-        ];
-    },
-
-    addNodeView() {
-        return ReactNodeViewRenderer(VariableComponent);
-    },
-    
-    addKeyboardShortcuts() {
-        return {
-            // Allow typing after variable with space or arrow keys
-            'ArrowRight': ({ editor }) => {
-                const { selection } = editor.state;
-                const { $from } = selection;
-                
-                // Check if we're at a variable node
-                if ($from.parent.type.name === 'variable') {
-                    // Move cursor to after the variable
-                    const pos = $from.after();
-                    editor.commands.setTextSelection(pos);
-                    return true;
-                }
-                
-                return false;
-            },
-            'Space': ({ editor }) => {
-                const { selection } = editor.state;
-                const { $from } = selection;
-                
-                // Check if cursor is right after a variable
-                const nodeBefore = $from.nodeBefore;
-                if (nodeBefore && nodeBefore.type.name === 'variable') {
-                    // Insert a space after the variable
-                    editor.commands.insertContent(' ');
-                    return true;
-                }
-                
-                return false;
-            },
-        };
+    renderHTML({ HTMLAttributes }) {
+        return ['span', mergeAttributes(HTMLAttributes, {
+            class: 'variable-placeholder',
+            style: 'background-color: #dbeafe; color: #1e40af; padding: 0 3px;',
+        }), 0];
     },
 });
 
-function VariableComponent({ node }: any) {
-    return (
-        <NodeViewWrapper className="inline-block align-baseline">
-            <span
-                className="px-2 py-0.5 mx-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-sm text-sm font-mono border border-blue-300 dark:border-blue-700 inline-block align-baseline"
-                contentEditable={false}
-                style={{
-                    display: 'inline-block',
-                    verticalAlign: 'baseline',
-                    lineHeight: 'inherit',
-                }}
-            >
-                {`{{${node.attrs.name}}}`}
-            </span>
-        </NodeViewWrapper>
-    );
-}
+// Legacy Variable Node for backward compatibility with old templates
+// This will automatically convert old Node-based variables to Mark-based
+export const VariableNode = Node.create({
+    name: 'variableNode',
+    
+    group: 'inline',
+    inline: true,
+    atom: true,
+
+    addAttributes() {
+        return {
+            name: {
+                default: null,
+            },
+        };
+    },
+
+    parseHTML() {
+        return [
+            {
+                tag: 'span.variable-node',
+                getAttrs: (element) => {
+                    if (typeof element === 'string') return false;
+                    const name = element.getAttribute('data-variable');
+                    return name ? { name } : false;
+                },
+            },
+        ];
+    },
+
+    renderHTML({ node }) {
+        // Atom nodes should not have content hole
+        // Instead, we render the text directly as an attribute or text node
+        return ['span', {
+            class: 'variable-placeholder',
+            'data-variable': node.attrs.name,
+            'data-content': `{{${node.attrs.name}}}`,
+            style: 'background-color: #dbeafe; color: #1e40af; padding: 0 3px;',
+        }];
+    },
+});

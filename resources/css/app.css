@@ -238,6 +238,11 @@
     margin-bottom: 1.25em;
 }
 
+.prose p:empty {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
 .prose strong {
     font-weight: 600;
 }
@@ -292,4 +297,108 @@
     float: left;
     height: 0;
     pointer-events: none;
+}
+
+/* Drag Handle Styles for Signature */
+.ProseMirror [data-drag-handle] {
+    cursor: move !important;
+}
+
+.ProseMirror .signature-wrapper {
+    position: relative;
+}
+
+.ProseMirror .signature-wrapper.ProseMirror-selectednode {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Ensure signature is draggable */
+.ProseMirror [data-type="signature"] {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Signature Box Styles - BIGGER for preview/print */
+.signature-wrapper {
+    display: inline-block;
+    margin: 0 8px;
+    vertical-align: bottom;
+}
+
+/* Scale up signature box for preview/print - keep small in editor */
+.tiptap-preview .signature-wrapper {
+    transform: scale(2);
+    transform-origin: bottom left;
+    margin: 20px 60px 60px 20px;
+}
+
+@media print {
+    .signature-wrapper {
+        transform: scale(2.5);
+        transform-origin: bottom left;
+        margin: 30px 80px 80px 30px;
+    }
+}
+
+/* Preserve whitespace and tab for aligned text */
+.ProseMirror p,
+.ProseMirror div {
+    white-space: pre-wrap; /* Preserve spaces, tabs and line breaks */
+    tab-size: 20; /* Set tab width to align colons nicely */
+    -moz-tab-size: 20;
+}
+
+/* Also apply to rendered content */
+p, div {
+    white-space: pre-wrap;
+    tab-size: 20;
+    -moz-tab-size: 20;
+}
+
+/* Reduce spacing for empty paragraphs */
+.ProseMirror p:empty {
+    margin: 0.25em 0; /* Smaller margin for empty lines */
+}
+
+/* Also apply to rendered content */
+p:empty {
+    margin: 0.25em 0;
+    line-height: 0.5;
+}
+
+/* Monospace font helper for alignment */
+.ProseMirror [style*="font-family: 'Courier New'"],
+.ProseMirror [style*="font-family: Courier New"] {
+    letter-spacing: 0;
+}
+
+/* Borderless Table Styles - untuk align label:value */
+.ProseMirror table.borderless,
+table.borderless {
+    border: none !important;
+    margin: 0.5em 0 !important;
+}
+
+.ProseMirror table.borderless td,
+.ProseMirror table.borderless th,
+table.borderless td,
+table.borderless th {
+    border: none !important;
+    padding: 2px 8px !important;
+    vertical-align: top !important;
+}
+
+.ProseMirror table.borderless td:first-child,
+table.borderless td:first-child {
+    width: 150px;
+    white-space: nowrap;
+    font-weight: normal;
+}
+
+.ProseMirror table.borderless td:last-child,
+table.borderless td:last-child {
+    width: auto;
 }

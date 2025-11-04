@@ -36,6 +36,9 @@ interface Signature {
     label: string;
     position: string;
     user_id?: number;
+    placement?: 'left' | 'center' | 'right' | 'custom';
+    customX?: number; // percentage from left (0-100)
+    customY?: number; // percentage from top (0-100)
 }
 
 interface User {
@@ -86,18 +89,15 @@ export default function EditTemplate({ template, users }: Props) {
         Array.isArray(template.variables) ? template.variables : []
     );
     const [letterhead, setLetterhead] = useState<any>(template.letterhead || {});
-    const [signatureLayout, setSignatureLayout] = useState(template.signature_layout || 'bottom_right_1');
-    const [signatures, setSignatures] = useState<Signature[]>(
-        template.signatures && template.signatures.length > 0 
-            ? template.signatures 
-            : [{ label: '', position: '', user_id: undefined }]
-    );
+    // Signature layout dan signatures tidak digunakan lagi, TTD sudah embedded di content
+    const [signatures, setSignatures] = useState<Signature[]>([]);
     const [numberingFormat, setNumberingFormat] = useState(template.numbering_format || '');
     const [isActive, setIsActive] = useState(template.is_active);
 
     const [showVariableDialog, setShowVariableDialog] = useState(false);
     const [showLetterheadDialog, setShowLetterheadDialog] = useState(false);
     const [showInsertVariableDialog, setShowInsertVariableDialog] = useState(false);
+    const [showInsertSignatureDialog, setShowInsertSignatureDialog] = useState(false);
     const [currentVariable, setCurrentVariable] = useState<Variable>({
         name: '',
         type: 'text',
@@ -106,23 +106,6 @@ export default function EditTemplate({ template, users }: Props) {
     });
 
     const editorRef = useRef<TipTapEditorRef>(null);
-
-    // Update signatures count based on layout
-    useEffect(() => {
-        const signatureCount = {
-            'bottom_right_1': 1,
-            'bottom_left_right': 2,
-            'three_signatures': 3,
-            'four_signatures': 4,
-        }[signatureLayout] || 1;
-
-        setSignatures((prev) => {
-            const newSignatures = Array.from({ length: signatureCount }, (_, i) => 
-                prev[i] || { label: '', position: '', user_id: undefined }
-            );
-            return newSignatures;
-        });
-    }, [signatureLayout]);
 
     const variableTypeOptions: SearchableSelectOption[] = [
         { value: 'text', label: 'Text', description: 'Input teks satu baris' },
@@ -177,6 +160,53 @@ export default function EditTemplate({ template, users }: Props) {
         setShowLetterheadDialog(true);
     };
 
+    const handleInsertSignature = () => {
+        setShowInsertSignatureDialog(true);
+    };
+
+    const handleInsertSignatureToEditor = (signatureIndex: number) => {
+        if (editorRef.current) {
+            const signature = signatures[signatureIndex];
+            
+            if (!signature.user_id) {
+                toast.error('Pilih user terlebih dahulu sebelum menyisipkan tanda tangan');
+                return;
+            }
+            
+            // Check if this user already has a signature in the editor
+            const editorContent = editorRef.current.getHTML();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(editorContent, 'text/html');
+            const existingSignatures = doc.querySelectorAll('[data-type="signature"]');
+            
+            // Debug: log existing signatures
+            console.log('Existing signatures:', Array.from(existingSignatures).map(sig => ({
+                userId: sig.getAttribute('data-user-id'),
+                userName: sig.getAttribute('data-user-name')
+            })));
+            console.log('Trying to insert user_id:', signature.user_id?.toString());
+            
+            const alreadyExists = Array.from(existingSignatures).some(
+                (sig) => sig.getAttribute('data-user-id') === signature.user_id?.toString()
+            );
+            
+            if (alreadyExists) {
+                toast.error(`Tanda tangan ${signature.label} sudah ada di konten. Satu user hanya boleh 1 TTD.`);
+                return;
+            }
+            
+            editorRef.current.insertSignature({
+                signatureIndex,
+                userName: signature.label || 'Nama Penandatangan',
+                position: signature.position || 'Jabatan',
+                placement: signature.placement || 'right',
+                userId: signature.user_id,
+            });
+            setShowInsertSignatureDialog(false);
+            toast.success('Tanda tangan berhasil disisipkan');
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -190,16 +220,28 @@ export default function EditTemplate({ template, users }: Props) {
             return;
         }
 
+        // Warn user if they have signatures in form but not inserted to editor
+        if (signatures.length > 0) {
+            const hasUserIdFilled = signatures.some(sig => sig.user_id);
+            if (hasUserIdFilled) {
+                toast.warning('Form penandatangan tidak tersimpan otomatis. Pastikan sudah disisipkan ke editor dengan tombol "Sisipkan TTD"');
+            }
+        }
+
+        // Get HTML from editor
+        const contentHtml = editorRef.current?.getHTML() || '';
+
         const data = {
             name,
             code: code.toUpperCase(),
             category: category || null,
             description: description || null,
             content: JSON.stringify(content),
+            content_html: contentHtml,
             variables: JSON.stringify(variables),
             letterhead: JSON.stringify(letterhead),
-            signature_layout: signatureLayout,
-            signatures: JSON.stringify(signatures),
+            signatures: JSON.stringify(signatures), // Simpan data signatures
+            signature_layout: 'bottom_right_1', // Default value untuk NOT NULL constraint
             numbering_format: numberingFormat || null,
             is_active: isActive,
             _method: 'PUT',
@@ -389,31 +431,54 @@ export default function EditTemplate({ template, users }: Props) {
                 {/* Signature Section */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Tanda Tangan</CardTitle>
-                        <CardDescription>Konfigurasi layout dan penandatangan surat</CardDescription>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Tanda Tangan</CardTitle>
+                                <CardDescription>Daftar penandatangan yang bisa disisipkan ke konten surat</CardDescription>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setSignatures([...signatures, { label: '', position: '', user_id: undefined, placement: 'right' }]);
+                                }}
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Penandatangan
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div>
-                            <Label>Layout Tanda Tangan</Label>
-                            <SearchableSelect
-                                options={[
-                                    { value: 'bottom_right_1', label: '1 TTD - Kanan Bawah', description: 'Satu tanda tangan di pojok kanan bawah' },
-                                    { value: 'bottom_left_right', label: '2 TTD - Kiri & Kanan', description: 'Dua tanda tangan di kiri dan kanan bawah' },
-                                    { value: 'three_signatures', label: '3 TTD - 2 Atas + 1 Tengah', description: 'Dua di atas kiri-kanan, satu di tengah bawah' },
-                                    { value: 'four_signatures', label: '4 TTD - 2 Atas + 2 Bawah', description: 'Dua di atas dan dua di bawah, kiri-kanan' },
-                                ]}
-                                value={signatureLayout}
-                                onValueChange={setSignatureLayout}
-                                placeholder="Pilih layout tanda tangan"
-                            />
-                        </div>
-
-                        <div className="space-y-3">
-                            <Label>Penandatangan</Label>
+                        {signatures.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                <p>Belum ada penandatangan</p>
+                                <p className="text-xs mt-1">Klik "Tambah Penandatangan" untuk menambahkan</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
                             {signatures.map((signature, index) => (
                                 <Card key={index} className="bg-muted/30">
                                     <CardHeader className="pb-3">
-                                        <CardTitle className="text-sm">Penandatangan {index + 1}</CardTitle>
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-sm">Penandatangan {index + 1}</CardTitle>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const signature = signatures[index];
+                                                    // Remove signature from editor if it has a user_id
+                                                    if (signature.user_id && editorRef.current) {
+                                                        editorRef.current.removeSignatureByUserId(signature.user_id);
+                                                    }
+                                                    setSignatures(signatures.filter((_, i) => i !== index));
+                                                    toast.success('Penandatangan dihapus dari form dan konten');
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
                                         <div>
@@ -470,6 +535,13 @@ export default function EditTemplate({ template, users }: Props) {
                                     </CardContent>
                                 </Card>
                             ))}
+                        </div>
+                        )}
+
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/20">
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                                <strong className="text-blue-600">💡 Cara Penggunaan:</strong> Konfigurasikan penandatangan di sini, lalu sisipkan ke konten surat dengan klik tombol <strong>"✍️ Tanda Tangan"</strong> di toolbar editor. Anda bisa menempatkan tanda tangan di mana saja dalam dokumen.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
@@ -579,6 +651,7 @@ export default function EditTemplate({ template, users }: Props) {
                             onChange={setContent}
                             onInsertVariable={handleInsertVariable}
                             onInsertLetterhead={handleInsertLetterhead}
+                            onInsertSignature={handleInsertSignature}
                         />
                     </CardContent>
                 </Card>
@@ -797,6 +870,56 @@ export default function EditTemplate({ template, users }: Props) {
                             }}
                         >
                             Simpan Kop Surat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Insert Signature Dialog */}
+            <Dialog open={showInsertSignatureDialog} onOpenChange={setShowInsertSignatureDialog}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Sisipkan Tanda Tangan</DialogTitle>
+                        <DialogDescription>
+                            Pilih tanda tangan yang akan disisipkan ke dalam konten template
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-4">
+                        {signatures.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <p>Belum ada konfigurasi tanda tangan</p>
+                                <p className="text-xs mt-1">Konfigurasikan tanda tangan terlebih dahulu di bagian "Tanda Tangan"</p>
+                            </div>
+                        ) : (
+                            signatures.map((signature, index) => (
+                                <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => handleInsertSignatureToEditor(index)}
+                                    className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors text-left"
+                                >
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-sm">
+                                                    {signature.label || `Penandatangan ${index + 1}`}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {signature.position || 'Jabatan'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowInsertSignatureDialog(false)}>
+                            Batal
                         </Button>
                     </DialogFooter>
                 </DialogContent>

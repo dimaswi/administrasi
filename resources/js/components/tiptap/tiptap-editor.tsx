@@ -1,7 +1,6 @@
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { useImperativeHandle, forwardRef } from 'react';
 import StarterKit from '@tiptap/starter-kit';
-import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -10,11 +9,13 @@ import { Placeholder } from '@tiptap/extension-placeholder';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
-import { Underline } from '@tiptap/extension-underline';
-import { Variable } from './variable-extension';
+import { Variable, VariableNode } from './variable-extension';
 import { Letterhead } from './letterhead-extension';
+import { Signature } from './signature-extension';
 import { FontSize, LineHeight } from './font-extensions';
 import { Indent } from '@/extensions/indent';
+import { TableExtended } from './extensions/table-extended';
+import { Tab } from './extensions/tab-extension';
 import { Button } from '@/components/ui/button';
 import {
     Bold,
@@ -52,11 +53,15 @@ interface TipTapEditorProps {
     editable?: boolean;
     onInsertVariable?: () => void;
     onInsertLetterhead?: () => void;
+    onInsertSignature?: () => void;
 }
 
 export interface TipTapEditorRef {
     insertVariable: (name: string) => void;
     insertLetterhead: (data: any) => void;
+    insertSignature: (data: any) => void;
+    removeSignatureByUserId: (userId: number) => void;
+    getHTML: () => string;
 }
 
 export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
@@ -66,11 +71,15 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
     editable = true,
     onInsertVariable,
     onInsertLetterhead,
+    onInsertSignature,
 }, ref) => {
     const editor = useEditor({
         extensions: [
-            StarterKit,
-            Table.configure({
+            StarterKit.configure({
+                // StarterKit includes: bold, italic, strike, code, history, paragraph, text, heading, bulletList, orderedList, listItem, blockquote, codeBlock, horizontalRule, hardBreak, dropcursor, gapcursor
+                // We don't need to add them separately
+            }),
+            TableExtended.configure({
                 resizable: true,
             }),
             TableRow,
@@ -87,7 +96,6 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
             FontFamily.configure({
                 types: ['textStyle'],
             }),
-            Underline,
             FontSize,
             LineHeight,
             Indent.configure({
@@ -96,13 +104,17 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
                 defaultIndentLevel: 0,
             }),
             Variable,
+            VariableNode, // Backward compatibility for old Node-based variables
             Letterhead,
+            Signature,
+            Tab, // Enable Tab key for spacing
         ],
         content,
         editable,
         editorProps: {
             attributes: {
-                class: 'prose prose-sm max-w-none focus:outline-none',
+                class: 'tiptap-editor',
+                style: 'outline: none;',
             },
         },
         onUpdate: ({ editor }) => {
@@ -116,10 +128,20 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
     useImperativeHandle(ref, () => ({
         insertVariable: (name: string) => {
             if (editor) {
-                editor.chain().focus().insertContent({
-                    type: 'variable',
-                    attrs: { name },
-                }).run();
+                const varText = `{{${name}}}`;
+                editor.chain().focus()
+                    .insertContent({
+                        type: 'text',
+                        text: varText,
+                        marks: [
+                            {
+                                type: 'variable',
+                                attrs: { name },
+                            },
+                        ],
+                    })
+                    .insertContent(' ')
+                    .run();
             }
         },
         insertLetterhead: (data: any) => {
@@ -130,6 +152,33 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
                 }).run();
             }
         },
+        insertSignature: (data: any) => {
+            if (editor) {
+                editor.chain().focus().insertSignature(data).run();
+            }
+        },
+        removeSignatureByUserId: (userId: number) => {
+            if (editor) {
+                // Traverse editor content and remove all signature nodes with matching userId
+                const { state, view } = editor;
+                const tr = state.tr;
+                let hasChanges = false;
+
+                state.doc.descendants((node, pos) => {
+                    if (node.type.name === 'signature' && node.attrs.userId === userId) {
+                        tr.delete(pos, pos + node.nodeSize);
+                        hasChanges = true;
+                    }
+                });
+
+                if (hasChanges) {
+                    view.dispatch(tr);
+                }
+            }
+        },
+        getHTML: () => {
+            return editor?.getHTML() || '';
+        },
     }));
 
     if (!editor) {
@@ -139,18 +188,89 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
     return (
         <div className="border rounded-lg overflow-hidden bg-gray-100">
             {/* Toolbar */}
-            {editable && <MenuBar editor={editor} onInsertVariable={onInsertVariable} onInsertLetterhead={onInsertLetterhead} />}
+            {editable && <MenuBar editor={editor} onInsertVariable={onInsertVariable} onInsertLetterhead={onInsertLetterhead} onInsertSignature={onInsertSignature} />}
 
             {/* A4 Paper Container - 210mm x 297mm at 96 DPI = 794px x 1123px */}
             <div className="p-4 overflow-x-auto">
                 <div className="mx-auto bg-white shadow-lg" style={{ width: '794px', minHeight: '1123px' }}>
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                            .ProseMirror table {
+                                border-collapse: collapse;
+                                table-layout: fixed;
+                                width: 100%;
+                                margin: 1em 0;
+                                overflow: hidden;
+                            }
+                            
+                            .ProseMirror table td,
+                            .ProseMirror table th {
+                                min-width: 1em;
+                                border: 1px solid #ddd;
+                                padding: 6px 8px;
+                                vertical-align: top;
+                                box-sizing: border-box;
+                                position: relative;
+                            }
+                            
+                            /* Borderless table for aligned lists */
+                            .ProseMirror table.borderless td,
+                            .ProseMirror table.borderless th {
+                                border: none;
+                                padding: 2px 8px;
+                            }
+                            
+                            .ProseMirror table.borderless td:first-child {
+                                width: 150px;
+                                white-space: nowrap;
+                            }
+                            
+                            .ProseMirror table th {
+                                font-weight: bold;
+                                text-align: left;
+                                background-color: #f3f4f6;
+                            }
+                            
+                            .ProseMirror table .selectedCell:after {
+                                z-index: 2;
+                                position: absolute;
+                                content: "";
+                                left: 0; right: 0; top: 0; bottom: 0;
+                                background: rgba(200, 200, 255, 0.4);
+                                pointer-events: none;
+                            }
+                            
+                            .ProseMirror table .column-resize-handle {
+                                position: absolute;
+                                right: -2px;
+                                top: 0;
+                                bottom: -2px;
+                                width: 4px;
+                                background-color: #adf;
+                                pointer-events: none;
+                            }
+                            
+                            .ProseMirror .tableWrapper {
+                                padding: 1rem 0;
+                                overflow-x: auto;
+                            }
+                            
+                            .ProseMirror .resize-cursor {
+                                cursor: ew-resize;
+                                cursor: col-resize;
+                            }
+                        `
+                    }} />
                     <EditorContent
                         editor={editor}
-                        className={cn(
-                            'prose prose-sm max-w-none p-8 focus:outline-none',
-                            'dark:prose-invert',
-                            '[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[1123px]'
-                        )}
+                        className="p-8"
+                        style={{
+                            fontFamily: 'Times New Roman, serif',
+                            fontSize: '12pt',
+                            color: '#000',
+                            minHeight: '1123px',
+                            outline: 'none',
+                        }}
                     />
                 </div>
             </div>
@@ -158,10 +278,11 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
     );
 });
 
-function MenuBar({ editor, onInsertVariable, onInsertLetterhead }: { 
+function MenuBar({ editor, onInsertVariable, onInsertLetterhead, onInsertSignature }: { 
     editor: Editor; 
     onInsertVariable?: () => void; 
     onInsertLetterhead?: () => void;
+    onInsertSignature?: () => void;
 }) {
     const handleButtonClick = (callback: () => void) => (e: React.MouseEvent) => {
         e.preventDefault();
@@ -371,15 +492,47 @@ function MenuBar({ editor, onInsertVariable, onInsertLetterhead }: {
 
             <div className="w-px h-6 bg-border mx-1" />
 
-            {/* Table */}
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleButtonClick(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}
-            >
-                <TableIcon className="h-4 w-4" />
-            </Button>
+            {/* Table Controls */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm">
+                        <TableIcon className="h-4 w-4 mr-2" />
+                        Table
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}>
+                        Insert Table (3x3)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().addColumnBefore().run())} disabled={!editor.can().addColumnBefore()}>
+                        Add Column Before
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().addColumnAfter().run())} disabled={!editor.can().addColumnAfter()}>
+                        Add Column After
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().deleteColumn().run())} disabled={!editor.can().deleteColumn()}>
+                        Delete Column
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().addRowBefore().run())} disabled={!editor.can().addRowBefore()}>
+                        Add Row Before
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().addRowAfter().run())} disabled={!editor.can().addRowAfter()}>
+                        Add Row After
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().deleteRow().run())} disabled={!editor.can().deleteRow()}>
+                        Delete Row
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().deleteTable().run())} disabled={!editor.can().deleteTable()} className="text-destructive">
+                        Delete Table
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().mergeCells().run())} disabled={!editor.can().mergeCells()}>
+                        Merge Cells
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().splitCell().run())} disabled={!editor.can().splitCell()}>
+                        Split Cell
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
             <div className="w-px h-6 bg-border mx-1" />
 
@@ -402,6 +555,16 @@ function MenuBar({ editor, onInsertVariable, onInsertLetterhead }: {
                     onClick={handleButtonClick(onInsertVariable)}
                 >
                     {`{{ }}`} Variable
+                </Button>
+            )}
+            {onInsertSignature && (
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleButtonClick(onInsertSignature)}
+                >
+                    ✍️ Tanda Tangan
                 </Button>
             )}
         </div>

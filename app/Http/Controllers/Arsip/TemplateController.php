@@ -102,10 +102,11 @@ class TemplateController extends Controller
             'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'content' => 'required|string',
+            'content_html' => 'nullable|string',
             'variables' => 'required|string',
             'letterhead' => 'nullable|string',
-            'signature_layout' => 'nullable|string|in:bottom_right_1,bottom_left_right,three_signatures,four_signatures',
             'signatures' => 'nullable|string',
+            'signature_layout' => 'nullable|string',
             'numbering_format' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
@@ -114,7 +115,18 @@ class TemplateController extends Controller
         $validated['content'] = json_decode($validated['content'], true);
         $validated['variables'] = json_decode($validated['variables'], true);
         $validated['letterhead'] = isset($validated['letterhead']) ? json_decode($validated['letterhead'], true) : null;
-        $validated['signatures'] = isset($validated['signatures']) ? json_decode($validated['signatures'], true) : null;
+        
+        // Parse signatures if provided
+        if (isset($validated['signatures'])) {
+            $validated['signatures'] = json_decode($validated['signatures'], true);
+        } else {
+            $validated['signatures'] = [];
+        }
+        
+        // Ensure signature_layout has value (NOT NULL constraint)
+        if (!isset($validated['signature_layout']) || empty($validated['signature_layout'])) {
+            $validated['signature_layout'] = 'bottom_right_1';
+        }
 
         // Auto-assign organization_unit_id from user
         $validated['organization_unit_id'] = Auth::user()->organization_unit_id;
@@ -133,6 +145,14 @@ class TemplateController extends Controller
     {
         $template->load('creator', 'updater');
         $template->loadCount('letters');
+
+        // Use stored HTML if available, otherwise render from JSON for backward compatibility
+        if (!empty($template->content_html)) {
+            $template->rendered_html = $template->content_html;
+        } else {
+            // Fallback: render from JSON (for old templates created before HTML storage)
+            $template->rendered_html = $this->templateService->jsonToHtml($template->content);
+        }
 
         return Inertia::render('arsip/templates/show', [
             'template' => $template,
@@ -159,8 +179,19 @@ class TemplateController extends Controller
                 ];
             });
 
+        // Convert old Variable Node format to new Variable Mark format for backward compatibility
+        $content = $template->content;
+        if (is_array($content)) {
+            $content = $this->templateService->convertVariableNodeToMark($content);
+        }
+
+        // Kirim data signatures dari database ke frontend untuk edit form
+        $templateData = $template->toArray();
+        $templateData['content'] = $content;
+        $templateData['signatures'] = $template->signatures; // Kirim signatures dari database
+
         return Inertia::render('arsip/templates/edit', [
-            'template' => $template,
+            'template' => $templateData,
             'users' => $users,
         ]);
     }
@@ -176,10 +207,11 @@ class TemplateController extends Controller
             'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'content' => 'required|string',
+            'content_html' => 'nullable|string', // Store original HTML from editor
             'variables' => 'required|string',
             'letterhead' => 'nullable|string',
-            'signature_layout' => 'nullable|string|in:bottom_right_1,bottom_left_right,three_signatures,four_signatures',
-            'signatures' => 'nullable|string',
+            'signatures' => 'nullable|string', // Accept signatures data
+            'signature_layout' => 'nullable|string',
             'numbering_format' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
@@ -188,34 +220,15 @@ class TemplateController extends Controller
         $validated['content'] = json_decode($validated['content'], true);
         $validated['variables'] = json_decode($validated['variables'], true);
         $validated['letterhead'] = isset($validated['letterhead']) ? json_decode($validated['letterhead'], true) : null;
-        $newSignatures = isset($validated['signatures']) ? json_decode($validated['signatures'], true) : null;
-
-        // Check if template has been used in letters
-        $hasLetters = $template->letters()->exists();
         
-        if ($hasLetters) {
-            // Prevent changing signature configuration if template is already used
-            $oldSignatureLayout = $template->signature_layout;
-            $oldSignaturesCount = is_array($template->signatures) ? count($template->signatures) : 0;
-            $newSignaturesCount = is_array($newSignatures) ? count($newSignatures) : 0;
-            
-            if ($validated['signature_layout'] !== $oldSignatureLayout || $newSignaturesCount !== $oldSignaturesCount) {
-                return back()
-                    ->with('error', 'Tidak dapat mengubah konfigurasi tanda tangan karena template sudah digunakan oleh ' . $template->letters()->count() . ' surat. Silakan duplikasi template untuk membuat versi baru.')
-                    ->withInput();
-            }
-            
-            // Allow updating signature labels/positions but not the count
-            if ($newSignaturesCount === $oldSignaturesCount) {
-                // OK to update - just labels/positions changed
-                $validated['signatures'] = $newSignatures;
-            } else {
-                // Preserve old signatures
-                $validated['signatures'] = $template->signatures;
-            }
-        } else {
-            // No letters using this template - allow full update
-            $validated['signatures'] = $newSignatures;
+        // Parse signatures if provided
+        if (isset($validated['signatures'])) {
+            $validated['signatures'] = json_decode($validated['signatures'], true);
+        }
+        
+        // Ensure signature_layout has value if not provided (NOT NULL constraint)
+        if (!isset($validated['signature_layout']) || empty($validated['signature_layout'])) {
+            $validated['signature_layout'] = 'bottom_right_1';
         }
 
         $validated['updated_by'] = Auth::id();

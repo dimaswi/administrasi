@@ -14,6 +14,9 @@
             font-size: 12pt;
             line-height: 1.6;
             color: #000;
+            white-space: pre-wrap;
+            tab-size: 20;
+            -moz-tab-size: 20;
         }
 
         .letterhead {
@@ -70,6 +73,11 @@
         .letter-content p {
             margin: 10px 0;
         }
+        
+        .letter-content p:empty {
+            margin: 0.25em 0;
+            line-height: 0.5;
+        }
 
         .letter-content table {
             width: 100%;
@@ -88,52 +96,11 @@
             background-color: #f0f0f0;
             font-weight: bold;
         }
-
-        .signature-block {
-            margin-top: 40px;
-            float: right;
-            text-align: center;
-            width: 200px;
-        }
-
-        .signature-block p {
-            margin: 5px 0;
-        }
-
-        .signature-space {
-            height: 60px;
-        }
-
-        .qr-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            background: white;
-            text-align: center;
-        }
-
-        .qr-code img {
-            width: 100px;
-            height: 100px;
-        }
-
-        .certificate-info {
-            font-size: 7pt;
-            margin-top: 5px;
-            color: #666;
-        }
-
-        .certificate-info p {
-            margin: 2px 0;
-        }
-
-        /* Clear float */
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
+        
+        .letter-content table.borderless,
+        .letter-content table.borderless th,
+        .letter-content table.borderless td {
+            border: none;
         }
 
         h1, h2, h3, h4, h5, h6 {
@@ -160,28 +127,26 @@
         u {
             text-decoration: underline;
         }
+        
+        /* Variable styling */
+        span[data-type="variable"] {
+            display: inline;
+            background: transparent;
+            padding: 0;
+            border: none;
+        }
+        
+        /* QR code images */
+        img[alt="Signature"] {
+            display: inline-block;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
-    <!-- Letter Content -->
+    <!-- Letter Content with embedded signatures -->
     <div class="letter-document">
         {!! $letter->rendered_html !!}
     </div>
-
-    <!-- QR Code for Certificate Verification -->
-    @if($certificate && $qrCode)
-    <div class="qr-container">
-        <div class="qr-code">
-            <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code">
-        </div>
-        <div class="certificate-info">
-            <p><strong>Certificate ID:</strong></p>
-            <p>{{ $certificate->certificate_id }}</p>
-            <p><strong>Signed:</strong></p>
-            <p>{{ $certificate->signed_at->format('d/m/Y H:i') }}</p>
-            <p style="font-size: 6pt; margin-top: 5px;">Scan untuk verifikasi</p>
-        </div>
-    </div>
-    @endif
 </body>
 </html>

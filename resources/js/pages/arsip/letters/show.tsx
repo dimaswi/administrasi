@@ -73,6 +73,7 @@ const statusConfig = {
     pending_approval: { label: 'Menunggu Persetujuan', color: 'bg-yellow-500' },
     partially_signed: { label: 'Sebagian Disetujui', color: 'bg-blue-500' },
     fully_signed: { label: 'Semua Disetujui', color: 'bg-green-500' },
+    approved: { label: 'Disetujui', color: 'bg-green-600' },
     rejected: { label: 'Ditolak', color: 'bg-red-500' },
     sent: { label: 'Terkirim', color: 'bg-purple-500' },
     archived: { label: 'Diarsipkan', color: 'bg-gray-600' },
@@ -87,6 +88,14 @@ export default function ShowLetter({ letter, userApproval, canApprove, auth }: P
     const [showArchiveDialog, setShowArchiveDialog] = useState(false);
     const [approvalNotes, setApprovalNotes] = useState('');
     const [rejectNotes, setRejectNotes] = useState('');
+
+    // Debug: Log letter data
+    console.log('Letter Show Debug:', {
+        letter_id: letter.id,
+        has_rendered_html: !!letter.rendered_html,
+        rendered_html_length: letter.rendered_html?.length || 0,
+        rendered_html_preview: letter.rendered_html?.substring(0, 200) || 'empty',
+    });
 
     // Check if current user is the creator
     const isCreator = auth.user.id === letter.creator.id;
@@ -261,10 +270,62 @@ export default function ShowLetter({ letter, userApproval, canApprove, auth }: P
                                 )}
                             </>
                         )}
-                        {letter.pdf_path && (
-                            <Button variant="outline" size="sm" onClick={() => window.open(`/arsip/letters/${letter.id}/download-pdf`, '_blank')}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Download PDF
+                        {/* PDF Actions */}
+                        {letter.pdf_path ? (
+                            <>
+                                <Button variant="outline" size="sm" onClick={() => window.open(`/arsip/letters/${letter.id}/download-pdf`, '_blank')}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download PDF
+                                </Button>
+                                {(letter.status === 'approved' || letter.status === 'fully_signed') && (
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => {
+                                            router.post(`/arsip/letters/${letter.id}/regenerate-pdf`, {}, {
+                                                onSuccess: () => {
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Regenerate PDF
+                                    </Button>
+                                )}
+                            </>
+                        ) : (
+                            /* Generate PDF button if not exists but letter is approved/fully_signed */
+                            (letter.status === 'approved' || letter.status === 'fully_signed') && (
+                                <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={() => {
+                                        router.post(`/arsip/letters/${letter.id}/regenerate-pdf`, {}, {
+                                            onSuccess: () => {
+                                            },
+                                            onError: (errors) => {
+                                                const errorMessage = Object.values(errors).flat().join(', ') || 'Gagal generate PDF';
+                                                toast.error(errorMessage);
+                                            },
+                                        });
+                                    }}
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Generate PDF
+                                </Button>
+                            )
+                        )}
+                        {/* Approve button - for approvers */}
+                        {canApprove && userApproval?.status === 'pending' && letter.status === 'pending_approval' && (
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => setShowApproveDialog(true)}
+                                className="bg-green-600 hover:bg-green-700"
+                            >
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Setujui
                             </Button>
                         )}
                         {/* Archive button - only for fully signed letters that are not archived yet */}
@@ -488,52 +549,26 @@ export default function ShowLetter({ letter, userApproval, canApprove, auth }: P
                             </CardHeader>
                             <CardContent className="p-6">
                                 <div className="overflow-auto rounded-lg bg-gray-100 p-6">
-                                    {/* A4 Paper - Same styling as template show */}
-                                    <style
-                                        dangerouslySetInnerHTML={{
-                                            __html: `
-                                            .letter-content p {
-                                                margin-bottom: 1em;
-                                            }
-                                            .letter-content p:empty {
-                                                min-height: 1em;
-                                            }
-                                            .letter-content br {
-                                                display: block;
-                                                content: "";
-                                                margin-top: 0.5em;
-                                            }
-                                            .letter-content .variable-placeholder,
-                                            .letter-content span[data-variable] {
-                                                display: inline !important;
-                                                line-height: inherit !important;
-                                                vertical-align: baseline !important;
-                                                padding: 0 !important;
-                                                margin: 0 !important;
-                                                background: transparent !important;
-                                                border: none !important;
-                                            }
-                                        `,
-                                        }}
-                                    />
+                                    {/* A4 Paper - Preview surat dengan kop dan konten */}
                                     <div
                                         className="mx-auto bg-white shadow-sm"
                                         style={{
                                             maxWidth: '850px',
                                             minHeight: '1100px',
                                             padding: '48px',
+                                            whiteSpace: 'pre-wrap', // Preserve tabs and spaces
+                                            tabSize: 20, // Tab width for aligned text
                                         }}
                                     >
-                                        {/* Content with letterhead already included from backend */}
-                                        <div
-                                            className="letter-content"
-                                            style={{
-                                                fontSize: '12pt',
-                                                fontFamily: 'Times New Roman, serif',
-                                                color: '#000',
-                                            }}
-                                            dangerouslySetInnerHTML={{ __html: letter.rendered_html }}
-                                        />
+                                        {/* Rendered HTML dari backend - variable sudah ter-replace, kop sudah included */}
+                                        {letter.rendered_html ? (
+                                            <div dangerouslySetInnerHTML={{ __html: letter.rendered_html }} />
+                                        ) : (
+                                            <div className="text-center text-gray-500 py-20">
+                                                <p>Preview tidak tersedia</p>
+                                                <p className="text-sm mt-2">rendered_html kosong atau tidak ditemukan</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>

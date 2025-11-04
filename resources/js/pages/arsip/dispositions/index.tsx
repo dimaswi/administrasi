@@ -135,7 +135,8 @@ export default function Index({ dispositions, filters }: Props) {
                 {/* Header */}
                 <div className="flex justify-between items-center my-6">
                     <div>
-                        
+                        <h2 className="text-xl font-semibold md:text-2xl">Disposisi</h2>
+                        <p className="font-mono text-xs text-muted-foreground md:text-sm">Kelola dan cari disposisi surat</p>
                     </div>
                     <Button 
                         variant="outline" 

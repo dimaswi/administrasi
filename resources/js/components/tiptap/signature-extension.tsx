@@ -1,7 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import { cn } from '@/lib/utils';
-import { QRCodeSVG } from 'qrcode.react';
 
 export interface SignatureOptions {
     HTMLAttributes: Record<string, any>;
@@ -11,10 +10,12 @@ declare module '@tiptap/core' {
     interface Commands<ReturnType> {
         signature: {
             insertSignature: (attrs: { 
-                userId: number;
+                signatureIndex?: number;
+                userId?: number;
                 userName: string;
                 position: string; 
                 nip?: string;
+                placement?: 'left' | 'center' | 'right';
                 showSignatureImage?: boolean;
                 signatureImage?: string;
             }) => ReturnType;
@@ -24,9 +25,10 @@ declare module '@tiptap/core' {
 
 export const Signature = Node.create<SignatureOptions>({
     name: 'signature',
-    group: 'block',
-    draggable: true,
-
+    group: 'inline',
+    inline: true,
+    atom: true,
+    
     addOptions() {
         return {
             HTMLAttributes: {},
@@ -35,6 +37,9 @@ export const Signature = Node.create<SignatureOptions>({
 
     addAttributes() {
         return {
+            signatureIndex: {
+                default: 0,
+            },
             userId: {
                 default: null,
             },
@@ -46,6 +51,9 @@ export const Signature = Node.create<SignatureOptions>({
             },
             nip: {
                 default: null,
+            },
+            placement: {
+                default: 'right',
             },
             showSignatureImage: {
                 default: false,
@@ -59,13 +67,35 @@ export const Signature = Node.create<SignatureOptions>({
     parseHTML() {
         return [
             {
-                tag: 'div[data-type="signature"]',
+                tag: 'span[data-type="signature"]',
+                getAttrs: (dom) => {
+                    if (typeof dom === 'string') return {};
+                    const element = dom as HTMLElement;
+                    return {
+                        userId: element.getAttribute('data-user-id') ? parseInt(element.getAttribute('data-user-id')!) : null,
+                        userName: element.getAttribute('data-user-name') || 'Nama Penandatangan',
+                        position: element.getAttribute('data-position') || 'Jabatan',
+                        nip: element.getAttribute('data-nip') || null,
+                    };
+                },
             },
         ];
     },
 
-    renderHTML({ HTMLAttributes }) {
-        return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'signature' }), 0];
+    renderHTML({ HTMLAttributes, node }) {
+        // Render as a self-closing element (no content hole needed for atom nodes)
+        const attrs = node.attrs;
+        return [
+            'span', 
+            mergeAttributes(HTMLAttributes, { 
+                'data-type': 'signature',
+                'data-user-id': attrs.userId || '',
+                'data-user-name': attrs.userName,
+                'data-position': attrs.position,
+                'data-nip': attrs.nip || '',
+                class: 'signature-node',
+            })
+        ];
     },
 
     addNodeView() {
@@ -85,53 +115,47 @@ export const Signature = Node.create<SignatureOptions>({
 });
 
 function SignatureComponent({ node }: any) {
-    const { userId, userName, position, nip, showSignatureImage, signatureImage } = node.attrs;
+    const { signatureIndex, userId, userName, position, nip, showSignatureImage, signatureImage } = node.attrs;
 
     return (
-        <NodeViewWrapper className="signature-wrapper my-8" data-drag-handle>
-            <div className={cn(
-                "flex justify-end cursor-move hover:bg-blue-50 p-2 rounded transition-colors",
-                "print:hover:bg-transparent print:cursor-default"
-            )}>
-                <div className="text-center min-w-[200px] max-w-[250px]">
-                    {/* Position/Jabatan */}
-                    <p className="mb-3 font-medium">{position}</p>
-                    
-                    {/* QR Code di tengah */}
-                    <div className="flex justify-center mb-3">
-                        <div className="border-2 border-gray-300 p-2 bg-white">
-                            <QRCodeSVG 
-                                value={`USER:${userId}|NAME:${userName}|NIP:${nip || 'N/A'}`}
-                                size={100}
-                                level="M"
-                                includeMargin={false}
-                            />
-                        </div>
-                    </div>
-                    
-                    {/* Signature Image (optional) */}
-                    {showSignatureImage && signatureImage && (
-                        <div className="my-2 flex justify-center">
-                            <img 
-                                src={signatureImage} 
-                                alt="Tanda Tangan" 
-                                className="h-16 w-auto object-contain"
-                            />
-                        </div>
-                    )}
-                    
-                    {/* Name */}
-                    <p className="font-semibold border-b border-black inline-block px-4 pb-1">
-                        {userName}
-                    </p>
-                    
-                    {/* NIP */}
-                    {nip && <p className="text-sm mt-1">NIP. {nip}</p>}
-                </div>
-            </div>
-            <div className="text-xs text-muted-foreground text-center mt-1 print:hidden">
-                ✋ Drag untuk memindahkan posisi
-            </div>
+        <NodeViewWrapper 
+            as="span"
+            className="inline-block align-bottom"
+            style={{ display: 'inline-block', margin: '0 4px' }}
+        >
+            <span 
+                className={cn(
+                    "inline-flex flex-col items-center p-2 rounded border border-gray-300 bg-white hover:border-blue-400 transition-colors",
+                    "print:border-gray-300"
+                )}
+                style={{ fontSize: '10px' }}
+                contentEditable={false}
+            >
+                {/* Position/Jabatan */}
+                <span className="text-center mb-1 font-medium">{position}</span>
+                
+                {/* QR Code / Signature Placeholder */}
+                <span className="border border-gray-300 bg-white h-14 w-14 flex items-center justify-center mb-1">
+                    <span className="text-xs text-gray-400">QR</span>
+                </span>
+                
+                {/* Signature Image (optional) */}
+                {showSignatureImage && signatureImage && (
+                    <img 
+                        src={signatureImage} 
+                        alt="TTD" 
+                        className="h-8 w-auto object-contain mb-1"
+                    />
+                )}
+                
+                {/* Name */}
+                <span className="font-semibold border-b border-black px-2 mb-0.5">
+                    {userName}
+                </span>
+                
+                {/* NIP */}
+                {nip && <span className="text-[9px]">NIP. {nip}</span>}
+            </span>
         </NodeViewWrapper>
     );
 }

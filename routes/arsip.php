@@ -61,8 +61,11 @@ Route::middleware(['auth'])->prefix('arsip')->name('arsip.')->group(function () 
         Route::post('/{letter}/approve', [LetterController::class, 'approve'])->name('approve');
         Route::post('/{letter}/reject', [LetterController::class, 'reject'])->name('reject');
         
-        // Other actions
+        // PDF actions
         Route::get('/{letter}/download-pdf', [LetterController::class, 'downloadPDF'])->name('download-pdf');
+        Route::post('/{letter}/regenerate-pdf', [LetterController::class, 'regeneratePDF'])->name('regenerate-pdf');
+        
+        // Other actions
         Route::post('/preview', [LetterController::class, 'preview'])->name('preview');
     });
 
@@ -120,3 +123,4 @@ Route::middleware(['auth'])->prefix('arsip')->name('arsip.')->group(function () 
 
 // Public routes (no auth required)
 Route::get('/verify/{id}', [CertificateController::class, 'verify'])->name('verify.certificate');
+Route::get('/verify-signature/{certificate}/{approval}', [CertificateController::class, 'verifySignature'])->name('verify.signature');

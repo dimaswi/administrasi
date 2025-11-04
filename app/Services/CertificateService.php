@@ -12,7 +12,7 @@ class CertificateService
     /**
      * Generate certificate for a letter
      */
-    public function generateCertificate(Letter $letter, User $signer): LetterCertificate
+    public function generateCertificate(Letter $letter, User $signer, int $approvalId = null): LetterCertificate
     {
         // Generate unique certificate ID
         $certificateId = $this->generateCertificateId();
@@ -35,11 +35,50 @@ class CertificateService
                 'user_agent' => request()->userAgent(),
                 'letter_number' => $letter->letter_number,
                 'letter_date' => $letter->letter_date->toDateString(),
+                'approval_id' => $approvalId,
             ],
             'status' => 'valid',
         ]);
 
         return $certificate;
+    }
+    
+    /**
+     * Generate signature hash for approval
+     */
+    public function generateSignatureHash(int $approvalId, int $userId, string $letterNumber): string
+    {
+        return hash('sha256', json_encode([
+            'approval_id' => $approvalId,
+            'user_id' => $userId,
+            'letter_number' => $letterNumber,
+            'timestamp' => now()->toISOString(),
+        ]));
+    }
+    
+    /**
+     * Generate QR Code for approval signature
+     */
+    public function generateApprovalQRCode(string $certificateId, int $approvalId): string
+    {
+        $verificationUrl = route('verify.signature', [
+            'certificate' => $certificateId,
+            'approval' => $approvalId
+        ]);
+
+        return QrCode::format('png')
+            ->size(150)
+            ->errorCorrection('H')
+            ->generate($verificationUrl);
+    }
+    
+    /**
+     * Generate QR Code for approval as base64
+     */
+    public function generateApprovalQRCodeBase64(string $certificateId, int $approvalId): string
+    {
+        $qrCode = $this->generateApprovalQRCode($certificateId, $approvalId);
+        return base64_encode($qrCode);
     }
 
     /**
