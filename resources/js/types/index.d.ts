@@ -99,6 +99,7 @@ export interface OrganizationUnit {
     code: string;
     name: string;
     description?: string | null;
+    letterhead_image?: string | null;
     parent_id?: number | null;
     level: number;
     head_id?: number | null;

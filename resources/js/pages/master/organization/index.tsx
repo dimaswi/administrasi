@@ -40,7 +40,7 @@ interface Props extends SharedData {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Unit Organisasi', href: '/meeting/organizations' },
+    { title: 'Unit Organisasi', href: '/master/organizations' },
 ];
 
 export default function OrganizationIndex() {
@@ -66,7 +66,7 @@ export default function OrganizationIndex() {
     ];
 
     const handleSearch = (value: string, levelValue: string) => {
-        router.get('/meeting/organizations', {
+        router.get('/master/organizations', {
             search: value,
             level: levelValue,
             perPage: initialFilters.perPage,
@@ -77,7 +77,7 @@ export default function OrganizationIndex() {
     };
 
     const handlePerPageChange = (perPage: number) => {
-        router.get('/meeting/organizations', {
+        router.get('/master/organizations', {
             search: initialFilters.search,
             level: initialFilters.level,
             perPage,
@@ -89,7 +89,7 @@ export default function OrganizationIndex() {
     };
 
     const handlePageChange = (page: number) => {
-        router.get('/meeting/organizations', {
+        router.get('/master/organizations', {
             search: initialFilters.search,
             level: initialFilters.level,
             perPage: initialFilters.perPage,
@@ -200,7 +200,7 @@ export default function OrganizationIndex() {
                         variant="outline" 
                         size="sm" 
                         className="flex items-center gap-2 hover:bg-green-50"
-                        onClick={() => router.visit('/meeting/organizations/create')}
+                        onClick={() => router.visit('/master/organizations/create')}
                     >
                         <PlusCircle className="h-4 w-4 text-green-600" />
                         Tambah
@@ -393,3 +393,4 @@ export default function OrganizationIndex() {
         </AppLayout>
     );
 }
+

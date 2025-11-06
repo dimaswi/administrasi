@@ -12,6 +12,7 @@ class OrganizationUnit extends Model
         'code',
         'name',
         'description',
+        'letterhead_image',
         'parent_id',
         'level',
         'head_id',

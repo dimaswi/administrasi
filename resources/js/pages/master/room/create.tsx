@@ -13,8 +13,8 @@ import { toast } from "sonner";
 interface Props extends SharedData {}
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Ruangan', href: '/meeting/rooms' },
-    { title: 'Tambah Ruangan', href: '/meeting/rooms/create' },
+    { title: 'Ruangan', href: '/master/rooms' },
+    { title: 'Tambah Ruangan', href: '/master/rooms/create' },
 ];
 
 export default function RoomCreate({}: Props) {
@@ -40,7 +40,7 @@ export default function RoomCreate({}: Props) {
 
     const handleSubmit: FormEventHandler = (e) => {
         e.preventDefault();
-        post('/meeting/rooms', {
+        post('/master/rooms', {
             onSuccess: () => {
                 toast.success('Ruangan berhasil ditambahkan');
             },
@@ -185,7 +185,7 @@ export default function RoomCreate({}: Props) {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.visit('/meeting/rooms')}
+                            onClick={() => router.visit('/master/rooms')}
                             disabled={processing}
                         >
                             Batal
@@ -209,3 +209,4 @@ export default function RoomCreate({}: Props) {
         </AppLayout>
     );
 }
+

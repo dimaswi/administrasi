@@ -24,28 +24,9 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Rapat',
-        href: '/meeting',
+        href: '/meeting/meetings',
         icon: Calendar,
-        children: [
-            {
-                title: 'Daftar Rapat',
-                href: '/meeting/meetings',
-                icon: Folder,
-                permission: 'meeting.view',
-            },
-            {
-                title: 'Daftar Ruangan',
-                href: '/meeting/rooms',
-                icon: Users,
-                permission: 'room.view',
-            },
-            {
-                title: 'Unit Organisasi',
-                href: '/meeting/organizations',
-                icon: BookOpen,
-                permission: 'organization.view',
-            },
-        ],
+        
     },
     {
         title: 'Arsip',
@@ -106,6 +87,18 @@ const mainNavItems: NavItem[] = [
                 href: '/master/permissions',
                 icon: Key,
                 permission: 'permission.view',
+            },
+            {
+                title: 'Daftar Ruangan',
+                href: '/master/rooms',
+                icon: LayoutGrid,
+                permission: 'room.view',
+            },
+            {
+                title: 'Unit Organisasi',
+                href: '/master/organizations',
+                icon: BookOpen,
+                permission: 'organization.view',
             },
         ],
     },

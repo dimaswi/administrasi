@@ -27,6 +27,24 @@ interface CertificateData {
         id: number;
         letter_number: string;
         subject: string;
+    } | null;
+}
+
+interface MeetingData {
+    id: number;
+    meeting_number: string;
+    title: string;
+    meeting_date: string;
+    start_time: string;
+    end_time: string;
+    room: {
+        name: string;
+    };
+    organizer: {
+        name: string;
+    };
+    organization_unit: {
+        name: string;
     };
 }
 
@@ -36,6 +54,8 @@ interface VerificationResult {
     certificate: CertificateData | null;
     hash_valid: boolean;
     is_revoked: boolean;
+    is_meeting_certificate?: boolean;
+    meeting?: MeetingData;
     approval: ApprovalData | null;
 }
 
@@ -73,7 +93,7 @@ export default function VerifySignature({ result }: Props) {
                     {/* Header */}
                     <div className="text-center mb-8">
                         <div className="flex justify-center mb-4">
-                            <Shield className="h-12 w-12 text-primary" />
+                            <img src="/1.svg" alt="Logo" className="h-12 w-12" />
                         </div>
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">
                             Verifikasi Tanda Tangan Digital
@@ -180,8 +200,8 @@ export default function VerifySignature({ result }: Props) {
                         </Card>
                     )}
 
-                    {/* Document Details */}
-                    {result.approval && (
+                    {/* Document Details - Letter */}
+                    {result.approval && !result.is_meeting_certificate && (
                         <Card className="mb-6">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -203,6 +223,66 @@ export default function VerifySignature({ result }: Props) {
                                         Perihal
                                     </label>
                                     <p className="text-base">{result.approval.letter_subject}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Meeting Details */}
+                    {result.is_meeting_certificate && result.meeting && (
+                        <Card className="mb-6">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText className="h-5 w-5" />
+                                    Informasi Undangan Rapat
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">
+                                        Nomor Undangan
+                                    </label>
+                                    <p className="text-base font-semibold">
+                                        {result.meeting.meeting_number}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">
+                                        Judul Rapat
+                                    </label>
+                                    <p className="text-base">{result.meeting.title}</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">
+                                            Tanggal
+                                        </label>
+                                        <p className="text-base">
+                                            {new Date(result.meeting.meeting_date).toLocaleDateString('id-ID', {
+                                                dateStyle: 'long',
+                                            })}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">
+                                            Waktu
+                                        </label>
+                                        <p className="text-base">
+                                            {result.meeting.start_time} - {result.meeting.end_time}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">
+                                        Tempat
+                                    </label>
+                                    <p className="text-base">{result.meeting.room.name}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">
+                                        Unit Organisasi
+                                    </label>
+                                    <p className="text-base">{result.meeting.organization_unit.name}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -279,7 +359,7 @@ export default function VerifySignature({ result }: Props) {
                     {/* Footer */}
                     <div className="text-center mt-8 text-sm text-muted-foreground">
                         <p>
-                            Sistem Administrasi Digital - Verifikasi Tanda Tangan Elektronik
+                            Sistem Administrasi Klinik Rawat Inap Utama Muhammadiyah Kedungadem - Verifikasi Tanda Tangan Elektronik
                         </p>
                         <p className="mt-1">
                             © {new Date().getFullYear()} - Dilindungi oleh teknologi blockchain dan

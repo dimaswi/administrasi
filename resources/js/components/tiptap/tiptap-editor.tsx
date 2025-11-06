@@ -10,12 +10,14 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
 import { Variable, VariableNode } from './variable-extension';
-import { Letterhead } from './letterhead-extension';
 import { Signature } from './signature-extension';
 import { FontSize, LineHeight } from './font-extensions';
 import { Indent } from '@/extensions/indent';
 import { TableExtended } from './extensions/table-extended';
 import { Tab } from './extensions/tab-extension';
+import { PageBreak } from './extensions/page-break-extension';
+import { AlignmentTable, AlignmentTableRow, AlignmentTableCell } from './alignment-table-extension';
+import { SignatureBlock } from './signature-block-extension';
 import { Button } from '@/components/ui/button';
 import {
     Bold,
@@ -37,6 +39,7 @@ import {
     LineChart,
     IndentDecrease,
     IndentIncrease,
+    FileDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -52,16 +55,17 @@ interface TipTapEditorProps {
     placeholder?: string;
     editable?: boolean;
     onInsertVariable?: () => void;
-    onInsertLetterhead?: () => void;
     onInsertSignature?: () => void;
 }
 
 export interface TipTapEditorRef {
     insertVariable: (name: string) => void;
-    insertLetterhead: (data: any) => void;
     insertSignature: (data: any) => void;
+    insertSignatureRow: (signatures: Array<any>) => void;
+    insertSignatureName: (userName: string) => void;
     removeSignatureByUserId: (userId: number) => void;
     getHTML: () => string;
+    getJSON: () => any;
 }
 
 export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
@@ -70,7 +74,6 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
     placeholder = 'Tulis konten template di sini...',
     editable = true,
     onInsertVariable,
-    onInsertLetterhead,
     onInsertSignature,
 }, ref) => {
     const editor = useEditor({
@@ -105,9 +108,13 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
             }),
             Variable,
             VariableNode, // Backward compatibility for old Node-based variables
-            Letterhead,
-            Signature,
+            Signature, // Keep for backward compatibility with old templates
+            SignatureBlock, // New signature for alignment table
             Tab, // Enable Tab key for spacing
+            PageBreak, // Page break untuk halaman baru
+            AlignmentTable,
+            AlignmentTableRow,
+            AlignmentTableCell,
         ],
         content,
         editable,
@@ -144,17 +151,21 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
                     .run();
             }
         },
-        insertLetterhead: (data: any) => {
-            if (editor) {
-                editor.chain().focus().insertContent({
-                    type: 'letterhead',
-                    attrs: data,
-                }).run();
-            }
-        },
         insertSignature: (data: any) => {
             if (editor) {
+                // For backward compatibility with old Signature extension
                 editor.chain().focus().insertSignature(data).run();
+            }
+        },
+        insertSignatureRow: (signatures: Array<any>) => {
+            if (editor) {
+                editor.chain().focus().insertSignatureRow(signatures).run();
+            }
+        },
+        insertSignatureName: (userName: string) => {
+            if (editor) {
+                // Insert HANYA nama user sebagai plain text
+                editor.chain().focus().insertContent(userName + ' ').run();
             }
         },
         removeSignatureByUserId: (userId: number) => {
@@ -165,7 +176,7 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
                 let hasChanges = false;
 
                 state.doc.descendants((node, pos) => {
-                    if (node.type.name === 'signature' && node.attrs.userId === userId) {
+                    if ((node.type.name === 'signature' || node.type.name === 'signatureBlock') && node.attrs.userId === userId) {
                         tr.delete(pos, pos + node.nodeSize);
                         hasChanges = true;
                     }
@@ -179,6 +190,9 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
         getHTML: () => {
             return editor?.getHTML() || '';
         },
+        getJSON: () => {
+            return editor?.getJSON() || { type: 'doc', content: [] };
+        },
     }));
 
     if (!editor) {
@@ -188,13 +202,62 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
     return (
         <div className="border rounded-lg overflow-hidden bg-gray-100">
             {/* Toolbar */}
-            {editable && <MenuBar editor={editor} onInsertVariable={onInsertVariable} onInsertLetterhead={onInsertLetterhead} onInsertSignature={onInsertSignature} />}
+            {editable && <MenuBar editor={editor} onInsertVariable={onInsertVariable} onInsertSignature={onInsertSignature} />}
 
-            {/* A4 Paper Container - 210mm x 297mm at 96 DPI = 794px x 1123px */}
+            {/* A4 Paper - padding balance untuk kemudahan editing */}
             <div className="p-4 overflow-x-auto">
-                <div className="mx-auto bg-white shadow-lg" style={{ width: '794px', minHeight: '1123px' }}>
+                <div className="mx-auto bg-white shadow-lg" style={{ width: '210mm', minHeight: '297mm', padding: '10mm 15mm 15mm 15mm', boxSizing: 'border-box' }}>
                     <style dangerouslySetInnerHTML={{
                         __html: `
+                            /* Reset ProseMirror defaults untuk presisi */
+                            .ProseMirror {
+                                font-family: 'Times New Roman', serif;
+                                font-size: 12pt;
+                                line-height: 1.5;
+                                color: #000;
+                                outline: none;
+                                caret-color: #000;
+                                min-height: 200px;
+                            }
+                            
+                            .ProseMirror:focus {
+                                outline: none;
+                            }
+                            
+                            .ProseMirror p {
+                                margin: 0;
+                                line-height: 1.5;
+                            }
+                            
+                            .ProseMirror h1 {
+                                font-size: 16pt;
+                                line-height: 1.3;
+                                margin: 0.5em 0;
+                            }
+                            
+                            .ProseMirror h2 {
+                                font-size: 14pt;
+                                line-height: 1.3;
+                                margin: 0.5em 0;
+                            }
+                            
+                            .ProseMirror h3 {
+                                font-size: 13pt;
+                                line-height: 1.3;
+                                margin: 0.5em 0;
+                            }
+                            
+                            .ProseMirror ul,
+                            .ProseMirror ol {
+                                padding-left: 1.5em;
+                                margin: 0.5em 0;
+                            }
+                            
+                            .ProseMirror li {
+                                line-height: 1.5;
+                            }
+                            
+                            /* Table styles */
                             .ProseMirror table {
                                 border-collapse: collapse;
                                 table-layout: fixed;
@@ -206,11 +269,12 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
                             .ProseMirror table td,
                             .ProseMirror table th {
                                 min-width: 1em;
-                                border: 1px solid #ddd;
-                                padding: 6px 8px;
+                                border: 1px solid #000;
+                                padding: 4px 6px;
                                 vertical-align: top;
                                 box-sizing: border-box;
                                 position: relative;
+                                line-height: 1.5;
                             }
                             
                             /* Borderless table for aligned lists */
@@ -259,29 +323,76 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(({
                                 cursor: ew-resize;
                                 cursor: col-resize;
                             }
+                            
+                            /* Image */
+                            .ProseMirror img {
+                                max-width: 100%;
+                                height: auto;
+                            }
+                            
+                            /* Page Break - Visual Halaman Baru */
+                            .ProseMirror div[data-type="page-break"] {
+                                page-break-after: always;
+                                break-after: page;
+                                margin: 30px 0;
+                                padding: 0;
+                                position: relative;
+                                height: 1px;
+                            }
+                            
+                            .ProseMirror div[data-type="page-break"]::before {
+                                content: '';
+                                position: absolute;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                width: 210mm;
+                                top: 0;
+                                height: 1px;
+                                border-top: 2px dashed #cbd5e1;
+                            }
+                            
+                            .ProseMirror div[data-type="page-break"]::after {
+                                content: '📄 Halaman Baru';
+                                position: absolute;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                top: -12px;
+                                background: white;
+                                padding: 4px 12px;
+                                color: #64748b;
+                                font-size: 11px;
+                                font-weight: 500;
+                                border-radius: 4px;
+                                border: 1px solid #cbd5e1;
+                                white-space: nowrap;
+                                z-index: 1;
+                            }
+                            
+                            @media print {
+                                .ProseMirror div[data-type="page-break"] {
+                                    margin: 0;
+                                    padding: 0;
+                                    height: 0;
+                                    background: none;
+                                    border: none;
+                                }
+                                
+                                .ProseMirror div[data-type="page-break"]::after {
+                                    display: none;
+                                }
+                            }
                         `
                     }} />
-                    <EditorContent
-                        editor={editor}
-                        className="p-8"
-                        style={{
-                            fontFamily: 'Times New Roman, serif',
-                            fontSize: '12pt',
-                            color: '#000',
-                            minHeight: '1123px',
-                            outline: 'none',
-                        }}
-                    />
+                    <EditorContent editor={editor} />
                 </div>
             </div>
         </div>
     );
 });
 
-function MenuBar({ editor, onInsertVariable, onInsertLetterhead, onInsertSignature }: { 
+function MenuBar({ editor, onInsertVariable, onInsertSignature }: { 
     editor: Editor; 
     onInsertVariable?: () => void; 
-    onInsertLetterhead?: () => void;
     onInsertSignature?: () => void;
 }) {
     const handleButtonClick = (callback: () => void) => (e: React.MouseEvent) => {
@@ -504,6 +615,9 @@ function MenuBar({ editor, onInsertVariable, onInsertLetterhead, onInsertSignatu
                     <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}>
                         Insert Table (3x3)
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().insertAlignmentTable().run())}>
+                        Insert Alignment Table (2 cols)
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleButtonClick(() => editor.chain().focus().addColumnBefore().run())} disabled={!editor.can().addColumnBefore()}>
                         Add Column Before
                     </DropdownMenuItem>
@@ -535,18 +649,22 @@ function MenuBar({ editor, onInsertVariable, onInsertLetterhead, onInsertSignatu
             </DropdownMenu>
 
             <div className="w-px h-6 bg-border mx-1" />
+            
+            {/* Page Break */}
+            <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={handleButtonClick(() => editor.chain().focus().setPageBreak().run())}
+                title="Insert Page Break - Halaman Baru (Ctrl+Enter)"
+            >
+                <FileDown className="h-4 w-4 mr-2" />
+                Halaman Baru
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
 
             {/* Custom Elements */}
-            {onInsertLetterhead && (
-                <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleButtonClick(onInsertLetterhead)}
-                >
-                    📝 Kop Surat
-                </Button>
-            )}
             {onInsertVariable && (
                 <Button 
                     type="button" 

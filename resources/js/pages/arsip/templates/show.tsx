@@ -37,6 +37,10 @@ import { FontFamily } from '@tiptap/extension-font-family';
 import { Variable, VariableNode } from '@/components/tiptap/variable-extension';
 import { Letterhead } from '@/components/tiptap/letterhead-extension';
 import { Signature } from '@/components/tiptap/signature-extension';
+import { SignatureBlock } from '@/components/tiptap/signature-block-extension';
+import { PageBreak } from '@/components/tiptap/extensions/page-break-extension';
+import { AlignmentTable, AlignmentTableRow, AlignmentTableCell } from '@/components/tiptap/alignment-table-extension';
+import { Tab } from '@/components/tiptap/extensions/tab-extension';
 import { FontSize, LineHeight } from '@/components/tiptap/font-extensions';
 import { Indent } from '@/extensions/indent';
 
@@ -116,6 +120,12 @@ export default function ShowTemplate({ template }: Props) {
             VariableNode,
             Letterhead,
             Signature,
+            SignatureBlock,
+            Tab,
+            PageBreak,
+            AlignmentTable,
+            AlignmentTableRow,
+            AlignmentTableCell,
         ],
         content: template.content,
         editable: false,
@@ -404,15 +414,88 @@ export default function ShowTemplate({ template }: Props) {
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="bg-gray-100 p-6 rounded-lg overflow-auto">
-                            {/* A4 Paper */}
+                            {/* A4 Paper - ukuran presisi tanpa CSS berlebih */}
                             <div 
-                                className="mx-auto bg-white shadow-sm" 
                                 style={{ 
-                                    maxWidth: '850px',
-                                    minHeight: '1100px',
-                                    padding: '48px',
+                                    width: '210mm',
+                                    minHeight: '297mm',
+                                    margin: '0 auto',
+                                    padding: '10mm 15mm 15mm 15mm',
+                                    backgroundColor: 'white',
+                                    boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+                                    boxSizing: 'border-box',
                                 }}
                             >
+                                <style dangerouslySetInnerHTML={{
+                                    __html: `
+                                        /* Reset ProseMirror defaults untuk presisi */
+                                        .ProseMirror {
+                                            font-family: 'Times New Roman', serif;
+                                            font-size: 12pt;
+                                            line-height: 1.5;
+                                            color: #000;
+                                            outline: none;
+                                        }
+                                        
+                                        .ProseMirror p {
+                                            margin: 0;
+                                            line-height: 1.5;
+                                        }
+                                        
+                                        /* Page Break - Visual Halaman Baru */
+                                        .ProseMirror div[data-type="page-break"] {
+                                            page-break-after: always;
+                                            break-after: page;
+                                            margin: 30px 0;
+                                            padding: 0;
+                                            position: relative;
+                                            height: 1px;
+                                        }
+                                        
+                                        .ProseMirror div[data-type="page-break"]::before {
+                                            content: '';
+                                            position: absolute;
+                                            left: 50%;
+                                            transform: translateX(-50%);
+                                            width: 210mm;
+                                            top: 0;
+                                            height: 1px;
+                                            border-top: 2px dashed #cbd5e1;
+                                        }
+                                        
+                                        .ProseMirror div[data-type="page-break"]::after {
+                                            content: '📄 Halaman Baru';
+                                            position: absolute;
+                                            left: 50%;
+                                            transform: translateX(-50%);
+                                            top: -12px;
+                                            background: white;
+                                            padding: 4px 12px;
+                                            color: #64748b;
+                                            font-size: 11px;
+                                            font-weight: 500;
+                                            border-radius: 4px;
+                                            border: 1px solid #cbd5e1;
+                                            white-space: nowrap;
+                                            z-index: 1;
+                                        }
+                                        
+                                        @media print {
+                                            .ProseMirror div[data-type="page-break"] {
+                                                margin: 0;
+                                                padding: 0;
+                                                height: 0;
+                                                background: none;
+                                                border: none;
+                                            }
+                                            
+                                            .ProseMirror div[data-type="page-break"]::before,
+                                            .ProseMirror div[data-type="page-break"]::after {
+                                                display: none;
+                                            }
+                                        }
+                                    `
+                                }} />
                                 {/* Render menggunakan TipTap Editor read-only - output 100% sama dengan editor */}
                                 {previewEditor && <EditorContent editor={previewEditor} />}
                             </div>

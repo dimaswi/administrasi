@@ -15,7 +15,7 @@ interface Props extends SharedData {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Ruangan', href: '/meeting/rooms' },
+    { title: 'Ruangan', href: '/master/rooms' },
     { title: 'Edit Ruangan', href: '#' },
 ];
 
@@ -42,7 +42,7 @@ export default function RoomEdit({ room }: Props) {
 
     const handleSubmit: FormEventHandler = (e) => {
         e.preventDefault();
-        put(`/meeting/rooms/${room.id}`, {
+        put(`/master/rooms/${room.id}`, {
             onSuccess: () => {
                 toast.success('Ruangan berhasil diperbarui');
             },
@@ -187,7 +187,7 @@ export default function RoomEdit({ room }: Props) {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.visit('/meeting/rooms')}
+                            onClick={() => router.visit('/master/rooms')}
                             disabled={processing}
                         >
                             Batal
@@ -211,3 +211,4 @@ export default function RoomEdit({ room }: Props) {
         </AppLayout>
     );
 }
+

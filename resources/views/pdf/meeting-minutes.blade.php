@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memo Hasil Rapat - {{ $meeting->meeting_number }}</title>
+    <title>Notulen Rapat - {{ $meeting->meeting_number }}</title>
     <style>
         @page {
             margin-top: 200px;
@@ -15,20 +15,6 @@
             margin-right: 10px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 11pt;
-        }
-
-        .letterhead {
-            position: fixed;
-            top: -200px;
-            left: 0;
-            right: 0;
-            text-align: left;
-            height: 180px;
-        }
-
-        .letterhead img {
-            height: 178px;
-            width: 700px;
         }
 
         table {
@@ -53,50 +39,24 @@
             padding: 5px;
         }
 
-        .memo-content {
+        .letterhead {
+            position: fixed;
+            top: -200px;
+            left: 0;
+            right: 0;
+            text-align: left;
+            height: 180px;
+        }
+
+        .letterhead img {
+            height: 178px;
+            width: 700px;
+        }
+
+        .minutes-content {
             margin: 15px 0;
             line-height: 1.6;
             text-align: justify;
-        }
-
-        .participants-table {
-            width: 100%;
-            border: 1px solid #000;
-            margin-top: 10px;
-        }
-
-        .participants-table th,
-        .participants-table td {
-            border: 1px solid #000;
-            padding: 6px;
-        }
-
-        .participants-table th {
-            background-color: #e0e0e0;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9pt;
-        }
-
-        .status-attended {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-absent {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-
-        .status-excused {
-            background-color: #fef3c7;
-            color: #92400e;
         }
     </style>
 </head>
@@ -110,7 +70,7 @@
             <!-- Fallback jika tidak ada kop surat -->
             <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #000;">
                 <h2 style="margin: 0; font-size: 16pt;">{{ $meeting->organizationUnit->name ?? 'ORGANISASI' }}</h2>
-                <p style="margin: 5px 0; font-size: 10pt;">MEMO HASIL RAPAT</p>
+                <p style="margin: 5px 0; font-size: 10pt;">NOTULEN RAPAT</p>
             </div>
         @endif
     </div>
@@ -130,7 +90,7 @@
         <tr>
             <td>Perihal</td>
             <td>    :</td>
-            <td><b>MEMO HASIL RAPAT</b></td>
+            <td><b>NOTULEN RAPAT</b></td>
         </tr>
     </table>
 
@@ -139,14 +99,8 @@
     <!-- Meeting Details -->
     <table class="detail-table">
         <tr>
-            <td style="width: 150px;">Judul Rapat</td>
+            <td style="width: 150px;">Hari / Tanggal</td>
             <td style="width: 10px;">:</td>
-            <td><b>{{ $meeting->title }}</b></td>
-        </tr>
-
-        <tr>
-            <td>Hari / Tanggal</td>
-            <td>:</td>
             <td>{{ \Carbon\Carbon::parse($meeting->meeting_date)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}</td>
         </tr>
 
@@ -194,34 +148,24 @@
         <tr>
             <td>Jumlah Peserta</td>
             <td>:</td>
-            <td>{{ $meeting->participants->count() }} orang (Hadir: {{ $meeting->attendedParticipants->count() }} orang)</td>
+            <td>{{ $meeting->attendedParticipants->count() }} orang</td>
         </tr>
     </table>
 
     <br>
 
-    <!-- Memo Content -->
+    <!-- Minutes Content -->
     <div>
-        <strong>HASIL PEMBAHASAN DAN KEPUTUSAN:</strong>
+        <strong>ISI NOTULEN:</strong>
     </div>
     
-    <div class="memo-content">
-        @if($meeting->memo_content)
-            {!! $meeting->memo_content !!}
+    <div class="minutes-content">
+        @if($meeting->minutes_of_meeting)
+            {!! nl2br(e($meeting->minutes_of_meeting)) !!}
         @else
-            <p style="text-align: center; color: #666; font-style: italic;">Memo hasil rapat belum diisi</p>
+            <p style="text-align: center; color: #666; font-style: italic;">Notulen belum diisi</p>
         @endif
     </div>
-
-    @if($meeting->notes)
-    <!-- Additional Notes -->
-    <div style="margin-top: 20px;">
-        <strong>CATATAN TAMBAHAN:</strong>
-    </div>
-    <div style="margin: 10px 0; line-height: 1.6;">
-        <p style="white-space: pre-line;">{{ $meeting->notes }}</p>
-    </div>
-    @endif
 
     <!-- Action Items jika ada -->
     @if($meeting->actionItems && $meeting->actionItems->count() > 0)
@@ -229,22 +173,22 @@
         <strong>TINDAK LANJUT:</strong>
     </div>
     
-    <table class="participants-table">
+    <table style="width: 100%; border: 1px solid #000; margin-top: 10px;">
         <thead>
-            <tr>
-                <th style="width: 40px;">No</th>
-                <th>Tindakan</th>
-                <th style="width: 150px;">Penanggung Jawab</th>
-                <th style="width: 100px;">Tenggat</th>
+            <tr style="background-color: #e0e0e0;">
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 40px;">No</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: left;">Tindakan</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 150px;">Penanggung Jawab</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 100px;">Tenggat</th>
             </tr>
         </thead>
         <tbody>
             @foreach($meeting->actionItems as $index => $item)
             <tr>
-                <td style="text-align: center;">{{ $index + 1 }}</td>
-                <td>{{ $item->description }}</td>
-                <td>{{ $item->assignedTo->name ?? '-' }}</td>
-                <td style="text-align: center;">
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $index + 1 }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ $item->description }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ $item->assignedTo->name ?? '-' }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">
                     {{ $item->due_date ? \Carbon\Carbon::parse($item->due_date)->format('d/m/Y') : '-' }}
                 </td>
             </tr>
@@ -292,41 +236,41 @@
     </table>
 
     <!-- Page Break untuk halaman lampiran daftar hadir -->
-    @if($meeting->participants && $meeting->participants->count() > 0)
+    @if($meeting->attendedParticipants && $meeting->attendedParticipants->count() > 0)
     <div style="page-break-before: always;"></div>
 
     <div style="margin-bottom: 10px;">
         <strong>Lampiran : Daftar Hadir Peserta Rapat</strong>
     </div>
     
-    <table class="participants-table">
+    <table style="width: 100%; border: 1px solid #000; margin-top: 10px;">
         <thead>
-            <tr>
-                <th style="width: 40px;">No</th>
-                <th>Nama</th>
-                <th style="width: 120px;">NIP</th>
-                <th style="width: 150px;">Unit Organisasi</th>
-                <th style="width: 100px;">Status Hadir</th>
+            <tr style="background-color: #e0e0e0;">
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 40px;">No</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: left;">Nama</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 120px;">NIP</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 120px;">Peran</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 100px;">Status</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($meeting->participants->sortByDesc('attendance_status') as $index => $participant)
+            @foreach($meeting->attendedParticipants as $index => $participant)
             <tr>
-                <td style="text-align: center;">{{ $index + 1 }}</td>
-                <td>{{ $participant->user->name }}</td>
-                <td>{{ $participant->user->nip ?? '-' }}</td>
-                <td>{{ $participant->user->organizationUnit->name ?? '-' }}</td>
-                <td style="text-align: center;">
-                    @if($participant->attendance_status === 'attended')
-                        <span class="status-badge status-attended">HADIR</span>
-                    @elseif($participant->attendance_status === 'absent')
-                        <span class="status-badge status-absent">TIDAK HADIR</span>
-                    @elseif($participant->attendance_status === 'excused')
-                        <span class="status-badge status-excused">IZIN</span>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $index + 1 }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ $participant->user->name }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ $participant->user->nip ?? '-' }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">
+                    @if($participant->role === 'moderator')
+                        Moderator
+                    @elseif($participant->role === 'secretary')
+                        Notulis
+                    @elseif($participant->role === 'observer')
+                        Observer
                     @else
-                        -
+                        Peserta
                     @endif
                 </td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">Hadir</td>
             </tr>
             @endforeach
         </tbody>

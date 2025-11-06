@@ -98,21 +98,28 @@ function LetterheadComponent({ node, updateAttributes }: any) {
 
     return (
         <NodeViewWrapper>
-            {/* Negative margin to break out of editor padding and span full A4 width */}
+            {/* Container untuk kop surat - ukuran presisi 700x147px */}
             <div
-                className="letterhead -mx-8 mb-4 bg-white"
+                className="letterhead bg-white"
                 contentEditable={false}
+                style={{
+                    margin: '0 0 12pt 0',
+                    padding: 0,
+                    width: '700px',
+                    maxWidth: '100%',
+                }}
             >
                 {node.attrs.logo && (
                     isFullWidth ? (
-                        // Full width: no padding, no margin, direct image
+                        // Full width: kop surat 700px x 147px
                         <img 
                             src={node.attrs.logo} 
                             alt="Logo Kop Surat" 
-                            className="w-full block"
                             style={{ 
-                                height: `${node.attrs.logoHeight}px`,
-                                objectFit: 'cover',
+                                width: '700px',
+                                height: '147px',
+                                maxWidth: '100%',
+                                objectFit: 'contain',
                                 display: 'block',
                                 margin: 0,
                                 padding: 0,
@@ -120,7 +127,7 @@ function LetterheadComponent({ node, updateAttributes }: any) {
                         />
                     ) : (
                         // Normal mode with alignment
-                        <div className={`flex ${flexAlign} w-full py-4`}>
+                        <div className={`flex ${flexAlign} w-full py-4`} style={{ paddingLeft: '20mm', paddingRight: '20mm' }}>
                             <img 
                                 src={node.attrs.logo} 
                                 alt="Logo Kop Surat" 
@@ -137,7 +144,7 @@ function LetterheadComponent({ node, updateAttributes }: any) {
                 
                 {/* Text content - only show if not full width or if there's text */}
                 {(node.attrs.organization || node.attrs.address || node.attrs.phone || node.attrs.email) && (
-                    <div className={`space-y-2 ${alignClass} py-4 px-4`}>
+                    <div className={`space-y-2 ${alignClass} py-4`} style={{ paddingLeft: '20mm', paddingRight: '20mm' }}>
                         {node.attrs.organization && (
                             <h2 className="text-xl font-bold uppercase">{node.attrs.organization}</h2>
                         )}
@@ -152,7 +159,7 @@ function LetterheadComponent({ node, updateAttributes }: any) {
                     </div>
                 )}
                 
-                <div className="text-xs text-blue-600 dark:text-blue-400 text-center pb-2 border-t border-dashed border-blue-200 dark:border-blue-800 pt-2 mx-4">
+                <div className="text-xs text-blue-600 dark:text-blue-400 text-center pb-2 border-t border-dashed border-blue-200 dark:border-blue-800 pt-2" style={{ marginLeft: '20mm', marginRight: '20mm' }}>
                     📝 Klik button "Kop Surat" untuk mengubah
                 </div>
             </div>

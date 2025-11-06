@@ -11,7 +11,7 @@ import { Head, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Archive, ArrowLeft, Calendar, CheckCircle2, Clock, Download, Edit, FileText, Send, Trash2, User, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface Approval {
@@ -22,6 +22,11 @@ interface Approval {
     status: 'pending' | 'approved' | 'rejected';
     notes: string | null;
     signed_at: string | null;
+    certificate?: {
+        id: number;
+        qr_code: string;
+        signature_data: string;
+    };
     user: {
         id: number;
         name: string;
@@ -88,6 +93,184 @@ export default function ShowLetter({ letter, userApproval, canApprove, auth }: P
     const [showArchiveDialog, setShowArchiveDialog] = useState(false);
     const [approvalNotes, setApprovalNotes] = useState('');
     const [rejectNotes, setRejectNotes] = useState('');
+    const previewRef = useRef<HTMLDivElement>(null);
+
+    // Inject letterhead setelah setiap page break
+    useEffect(() => {
+        console.log('🔄 useEffect: Starting letterhead injection');
+        console.log('Has previewRef:', !!previewRef.current);
+        console.log('Has letterhead logo:', !!letter.template.letterhead?.logo);
+        
+        if (!previewRef.current || !letter.template.letterhead?.logo) return;
+
+        // Tunggu DOM ready
+        const timer = setTimeout(() => {
+            if (!previewRef.current) return;
+            
+            const pageBreaks = previewRef.current.querySelectorAll('div[data-type="page-break"]');
+            console.log(`📄 Found ${pageBreaks.length} page breaks`);
+            
+            pageBreaks.forEach((pageBreak, index) => {
+                console.log(`Processing page break #${index + 1}`);
+                
+                // Cek apakah sudah ada letterhead setelah page break
+                const nextElement = pageBreak.nextElementSibling;
+                if (nextElement && nextElement.classList.contains('letterhead-after-break')) {
+                    console.log(`✅ Already has letterhead, skipping #${index + 1}`);
+                    return; // Sudah ada, skip
+                }
+
+                // Buat letterhead baru
+                const letterheadDiv = document.createElement('div');
+                letterheadDiv.className = 'letterhead letterhead-after-break';
+                letterheadDiv.innerHTML = `<img src="${letter.template.letterhead.logo}" alt="Kop Surat" style="width: 700px; height: 147px; max-width: 100%; object-fit: contain; display: block; margin: 0 0 10mm 0; padding: 0;" />`;
+                
+                // Insert setelah page break
+                pageBreak.parentNode?.insertBefore(letterheadDiv, pageBreak.nextSibling);
+                console.log(`✅ Letterhead injected after page break #${index + 1}`);
+            });
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [letter.template.letterhead, letter.rendered_html]);
+
+    // Function to download PDF - simple print dialog
+    const handleDownloadPDF = () => {
+        if (!previewRef.current) {
+            toast.error('Preview tidak ditemukan');
+            return;
+        }
+
+        try {
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                toast.error('Popup diblokir. Izinkan popup untuk download PDF');
+                return;
+            }
+
+            // Get all stylesheets
+            const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+                .map(link => `<link rel="stylesheet" href="${(link as HTMLLinkElement).href}">`)
+                .join('\n');
+
+            // Simple HTML - copy preview yang sudah benar
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>${letter.letter_number}</title>
+                    ${styleLinks}
+                    <style>
+                        @page { 
+                            size: A4; 
+                            margin: 0; 
+                        }
+                        body { 
+                            margin: 0; 
+                            padding: 0; 
+                            font-family: 'Times New Roman', serif;
+                            font-size: 12pt;
+                            line-height: 1.5;
+                            color: #000;
+                        }
+                        * { 
+                            print-color-adjust: exact; 
+                            -webkit-print-color-adjust: exact; 
+                        }
+                        
+                        /* Container sama seperti preview */
+                        [data-pdf-preview] {
+                            width: 210mm;
+                            min-height: 297mm;
+                            margin: 0;
+                            padding: 10mm 15mm 15mm 15mm;
+                            background-color: white;
+                            box-sizing: border-box;
+                        }
+                        
+                        /* Page Break - force new page */
+                        div[data-type="page-break"] {
+                            page-break-after: always !important;
+                            break-after: page !important;
+                            height: 0 !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            visibility: hidden !important;
+                        }
+                        
+                        /* Hide page break indicator in print */
+                        div[data-type="page-break"]::before,
+                        div[data-type="page-break"]::after {
+                            display: none !important;
+                        }
+                        
+                        /* Letterhead styling */
+                        .letterhead,
+                        .letterhead-after-break {
+                            margin: 0 0 10mm 0 !important;
+                            padding: 0 !important;
+                        }
+                        
+                        .letterhead img,
+                        .letterhead-after-break img {
+                            width: 700px !important;
+                            height: 147px !important;
+                            max-width: 100% !important;
+                            object-fit: contain !important;
+                            display: block !important;
+                        }
+                        
+                        /* Table styles */
+                        table {
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 1em 0;
+                        }
+                        
+                        table td,
+                        table th {
+                            border: 1px solid #000;
+                            padding: 4px 6px;
+                            vertical-align: top;
+                            line-height: 1.5;
+                        }
+                        
+                        table.borderless td,
+                        table.borderless th,
+                        table[data-type="alignment-table"] td {
+                            border: none;
+                        }
+                        
+                        /* Paragraph */
+                        p {
+                            margin: 0;
+                            line-height: 1.5;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${previewRef.current.outerHTML}
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+
+            printWindow.onload = () => {
+                setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                    setTimeout(() => printWindow.close(), 100);
+                }, 250);
+            };
+
+            toast.success('Silakan pilih "Save as PDF" di dialog print');
+        } catch (error) {
+            console.error('Error preparing PDF:', error);
+            toast.error('Gagal menyiapkan PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        }
+    };
 
     // Debug: Log letter data
     console.log('Letter Show Debug:', {
@@ -271,12 +454,12 @@ export default function ShowLetter({ letter, userApproval, canApprove, auth }: P
                             </>
                         )}
                         {/* PDF Actions */}
+                        <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                        </Button>
                         {letter.pdf_path ? (
                             <>
-                                <Button variant="outline" size="sm" onClick={() => window.open(`/arsip/letters/${letter.id}/download-pdf`, '_blank')}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download PDF
-                                </Button>
                                 {(letter.status === 'approved' || letter.status === 'fully_signed') && (
                                     <Button 
                                         variant="outline" 
@@ -547,26 +730,180 @@ export default function ShowLetter({ letter, userApproval, canApprove, auth }: P
                                 <CardTitle>Preview Surat</CardTitle>
                                 <CardDescription>Preview tampilan surat lengkap dengan kop surat (seperti saat dicetak)</CardDescription>
                             </CardHeader>
-                            <CardContent className="p-6">
+                            <CardContent className="p-0.5">
                                 <div className="overflow-auto rounded-lg bg-gray-100 p-6">
-                                    {/* A4 Paper - Preview surat dengan kop dan konten */}
+                                    {/* A4 Paper - padding sama dengan editor */}
                                     <div
-                                        className="mx-auto bg-white shadow-sm"
+                                        ref={previewRef}
+                                        data-pdf-preview
                                         style={{
-                                            maxWidth: '850px',
-                                            minHeight: '1100px',
-                                            padding: '48px',
-                                            whiteSpace: 'pre-wrap', // Preserve tabs and spaces
-                                            tabSize: 20, // Tab width for aligned text
+                                            width: '210mm',
+                                            minHeight: '297mm',
+                                            margin: '0 auto',
+                                            padding: '10mm 15mm 15mm 15mm',
+                                            backgroundColor: 'white',
+                                            boxShadow: 'none',
+                                            boxSizing: 'border-box',
                                         }}
                                     >
+                                        {/* CSS untuk rendered HTML - PRESISI SAMA dengan TipTapEditor */}
+                                        <style dangerouslySetInnerHTML={{
+                                            __html: `
+                                                /* Base styles - sama dengan TipTapEditor */
+                                                [data-pdf-preview] {
+                                                    font-family: 'Times New Roman', serif;
+                                                    font-size: 12pt;
+                                                    line-height: 1.5;
+                                                    color: #000;
+                                                }
+                                                
+                                                [data-pdf-preview] p {
+                                                    margin: 0;
+                                                    line-height: 1.5;
+                                                }
+                                                
+                                                [data-pdf-preview] h1 {
+                                                    font-size: 16pt;
+                                                    line-height: 1.3;
+                                                    margin: 0.5em 0;
+                                                }
+                                                
+                                                [data-pdf-preview] h2 {
+                                                    font-size: 14pt;
+                                                    line-height: 1.3;
+                                                    margin: 0.5em 0;
+                                                }
+                                                
+                                                [data-pdf-preview] h3 {
+                                                    font-size: 13pt;
+                                                    line-height: 1.3;
+                                                    margin: 0.5em 0;
+                                                }
+                                                
+                                                [data-pdf-preview] ul,
+                                                [data-pdf-preview] ol {
+                                                    padding-left: 1.5em;
+                                                    margin: 0.5em 0;
+                                                }
+                                                
+                                                [data-pdf-preview] li {
+                                                    line-height: 1.5;
+                                                }
+                                                
+                                                [data-pdf-preview] table {
+                                                    border-collapse: collapse;
+                                                    table-layout: fixed;
+                                                    width: 100%;
+                                                    margin: 1em 0;
+                                                }
+                                                
+                                                [data-pdf-preview] table td,
+                                                [data-pdf-preview] table th {
+                                                    min-width: 1em;
+                                                    border: 1px solid #000;
+                                                    padding: 4px 6px;
+                                                    vertical-align: top;
+                                                    line-height: 1.5;
+                                                }
+                                                
+                                                [data-pdf-preview] table.borderless td,
+                                                [data-pdf-preview] table.borderless th {
+                                                    border: none;
+                                                    padding: 2px 8px;
+                                                }
+                                                
+                                                /* Alignment Table - borderless table untuk signature */
+                                                [data-pdf-preview] table[data-type="alignment-table"] {
+                                                    border: none;
+                                                    margin: 10px 0;
+                                                }
+                                                
+                                                [data-pdf-preview] table[data-type="alignment-table"] td {
+                                                    border: none;
+                                                    padding: 4px 8px;
+                                                    vertical-align: top;
+                                                }
+                                                
+                                                [data-pdf-preview] img {
+                                                    max-width: 100%;
+                                                    height: auto;
+                                                }
+                                                
+                                                /* Letterhead ukuran presisi */
+                                                [data-pdf-preview] .letterhead {
+                                                    width: 700px;
+                                                    max-width: 100%;
+                                                    margin: 0 0 10mm 0;
+                                                    padding: 0;
+                                                }
+                                                
+                                                [data-pdf-preview] .letterhead img {
+                                                    width: 700px;
+                                                    height: 147px;
+                                                    max-width: 100%;
+                                                    object-fit: contain;
+                                                }
+                                                
+                                                /* Page Break - membuat halaman baru */
+                                                [data-pdf-preview] div[data-type="page-break"] {
+                                                    page-break-after: always;
+                                                    break-after: page;
+                                                    margin: 30px 0;
+                                                    padding: 0;
+                                                    position: relative;
+                                                    height: 1px;
+                                                }
+                                                
+                                                [data-pdf-preview] div[data-type="page-break"]::before {
+                                                    content: '';
+                                                    position: absolute;
+                                                    left: 50%;
+                                                    transform: translateX(-50%);
+                                                    width: 210mm;
+                                                    top: 0;
+                                                    height: 1px;
+                                                    border-top: 2px dashed #cbd5e1;
+                                                }
+                                                
+                                                [data-pdf-preview] div[data-type="page-break"]::after {
+                                                    content: '📄 Halaman Baru';
+                                                    position: absolute;
+                                                    left: 50%;
+                                                    transform: translateX(-50%);
+                                                    top: -12px;
+                                                    background: white;
+                                                    padding: 4px 12px;
+                                                    color: #64748b;
+                                                    font-size: 11px;
+                                                    font-weight: 500;
+                                                    border-radius: 4px;
+                                                    border: 1px solid #cbd5e1;
+                                                    white-space: nowrap;
+                                                    z-index: 1;
+                                                }
+                                                
+                                                @media print {
+                                                    [data-pdf-preview] div[data-type="page-break"] {
+                                                        margin: 0;
+                                                        padding: 0;
+                                                        height: 0;
+                                                    }
+                                                    
+                                                    [data-pdf-preview] div[data-type="page-break"]::before,
+                                                    [data-pdf-preview] div[data-type="page-break"]::after {
+                                                        display: none;
+                                                    }
+                                                }
+                                            `
+                                        }} />
+                                        
                                         {/* Rendered HTML dari backend - variable sudah ter-replace, kop sudah included */}
                                         {letter.rendered_html ? (
                                             <div dangerouslySetInnerHTML={{ __html: letter.rendered_html }} />
                                         ) : (
-                                            <div className="text-center text-gray-500 py-20">
+                                            <div style={{ textAlign: 'center', color: '#6b7280', paddingTop: '80px', paddingBottom: '80px' }}>
                                                 <p>Preview tidak tersedia</p>
-                                                <p className="text-sm mt-2">rendered_html kosong atau tidak ditemukan</p>
+                                                <p style={{ fontSize: '0.875rem', marginTop: '8px' }}>rendered_html kosong atau tidak ditemukan</p>
                                             </div>
                                         )}
                                     </div>

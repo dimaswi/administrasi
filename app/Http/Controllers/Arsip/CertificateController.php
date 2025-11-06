@@ -25,7 +25,7 @@ class CertificateController extends Controller
     {
         $result = $this->certificateService->verifyCertificate($certificateId);
 
-        return Inertia::render('arsip/verify-certificate', [
+        return Inertia::render('arsip/verify-signature', [
             'result' => $result,
         ]);
     }

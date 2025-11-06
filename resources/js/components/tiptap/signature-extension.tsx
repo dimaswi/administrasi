@@ -83,8 +83,9 @@ export const Signature = Node.create<SignatureOptions>({
     },
 
     renderHTML({ HTMLAttributes, node }) {
-        // Render as a self-closing element (no content hole needed for atom nodes)
+        // Render as inline span (tanpa float - user pakai TAB untuk positioning)
         const attrs = node.attrs;
+        
         return [
             'span', 
             mergeAttributes(HTMLAttributes, { 
@@ -120,23 +121,35 @@ function SignatureComponent({ node }: any) {
     return (
         <NodeViewWrapper 
             as="span"
-            className="inline-block align-bottom"
-            style={{ display: 'inline-block', margin: '0 4px' }}
+            style={{ display: 'inline-block', verticalAlign: 'top', margin: '0 8px', minWidth: '180px', textAlign: 'center' }}
         >
             <span 
-                className={cn(
-                    "inline-flex flex-col items-center p-2 rounded border border-gray-300 bg-white hover:border-blue-400 transition-colors",
-                    "print:border-gray-300"
-                )}
-                style={{ fontSize: '10px' }}
+                style={{ 
+                    display: 'inline-flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    padding: '12px', 
+                    background: 'white', 
+                    fontSize: '11pt' 
+                }}
                 contentEditable={false}
             >
                 {/* Position/Jabatan */}
-                <span className="text-center mb-1 font-medium">{position}</span>
+                <span style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 500, fontSize: '11pt' }}>{position}</span>
                 
-                {/* QR Code / Signature Placeholder */}
-                <span className="border border-gray-300 bg-white h-14 w-14 flex items-center justify-center mb-1">
-                    <span className="text-xs text-gray-400">QR</span>
+                {/* QR Code / Signature Placeholder - ukuran lebih besar - TANPA BORDER */}
+                <span style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    background: 'white', 
+                    width: '80px', 
+                    height: '80px', 
+                    marginBottom: '8px', 
+                    fontSize: '10pt', 
+                    color: '#9ca3af' 
+                }}>
+                    QR
                 </span>
                 
                 {/* Signature Image (optional) */}
@@ -144,17 +157,17 @@ function SignatureComponent({ node }: any) {
                     <img 
                         src={signatureImage} 
                         alt="TTD" 
-                        className="h-8 w-auto object-contain mb-1"
+                        style={{ height: '40px', width: 'auto', objectFit: 'contain', marginBottom: '8px', display: 'block' }}
                     />
                 )}
                 
                 {/* Name */}
-                <span className="font-semibold border-b border-black px-2 mb-0.5">
+                <span style={{ display: 'inline-block', fontWeight: 600, borderBottom: '1px solid #000', padding: '0 12px', marginBottom: '4px', fontSize: '11pt' }}>
                     {userName}
                 </span>
                 
                 {/* NIP */}
-                {nip && <span className="text-[9px]">NIP. {nip}</span>}
+                {nip && <span style={{ display: 'block', fontSize: '9pt' }}>NIP. {nip}</span>}
             </span>
         </NodeViewWrapper>
     );

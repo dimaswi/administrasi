@@ -145,22 +145,53 @@ class CertificateService
             ];
         }
 
+        // Check if this is a meeting certificate
+        $isMeetingCertificate = isset($certificate->metadata['type']) && $certificate->metadata['type'] === 'meeting_invitation';
+        
         // Verify document hash
-        $currentHash = $this->generateDocumentHash($certificate->letter);
-        $hashValid = $currentHash === $certificate->document_hash;
+        if ($isMeetingCertificate) {
+            // For meeting certificates, we verify against meeting data
+            $meeting = \App\Models\Meeting::find($certificate->metadata['meeting_id']);
+            if ($meeting) {
+                $currentHash = hash('sha256', json_encode([
+                    'meeting_id' => $meeting->id,
+                    'meeting_number' => $meeting->meeting_number,
+                    'title' => $meeting->title,
+                    'meeting_date' => $meeting->meeting_date->format('Y-m-d H:i:s'),
+                    'signed_by' => $certificate->signed_by,
+                    'signed_at' => $certificate->signed_at->format('Y-m-d H:i:s'),
+                ]));
+                $hashValid = $currentHash === $certificate->document_hash;
+            } else {
+                $hashValid = false;
+            }
+        } else {
+            // For letter certificates
+            $currentHash = $this->generateDocumentHash($certificate->letter);
+            $hashValid = $currentHash === $certificate->document_hash;
+        }
 
         // Check if revoked
         $isRevoked = $certificate->status === 'revoked';
 
         $isValid = $hashValid && !$isRevoked;
 
-        return [
+        $result = [
             'valid' => $isValid,
             'message' => $this->getVerificationMessage($isValid, $isRevoked, $hashValid),
             'certificate' => $certificate,
             'hash_valid' => $hashValid,
             'is_revoked' => $isRevoked,
+            'is_meeting_certificate' => $isMeetingCertificate,
         ];
+
+        // Add meeting data if it's a meeting certificate
+        if ($isMeetingCertificate && isset($meeting)) {
+            $meeting->load(['room', 'organizer', 'organizationUnit']);
+            $result['meeting'] = $meeting;
+        }
+
+        return $result;
     }
 
     /**

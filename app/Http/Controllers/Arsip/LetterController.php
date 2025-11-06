@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Arsip;
 use App\Http\Controllers\Controller;
 use App\Models\Letter;
 use App\Models\LetterApproval;
+use App\Models\LetterCertificate;
 use App\Models\LetterTemplate;
 use App\Models\LetterNumberingConfig;
 use App\Models\Notification;
@@ -177,25 +178,42 @@ class LetterController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            // Extract signatures from template content (yang sudah ada di editor)
-            // Create approval records based on signatures embedded in content
+            // Create approval records HANYA untuk user yang namanya ADA di konten
             // Only if letter is submitted (not draft)
             if ($validated['submit_type'] === 'submit') {
-                $signatures = $this->templateService->extractSignatures($template->content);
+                $templateSignatures = $template->signatures ?? [];
+                $contentHtml = $renderedHtml; // HTML konten yang sudah di-render
                 
-                Log::info('Creating approval records', [
+                Log::info('Creating approval records - checking content', [
                     'letter_id' => $letter->id,
-                    'signatures_found' => count($signatures),
-                    'signatures' => $signatures,
+                    'template_signatures_count' => count($templateSignatures),
                 ]);
                 
-                foreach ($signatures as $signature) {
-                    $letter->approvals()->create([
-                        'user_id' => $signature['userId'],
-                        'signature_index' => $signature['signatureIndex'],
-                        'position_name' => $signature['position'],
-                        'status' => 'pending',
-                    ]);
+                foreach ($templateSignatures as $index => $signature) {
+                    // Pastikan user_id ada
+                    if (!empty($signature['user_id'])) {
+                        $userName = $signature['label'] ?? '';
+                        
+                        // Cek apakah nama user ini ADA di konten HTML
+                        if (!empty($userName) && stripos($contentHtml, $userName) !== false) {
+                            $letter->approvals()->create([
+                                'user_id' => $signature['user_id'],
+                                'signature_index' => $index,
+                                'position_name' => $signature['position'] ?? $signature['label'] ?? 'Penandatangan',
+                                'status' => 'pending',
+                            ]);
+                            
+                            Log::info('Approval created for user found in content', [
+                                'user_name' => $userName,
+                                'user_id' => $signature['user_id'],
+                            ]);
+                        } else {
+                            Log::info('User NOT in content, skipping approval', [
+                                'user_name' => $userName,
+                                'user_id' => $signature['user_id'],
+                            ]);
+                        }
+                    }
                 }
             }
 
@@ -238,8 +256,37 @@ class LetterController extends Controller
         $letterData = $letter->data;
         $letterData['nomor_surat'] = $letter->letter_number;
         
-        // Use renderTemplate which handles both old and new format + applies date formatting
-        $letter->rendered_html = $this->templateService->renderTemplate($letter->template, $letterData);
+        // IMPORTANT: If letter has custom content (with page breaks, edits), use that
+        // Otherwise use template content (default)
+        if (isset($letterData['content']) && is_array($letterData['content']) && isset($letterData['content']['type'])) {
+            // Render dari custom content letter (ada page break, editan manual)
+            $html = $this->templateService->jsonToHtml($letterData['content']);
+            
+            // Replace variables
+            foreach ($letterData as $key => $value) {
+                if ($key === 'content') continue;
+                
+                if (is_array($value) && isset($value['type']) && $value['type'] === 'doc') {
+                    $value = $this->templateService->jsonToHtml($value);
+                }
+                
+                if (strpos($key, 'tanggal') !== false && !empty($value) && !is_array($value)) {
+                    $value = $this->templateService->formatIndonesianDate($value);
+                }
+                
+                $html = str_replace("{{" . $key . "}}", $value, $html);
+            }
+            
+            // Add letterhead
+            if ($letter->template->letterhead) {
+                $html = $this->templateService->prependLetterhead($html, $letter->template->letterhead);
+            }
+            
+            $letter->rendered_html = $html;
+        } else {
+            // Fallback: render dari template content (untuk letter lama)
+            $letter->rendered_html = $this->templateService->renderTemplate($letter->template, $letterData);
+        }
         
         // If letter is approved/fully_signed, inject real QR codes for preview
         if (in_array($letter->status, ['approved', 'fully_signed'])) {
@@ -324,16 +371,62 @@ class LetterController extends Controller
             // Update nomor_surat in data with existing letter number for template rendering
             $validated['data']['nomor_surat'] = $letter->letter_number;
 
+            // Clone template content and replace variables in TipTap JSON (if content changed)
+            if (isset($validated['data']['content'])) {
+                $letterContent = $validated['data']['content'];
+            } else {
+                $letterContent = $this->templateService->replaceVariablesInContent($letter->template->content, $validated['data']);
+                $validated['data']['content'] = $letterContent;
+            }
+
             // Re-render HTML
             $renderedHtml = $this->templateService->renderTemplate($letter->template, $validated['data']);
 
-            // Reset approvals if re-submitting after rejection
-            if ($letter->status === 'rejected' && $validated['submit_type'] === 'submit') {
-                // Delete old approval records
+            // Sync approval records jika submit (draft atau rejected yang di-submit ulang)
+            if ($validated['submit_type'] === 'submit') {
+                // Delete all old approval records (untuk sync dengan signature baru)
                 $letter->approvals()->delete();
                 
-                // Create new approval records
-                $this->createApprovalRecords($letter, $letter->template->signatures);
+                // Create new approval records HANYA untuk user yang namanya ADA di konten
+                $templateSignatures = $letter->template->signatures ?? [];
+                $contentHtml = $renderedHtml; // HTML konten yang sudah di-render
+                
+                Log::info('Update Letter - Creating approvals, checking content', [
+                    'letter_id' => $letter->id,
+                    'template_signatures_count' => count($templateSignatures),
+                ]);
+                
+                foreach ($templateSignatures as $index => $signature) {
+                    // Pastikan user_id ada
+                    if (!empty($signature['user_id'])) {
+                        $userName = $signature['label'] ?? '';
+                        
+                        // Cek apakah nama user ini ADA di konten HTML
+                        if (!empty($userName) && stripos($contentHtml, $userName) !== false) {
+                            $letter->approvals()->create([
+                                'user_id' => $signature['user_id'],
+                                'signature_index' => $index,
+                                'position_name' => $signature['position'] ?? $signature['label'] ?? 'Penandatangan',
+                                'status' => 'pending',
+                            ]);
+                            
+                            Log::info('Approval created for user found in content', [
+                                'user_name' => $userName,
+                                'user_id' => $signature['user_id'],
+                            ]);
+                        } else {
+                            Log::info('User NOT in content, skipping approval', [
+                                'user_name' => $userName,
+                                'user_id' => $signature['user_id'],
+                            ]);
+                        }
+                    }
+                }
+                
+                Log::info('Update Letter - Approvals Created', [
+                    'letter_id' => $letter->id,
+                    'approval_count' => count($templateSignatures),
+                ]);
             }
 
             $letter->update([
@@ -459,8 +552,47 @@ class LetterController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create approval records for each signature
-            $this->createApprovalRecords($letter, $signatures);
+            // DELETE old approvals first
+            $letter->approvals()->delete();
+            
+            // Create approval records HANYA untuk user yang namanya ADA di konten
+            $contentHtml = $letter->rendered_html;
+            
+            Log::info('submitForApproval - checking content', [
+                'letter_id' => $letter->id,
+                'signatures_count' => count($signatures),
+            ]);
+            
+            foreach ($signatures as $index => $signature) {
+                if (!empty($signature['user_id'])) {
+                    $userName = $signature['label'] ?? '';
+                    
+                    // Cek apakah nama user ini ADA di konten HTML
+                    if (!empty($userName) && stripos($contentHtml, $userName) !== false) {
+                        $approval = LetterApproval::create([
+                            'letter_id' => $letter->id,
+                            'user_id' => $signature['user_id'],
+                            'signature_index' => $index,
+                            'position_name' => $signature['position'] ?? $signature['label'],
+                            'status' => 'pending',
+                            'order' => 0,
+                        ]);
+                        
+                        // Send notification
+                        $this->sendApprovalNotification($letter, $approval);
+                        
+                        Log::info('Approval created for user found in content', [
+                            'user_name' => $userName,
+                            'user_id' => $signature['user_id'],
+                        ]);
+                    } else {
+                        Log::info('User NOT in content, skipping approval', [
+                            'user_name' => $userName,
+                            'user_id' => $signature['user_id'],
+                        ]);
+                    }
+                }
+            }
 
             // Update letter status to pending_approval
             $letter->update([
@@ -601,74 +733,46 @@ class LetterController extends Controller
                 $approval->id
             );
             
-            // Replace signature placeholder with QR code image
-            $qrImage = '<img src="data:image/png;base64,' . $qrCode . '" style="width: 56px; height: 56px; display: inline-block; vertical-align: middle; border: 1px solid #333; margin: 0 2px;" alt="QR" title="Scan untuk verifikasi - ' . $approval->user->name . '" />';
+            // Replace text "QR" dengan QR image - KEEP semua wrapper HTML structure
+            // Support both old signature (span) and new signatureBlock (div)
+            $userId = $approval->user_id;
             
-            // Try multiple patterns to match signature spans
-            $patterns = [
-                '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $approval->user_id . '"[^>]*\/>/i',
-                '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $approval->user_id . '"[^>]*><\/span>/i',
-                '/<span[^>]*data-user-id="' . $approval->user_id . '"[^>]*data-type="signature"[^>]*><\/span>/i',
-                '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $approval->user_id . '"[^>]*>.*?<\/span>/is',
-            ];
+            // Pattern 1: <span data-type="signature" data-user-id="X" ...>...nested content dengan >QR<...</span>
+            $pattern1 = '/(<span[^>]*data-type="signature"[^>]*data-user-id="' . $userId . '"[^>]*>.*?)>QR<(.*?<\/span>\s*<\/span>)/is';
             
-            foreach ($patterns as $pattern) {
-                $count = 0;
-                $html = preg_replace($pattern, $qrImage, $html, -1, $count);
-                if ($count > 0) {
-                    Log::info('Preview QR Replaced', [
-                        'user_id' => $approval->user_id,
-                        'user_name' => $approval->user->name,
-                        'count' => $count,
-                        'certificate_id' => $signatureData['certificate_id'],
-                    ]);
-                    break;
-                }
+            // Pattern 2: <div data-type="signature-block" data-user-id="X" ...>...>QR<...</div>
+            $pattern2 = '/(<div[^>]*data-type="signature-block"[^>]*data-user-id="' . $userId . '"[^>]*>.*?)>QR<(.*?<\/div>)/is';
+            
+            // QR image dengan styling yang match dengan signature box (80x80px, display: block untuk center)
+            $qrImage = '<img src="data:image/png;base64,' . $qrCode . '" style="width: 80px; height: 80px; display: block; margin: 0 auto;" alt="QR" title="Scan untuk verifikasi - ' . $approval->user->name . '" />';
+            
+            $count = 0;
+            // Try pattern 1 (old signature) - REPLACE ALL occurrences (-1 = unlimited)
+            $html = preg_replace($pattern1, '$1>' . $qrImage . '<$2', $html, -1, $count);
+            
+            // If no match, try pattern 2 (new signatureBlock) - REPLACE ALL occurrences (-1 = unlimited)
+            if ($count === 0) {
+                $html = preg_replace($pattern2, '$1>' . $qrImage . '<$2', $html, -1, $count);
+            }
+            
+            if ($count > 0) {
+                Log::info('Preview QR Replaced', [
+                    'user_id' => $userId,
+                    'user_name' => $approval->user->name,
+                    'certificate_id' => $signatureData['certificate_id'],
+                    'replacements_count' => $count,
+                ]);
+            } else {
+                Log::warning('Preview QR NOT replaced - pattern not matched', [
+                    'user_id' => $userId,
+                    'user_name' => $approval->user->name,
+                ]);
             }
         }
         
         Log::info('Preview QR Injection Complete', [
             'has_img_tag' => strpos($html, '<img src="data:image/png;base64,') !== false,
         ]);
-        
-        // Remove any remaining signature placeholders that weren't replaced with QR codes
-        $html = preg_replace('/<span[^>]*data-type="signature"[^>]*>.*?<\/span>/is', '', $html);
-        
-        // Replace text-based signatures in content with QR codes (tanpa hapus CSS wrapper)
-        foreach ($approvals as $approval) {
-            $signatureData = json_decode($approval->signature_data, true);
-            if ($signatureData && isset($signatureData['certificate_id'])) {
-                $qrCode = $this->certificateService->generateApprovalQRCodeBase64(
-                    $signatureData['certificate_id'],
-                    $approval->id
-                );
-                
-                $userName = $approval->user->name;
-                
-                // Replace entire <span>QR</span> with QR image (ganti seluruh span, bukan hanya teks)
-                // Pattern untuk struktur: <span><span>Label</span><span>QR</span><span>Nama</span></span>
-                $pattern = '/(<span[^>]*>[^<]*<span[^>]*>[^<]*<\/span>[^<]*)<span[^>]*>QR<\/span>([^<]*<span[^>]*>' . preg_quote($userName, '/') . '<\/span><\/span>)/is';
-                $replacement = '$1<img src="data:image/png;base64,' . $qrCode . '" style="width: 85px; height: 85px; display: block; margin: 4px auto;" alt="QR Code" />$2';
-                
-                $count = 0;
-                $html = preg_replace($pattern, $replacement, $html, 1, $count);
-                
-                // Remove border from wrapper span (hapus border dari kotak signature)
-                if ($count > 0) {
-                    // Remove "border: 1px solid ..." from the outermost span
-                    $html = preg_replace(
-                        '/(<span[^>]*style="[^"]*?)border:\s*1px\s+solid[^;]*;?([^"]*")/is',
-                        '$1$2',
-                        $html
-                    );
-                }
-                
-                Log::info('Replaced text QR with image', [
-                    'user_name' => $userName,
-                    'replaced' => $count > 0,
-                ]);
-            }
-        }
         
         // If no signatures were replaced (old template without embedded signatures), append QR codes at bottom
         if (strpos($html, '<img src="data:image/png;base64,') === false && $approvals->count() > 0) {
@@ -704,6 +808,15 @@ class LetterController extends Controller
      */
     private function generateLetterPDF(Letter $letter): void
     {
+        // Regenerate HTML from template to get fresh copy without preview QR codes
+        $letter->load('template');
+        $letterData = json_decode($letter->letter_data, true) ?? [];
+        $freshHtml = $this->templateService->renderTemplate($letter->template, $letterData);
+        
+        // Temporarily set fresh HTML for PDF generation
+        $originalHtml = $letter->rendered_html;
+        $letter->rendered_html = $freshHtml;
+        
         // Get all approved approvals with certificates
         $approvals = $letter->approvals()
             ->where('status', 'approved')
@@ -763,6 +876,9 @@ class LetterController extends Controller
 
         // Generate PDF with signatures
         $pdfPath = $this->pdfService->generatePDF($letter, $approvalSignatures);
+        
+        // Restore original HTML (with preview QR codes)
+        $letter->rendered_html = $originalHtml;
         $letter->update(['pdf_path' => $pdfPath]);
     }
 
@@ -802,7 +918,7 @@ class LetterController extends Controller
     }
     
     /**
-     * Regenerate/Generate PDF with signatures
+     * Regenerate/Generate PDF with signatures (also regenerates rendered_html from template)
      */
     public function regeneratePDF(Letter $letter)
     {
@@ -812,9 +928,20 @@ class LetterController extends Controller
                 return back()->with('error', 'Hanya surat yang sudah disetujui yang dapat di-generate PDF');
             }
 
+            // PENTING: Regenerate rendered_html dari template untuk apply perubahan terbaru
+            $letter->load('template');
+            $letterData = json_decode($letter->letter_data, true) ?? [];
+            $freshHtml = $this->templateService->renderTemplate($letter->template, $letterData);
+            $letter->update(['rendered_html' => $freshHtml]);
+            
+            Log::info('Regenerated rendered_html', [
+                'letter_id' => $letter->id,
+                'has_data_user_id' => strpos($freshHtml, 'data-user-id') !== false,
+            ]);
+
             $this->generateLetterPDF($letter);
 
-            return back()->with('success', 'PDF berhasil di-generate dengan semua tanda tangan');
+            return back()->with('success', 'PDF dan HTML berhasil di-regenerate dengan semua tanda tangan');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal generate PDF: ' . $e->getMessage());
         }
@@ -938,8 +1065,22 @@ class LetterController extends Controller
 
         DB::beginTransaction();
         try {
-            // Generate QR code data for this signature
-            $signatureData = $this->generateSignatureData($letter, $approval);
+            // Generate certificate for this signature
+            $certificate = $this->certificateService->generateCertificate($letter, Auth::user(), $approval->id);
+            
+            // Generate signature hash
+            $signatureHash = $this->certificateService->generateSignatureHash(
+                $approval->id,
+                Auth::id(),
+                $letter->letter_number
+            );
+            
+            // Create signature data with certificate
+            $signatureData = json_encode([
+                'certificate_id' => $certificate->certificate_id,
+                'signature_hash' => $signatureHash,
+                'signed_at' => now()->toISOString(),
+            ]);
             
             // Approve
             $approval->approve($validated['notes'] ?? null, $signatureData);
@@ -1001,6 +1142,17 @@ class LetterController extends Controller
 
         DB::beginTransaction();
         try {
+            // Revoke any certificates associated with this approval
+            $certificates = LetterCertificate::where('letter_id', $letter->id)
+                ->where('signed_by', Auth::id())
+                ->where('status', 'valid')
+                ->whereJsonContains('metadata->approval_id', $approval->id)
+                ->get();
+            
+            foreach ($certificates as $certificate) {
+                $certificate->revoke('Persetujuan dibatalkan oleh penandatangan', Auth::id());
+            }
+
             // Reset approval to pending
             $approval->update([
                 'status' => 'pending',

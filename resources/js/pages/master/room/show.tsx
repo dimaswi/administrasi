@@ -16,7 +16,7 @@ interface Props extends SharedData {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Ruangan', href: '/meeting/rooms' },
+    { title: 'Ruangan', href: '/master/rooms' },
     { title: 'Detail Ruangan', href: '#' },
 ];
 
@@ -58,7 +58,7 @@ export default function RoomShow({ room }: Props) {
                     </div>
                     <Button
                         variant="outline"
-                        onClick={() => router.visit(`/meeting/rooms/${room.id}/edit`)}
+                        onClick={() => router.visit(`/master/rooms/${room.id}/edit`)}
                     >
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
@@ -225,3 +225,4 @@ export default function RoomShow({ room }: Props) {
         </AppLayout>
     );
 }
+

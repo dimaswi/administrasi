@@ -7,8 +7,8 @@ import { SearchableSelect, SearchableSelectOption } from "@/components/ui/search
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem, OrganizationUnit, SharedData, User } from "@/types";
 import { Head, router, useForm } from "@inertiajs/react";
-import { Loader2, Save } from "lucide-react";
-import { FormEventHandler } from "react";
+import { Loader2, Save, Upload, X } from "lucide-react";
+import { FormEventHandler, useState } from "react";
 import { toast } from "sonner";
 
 interface Props extends SharedData {
@@ -18,28 +18,36 @@ interface Props extends SharedData {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Unit Organisasi', href: '/meeting/organizations' },
+    { title: 'Unit Organisasi', href: '/master/organizations' },
     { title: 'Edit Unit Organisasi', href: '#' },
 ];
 
 export default function OrganizationEdit({ organization, parentUnits, users }: Props) {
-    const { data, setData, put, processing, errors } = useForm<{
+    const { data, setData, post, processing, errors } = useForm<{
         code: string;
         name: string;
         description: string;
+        letterhead_image?: File | null;
         parent_id: string;
         level: string;
         head_id: string;
         is_active: boolean;
+        _method: string;
     }>({
         code: organization.code || '',
         name: organization.name || '',
         description: organization.description || '',
+        letterhead_image: null,
         parent_id: organization.parent_id?.toString() || '',
         level: organization.level?.toString() || '1',
         head_id: organization.head_id?.toString() || '',
         is_active: organization.is_active ?? true,
+        _method: 'PUT',
     });
+
+    const [previewUrl, setPreviewUrl] = useState<string | null>(
+        organization.letterhead_image ? `/storage/${organization.letterhead_image}` : null
+    );
 
     const levelOptions: SearchableSelectOption[] = [
         { value: '1', label: 'Level 1 - Top Level' },
@@ -66,9 +74,26 @@ export default function OrganizationEdit({ organization, parentUnits, users }: P
         })),
     ];
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setData('letterhead_image', file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setData('letterhead_image', null);
+        setPreviewUrl(null);
+    };
+
     const handleSubmit: FormEventHandler = (e) => {
         e.preventDefault();
-        put(`/meeting/organizations/${organization.id}`, {
+        post(`/master/organizations/${organization.id}`, {
             onSuccess: () => {
                 toast.success('Unit organisasi berhasil diperbarui');
             },
@@ -182,6 +207,47 @@ export default function OrganizationEdit({ organization, parentUnits, users }: P
                             )}
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="letterhead_image">Kop Surat (Opsional)</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Upload gambar kop surat yang akan digunakan pada undangan rapat. Format: JPG, PNG. Maksimal 2MB.
+                            </p>
+                            <div className="mt-2">
+                                {previewUrl ? (
+                                    <div className="relative inline-block">
+                                        <img 
+                                            src={previewUrl} 
+                                            alt="Preview kop surat" 
+                                            className="max-w-full h-auto border rounded-lg max-h-48"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            className="absolute top-2 right-2"
+                                            onClick={handleRemoveImage}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="letterhead_image"
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/jpg"
+                                            onChange={handleFileChange}
+                                            className={errors.letterhead_image ? 'border-red-500' : ''}
+                                        />
+                                        <Upload className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                )}
+                            </div>
+                            {errors.letterhead_image && (
+                                <p className="text-sm text-red-500">{errors.letterhead_image}</p>
+                            )}
+                        </div>
+
                         <div className="flex items-center space-x-2">
                             <Switch
                                 id="is_active"
@@ -198,7 +264,7 @@ export default function OrganizationEdit({ organization, parentUnits, users }: P
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.visit('/meeting/organizations')}
+                            onClick={() => router.visit('/master/organizations')}
                             disabled={processing}
                         >
                             Batal
@@ -222,3 +288,4 @@ export default function OrganizationEdit({ organization, parentUnits, users }: P
         </AppLayout>
     );
 }
+

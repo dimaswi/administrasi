@@ -6,364 +6,223 @@
     <title>Undangan Rapat - {{ $meeting->meeting_number }}</title>
     <style>
         @page {
-            margin: 2cm 2cm;
-            size: A4;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            margin-top: 200px;
+            margin-bottom: 1cm;
         }
 
         body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.6;
-            color: #000;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #000;
-        }
-
-        .header h1 {
-            font-size: 16pt;
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-        }
-
-        .header .subtitle {
-            font-size: 11pt;
-            font-style: italic;
-            color: #333;
-        }
-
-        .document-info {
-            margin: 20px 0;
-            text-align: right;
-        }
-
-        .document-info table {
-            margin-left: auto;
-            border-collapse: collapse;
-        }
-
-        .document-info td {
-            padding: 3px 10px;
+                        margin-left: 10px;
+            margin-right: 10px;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 11pt;
         }
 
-        .document-info td:first-child {
-            text-align: right;
-            font-weight: bold;
-        }
-
-        .greeting {
-            margin: 20px 0;
-        }
-
-        .content {
-            margin: 20px 0;
-            text-align: justify;
-        }
-
-        .meeting-details {
-            margin: 25px 0;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-left: 4px solid #2563eb;
-        }
-
-        .meeting-details table {
-            width: 100%;
+        table {
             border-collapse: collapse;
         }
 
-        .meeting-details td {
-            padding: 8px 5px;
+        table td {
             vertical-align: top;
+            padding: 2px 0;
         }
 
-        .meeting-details td:first-child {
-            width: 150px;
-            font-weight: bold;
+        .detail-table {
+            padding-left: 2cm;
+            padding-right: 2cm;
         }
 
-        .meeting-details td:nth-child(2) {
-            width: 20px;
-            text-align: center;
+        .signature-table {
+            margin-top: 20px;
         }
 
-        .agenda-box {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #fff;
-            border: 1px solid #ddd;
+        .signature-table td {
+            padding: 5px;
         }
 
-        .agenda-box h3 {
-            font-size: 12pt;
-            margin-bottom: 10px;
-            color: #2563eb;
-        }
-
-        .participants-section {
-            margin: 25px 0;
-        }
-
-        .participants-section h3 {
-            font-size: 12pt;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 5px;
-        }
-
-        .participants-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .participants-table th,
-        .participants-table td {
-            border: 1px solid #333;
-            padding: 8px;
+        .letterhead {
+            position: fixed;
+            top: -200px;
+            left: 0;
+            right: 0;
             text-align: left;
-            font-size: 10pt;
+            height: 180px;
         }
 
-        .participants-table th {
-            background-color: #2563eb;
-            color: white;
-            font-weight: bold;
-        }
-
-        .participants-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .closing {
-            margin-top: 30px;
-        }
-
-        .signature {
-            margin-top: 40px;
-            text-align: right;
-        }
-
-        .signature-box {
-            display: inline-block;
-            text-align: center;
-            min-width: 200px;
-        }
-
-        .signature-line {
-            margin-top: 80px;
-            border-top: 1px solid #000;
-            padding-top: 5px;
-        }
-
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            font-size: 9pt;
-            color: #666;
-            text-align: center;
-        }
-
-        .important-notice {
-            margin: 20px 0;
-            padding: 12px;
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            font-size: 10pt;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 9pt;
-            font-weight: bold;
-        }
-
-        .badge-moderator {
-            background-color: #dbeafe;
-            color: #1e40af;
-        }
-
-        .badge-secretary {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-observer {
-            background-color: #e9d5ff;
-            color: #6b21a8;
+        .letterhead img {
+            height: 178px;
+            width: 700px;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>UNDANGAN RAPAT</h1>
-        <div class="subtitle">{{ $meeting->organizationUnit->name ?? 'Organisasi' }}</div>
+    <!-- Letterhead (Akan muncul di setiap halaman) -->
+    <div class="letterhead">
+        @if($meeting->organizationUnit && $meeting->organizationUnit->letterhead_image)
+            <img src="{{ public_path('storage/' . $meeting->organizationUnit->letterhead_image) }}" alt="Kop Surat">
+            <hr style="border: 1px solid #000; margin-top: 5px;">
+        @else
+            <!-- Fallback jika tidak ada kop surat -->
+            <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #000;">
+                <h2 style="margin: 0; font-size: 16pt;">{{ $meeting->organizationUnit->name ?? 'ORGANISASI' }}</h2>
+                <p style="margin: 5px 0; font-size: 10pt;">UNDANGAN RAPAT</p>
+            </div>
+        @endif
     </div>
 
-    <!-- Document Info -->
-    <div class="document-info">
-        <table>
-            <tr>
-                <td>Nomor</td>
-                <td>:</td>
-                <td>{{ $meeting->meeting_number }}</td>
-            </tr>
-            <tr>
-                <td>Tanggal</td>
-                <td>:</td>
-                <td>{{ \Carbon\Carbon::parse($meeting->meeting_date)->isoFormat('D MMMM YYYY') }}</td>
-            </tr>
-        </table>
-    </div>
+    <!-- Konten Halaman 1 -->
+    <table>
+        <tr>
+            <td>Nomor</td>
+            <td>    :</td>
+            <td>{{ $meeting->meeting_number }}</td>
+        </tr>
+        <tr>
+            <td>Tanggal</td>
+            <td>    :</td>
+            <td>{{ \Carbon\Carbon::parse($meeting->meeting_date)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}</td>
+        </tr>
+        <tr>
+            <td>Kepada Yth.</td>
+            <td>    :</td>
+            <td>
+                <b><u>Terlampir</u></b>
+            </td>
+        </tr>
+        <tr>
+            <td>Perihal</td>
+            <td>    :</td>
+            <td><b>UNDANGAN RAPAT</b></td>
+        </tr>
+    </table>
 
-    <!-- Greeting -->
-    <div class="greeting">
-        <p>Kepada Yth.<br>
-        <strong>Peserta Rapat</strong><br>
-        Di tempat</p>
-    </div>
+    <br>
 
     <!-- Content -->
-    <div class="content">
-        <p>Dengan hormat,</p>
-        <p style="margin-top: 15px;">
-            Sehubungan dengan kebutuhan koordinasi dan pembahasan agenda kerja, dengan ini kami mengundang 
-            Bapak/Ibu untuk menghadiri rapat dengan rincian sebagai berikut:
-        </p>
+    <div>
+        <i>Assalamualaikum Wr. Wb</i>
+        <p>Dengan Hormat,</p>
+        <p>Puji syukur kehadirat Allah SWT yang senantiasa melimpahkan rahmat dan hidayahNya kepada kita semua untuk terus tergerak hati kita Ber-Amar Ma'ruf Nahi Munkar di jalanNya.</p>
+        <p>Bersama datangnya surat ini kami mengundang Bapak/Ibu untuk hadir pada rapat yang akan dilaksanakan pada :</p>
     </div>
 
     <!-- Meeting Details -->
-    <div class="meeting-details">
-        <table>
-            <tr>
-                <td>Judul Rapat</td>
-                <td>:</td>
-                <td><strong>{{ $meeting->title }}</strong></td>
-            </tr>
-            <tr>
-                <td>Hari/Tanggal</td>
-                <td>:</td>
-                <td>{{ \Carbon\Carbon::parse($meeting->meeting_date)->isoFormat('dddd, D MMMM YYYY') }}</td>
-            </tr>
-            <tr>
-                <td>Waktu</td>
-                <td>:</td>
-                <td>{{ $meeting->start_time }} - {{ $meeting->end_time }} WIB</td>
-            </tr>
-            <tr>
-                <td>Tempat</td>
-                <td>:</td>
-                <td>
-                    {{ $meeting->room->name }}
-                    @if($meeting->room->building)
-                        <br><small>{{ $meeting->room->building }}
-                        @if($meeting->room->floor) Lantai {{ $meeting->room->floor }}@endif</small>
-                    @endif
-                </td>
-            </tr>
-            <tr>
-                <td>Penyelenggara</td>
-                <td>:</td>
-                <td>{{ $meeting->organizer->name }}</td>
-            </tr>
-        </table>
-    </div>
+    <table class="detail-table">
+        <tr>
+            <td>Hari / Tanggal</td>
+            <td>:</td>
+            <td>{{ \Carbon\Carbon::parse($meeting->meeting_date)->locale('id')->isoFormat('dddd, D MMMM YYYY') }}</td>
+        </tr>
 
-    <!-- Agenda -->
-    <div class="agenda-box">
-        <h3>AGENDA RAPAT</h3>
-        <p style="white-space: pre-line;">{{ $meeting->agenda }}</p>
-    </div>
+        <tr>
+            <td>Pukul</td>
+            <td>:</td>
+            <td>{{ $meeting->start_time }} WIB - {{ $meeting->end_time }} WIB</td>
+        </tr>
 
-    @if($meeting->notes)
-    <!-- Notes -->
-    <div class="important-notice">
-        <strong>Catatan Penting:</strong><br>
-        <p style="margin-top: 5px; white-space: pre-line;">{{ $meeting->notes }}</p>
-    </div>
-    @endif
+        <tr>
+            <td>Tempat</td>
+            <td>:</td>
+            <td>{{ $meeting->room->name }}</td>
+        </tr>
 
-    <!-- Participants List -->
-    @if($meeting->participants && $meeting->participants->count() > 0)
-    <div class="participants-section">
-        <h3>DAFTAR PESERTA RAPAT</h3>
-        <table class="participants-table">
-            <thead>
-                <tr>
-                    <th style="width: 40px;">No.</th>
-                    <th>Nama</th>
-                    <th>NIP</th>
-                    <th>Unit Organisasi</th>
-                    <th style="width: 100px;">Peran</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($meeting->participants->sortBy('role') as $index => $participant)
-                <tr>
-                    <td style="text-align: center;">{{ $index + 1 }}</td>
-                    <td>{{ $participant->user->name }}</td>
-                    <td>{{ $participant->user->nip ?? '-' }}</td>
-                    <td>{{ $participant->user->organizationUnit->name ?? '-' }}</td>
-                    <td>
-                        @if($participant->role === 'moderator')
-                            <span class="badge badge-moderator">Moderator</span>
-                        @elseif($participant->role === 'secretary')
-                            <span class="badge badge-secretary">Notulis</span>
-                        @elseif($participant->role === 'observer')
-                            <span class="badge badge-observer">Observer</span>
-                        @else
-                            Peserta
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-    @endif
+        <tr>
+            <td>Agenda</td>
+            <td>:</td>
+            <td style="margin-top: 5px; margin-bottom: 5px">{{ $meeting->agenda }}</td>
+        </tr>
+
+        <tr>
+            <td>Catatan</td>
+            <td>:</td>
+            @if($meeting->notes)
+                <td>{{ $meeting->notes }}</td>
+            @else
+                <td> - </td>
+            @endif
+        </tr>
+    </table>
 
     <!-- Closing -->
-    <div class="content closing">
-        <p>
-            Demikian undangan ini kami sampaikan. Atas perhatian dan kehadiran Bapak/Ibu, 
-            kami ucapkan terima kasih.
-        </p>
+    <div>
+        <p>Demikian surat undangan ini kami buat, atas perhatian serta kerjasamanya kami sampaikan terima kasih.</p>
+
+        <i>Nasrum Minallah Wa FatHun Qarib</i>
+
+        <div>
+            &nbsp;
+        </div>
+
+        <i>Wassalamualaikum Wr. Wb</i>
     </div>
 
     <!-- Signature -->
-    <div class="signature">
-        <div class="signature-box">
-            <p>Hormat kami,<br>
-            <strong>Penyelenggara</strong></p>
-            <div class="signature-line">
-                <strong>{{ $meeting->organizer->name }}</strong><br>
-                @if($meeting->organizer->nip)
-                    NIP. {{ $meeting->organizer->nip }}
+    <table class="signature-table">
+        <tr>
+            <td style="padding-left: 450px"></td>
+            <td style="text-align: center">Pimpinan Rapat</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td style="text-align: center; padding-top: 10px; padding-bottom: 5px;">
+                @php
+                    $moderator = $meeting->participants->where('role', 'moderator')->first();
+                    $leader = $moderator ? $moderator->user : $meeting->organizer;
+                @endphp
+                
+                <!-- QR Code Signature Certificate -->
+                @if(isset($qrCode))
+                    <img src="data:image/png;base64,{{ $qrCode }}" alt="Signature Certificate" style="width: 120px; height: 120px; margin-bottom: 5px;">
+                    <br>
                 @endif
-            </div>
-        </div>
-    </div>
+                
+                <strong><u>{{ $leader->name }}</u></strong>
+                @if($leader->nip)
+                    <br><span style="font-size: 10pt;">NIP. {{ $leader->nip }}</span>
+                @endif
+            </td>
+        </tr>
+    </table>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>Dokumen ini digenerate secara otomatis oleh Sistem Manajemen Rapat</p>
-        <p>Dicetak pada: {{ \Carbon\Carbon::now()->isoFormat('dddd, D MMMM YYYY HH:mm') }} WIB</p>
+    <!-- Participants List -->
+    @if($meeting->participants && $meeting->participants->count() > 0)
+    
+    <!-- Page Break untuk halaman lampiran jika ada peserta -->
+    <div style="page-break-before: always;"></div>
+
+    <div style="margin-bottom: 10px;">
+        <strong>Lampiran : Daftar Peserta Rapat</strong>
     </div>
+    
+    <table style="width: 100%; border: 1px solid #000; margin-top: 10px;">
+        <thead>
+            <tr style="background-color: #e0e0e0;">
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 40px;">No</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: left;">Nama</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 120px;">NIP</th>
+                <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 120px;">Peran</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($meeting->participants as $index => $participant)
+            <tr>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $index + 1 }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ $participant->user->name }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ $participant->user->nip ?? '-' }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">
+                    @if($participant->role === 'moderator')
+                        Moderator
+                    @elseif($participant->role === 'secretary')
+                        Notulis
+                    @elseif($participant->role === 'observer')
+                        Observer
+                    @else
+                        Peserta
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
 </body>
 </html>

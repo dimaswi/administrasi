@@ -32,6 +32,9 @@ class TemplateService
         // Add letterhead if exists
         if ($template->letterhead) {
             $html = $this->prependLetterhead($html, $template->letterhead);
+            
+            // Tambahkan kop surat setelah setiap page break
+            $html = $this->addLetterheadAfterPageBreaks($html, $template->letterhead);
         }
 
         return $html;
@@ -54,6 +57,9 @@ class TemplateService
                 foreach ($content['content'] ?? [] as $node) {
                     $html .= $this->jsonToHtml($node);
                 }
+                
+                // Post-process: Convert consecutive paragraphs with "Label : Value" pattern to table
+                $html = $this->convertAlignmentPatternsToTable($html);
                 break;
 
             case 'paragraph':
@@ -116,8 +122,9 @@ class TemplateService
                     }
                 }
                 
-                // Preserve whitespace and tabs but allow wrapping
-                // Convert tabs to actual tab character (will be styled with CSS tab-size)
+                // Preserve whitespace and tabs
+                // Convert tabs to 4em space for consistent alignment with monospace-like behavior
+                $text = str_replace("\t", '<span style="display:inline-block;width:4em;"></span>', $text);
                 // Convert leading/trailing spaces and multiple consecutive spaces to &nbsp;
                 // Keep single spaces for word wrapping
                 $text = preg_replace('/^ /', '&nbsp;', $text); // Leading space
@@ -125,7 +132,6 @@ class TemplateService
                 $text = preg_replace_callback('/  +/', function($matches) {
                     return str_repeat('&nbsp;', strlen($matches[0]));
                 }, $text); // Multiple spaces
-                // Tabs are preserved as-is, will be rendered with CSS tab-size
                 
                 $html = $text;
                 break;
@@ -199,6 +205,32 @@ class TemplateService
                 $html .= '</table>';
                 break;
 
+            case 'alignmentTable':
+                // Tabel borderless khusus untuk alignment (2 kolom: left & right)
+                $html = '<table data-type="alignment-table" style="width: 100%; border-collapse: collapse; border: none; margin: 10px 0;"><tbody>';
+                foreach ($content['content'] ?? [] as $node) {
+                    $html .= $this->jsonToHtml($node);
+                }
+                $html .= '</tbody></table>';
+                break;
+
+            case 'alignmentTableRow':
+                $html = '<tr>';
+                foreach ($content['content'] ?? [] as $node) {
+                    $html .= $this->jsonToHtml($node);
+                }
+                $html .= '</tr>';
+                break;
+
+            case 'alignmentTableCell':
+                $align = $content['attrs']['align'] ?? 'left';
+                $html = '<td data-align="' . $align . '" style="text-align: ' . $align . '; border: none; padding: 4px 8px; vertical-align: top;">';
+                foreach ($content['content'] ?? [] as $node) {
+                    $html .= $this->jsonToHtml($node);
+                }
+                $html .= '</td>';
+                break;
+
             case 'tableRow':
                 $html = '<tr>';
                 foreach ($content['content'] ?? [] as $node) {
@@ -229,6 +261,12 @@ class TemplateService
                 $html = '<br />';
                 break;
 
+            case 'pageBreak':
+                // Page break untuk membuat halaman baru di PDF
+                // Tambahkan page break + letterhead untuk halaman berikutnya
+                $html = '<div data-type="page-break" style="page-break-after: always;"></div>';
+                break;
+
             case 'variable':
                 $varName = $content['attrs']['name'] ?? '';
                 // Render as plain text without any wrapper to avoid line-height issues
@@ -242,7 +280,7 @@ class TemplateService
                 break;
 
             case 'signature':
-                // Render signature inline - PERSIS SAMA dengan SignatureComponent React
+                // Render signature sebagai inline biasa (tanpa float)
                 $signatureIndex = $content['attrs']['signatureIndex'] ?? 0;
                 $userName = $content['attrs']['userName'] ?? 'Nama Penandatangan';
                 $position = $content['attrs']['position'] ?? 'Jabatan';
@@ -251,40 +289,60 @@ class TemplateService
                 $signatureImage = $content['attrs']['signatureImage'] ?? null;
                 $userId = $content['attrs']['userId'] ?? null;
                 
-                // Outer wrapper: inline-block, align-bottom, margin: 0 4px
-                $html = '<span style="display: inline-block; vertical-align: bottom; margin: 0 4px;">';
+                // Outer wrapper: inline-block - TANPA FLOAT
+                $userIdAttr = $userId ? ' data-user-id="' . htmlspecialchars($userId) . '" data-user-name="' . htmlspecialchars($userName) . '"' : '';
+                $html = '<span data-type="signature"' . $userIdAttr . ' style="display: inline-block; vertical-align: top; min-width: 180px; text-align: center; margin: 0 8px;">';
                 
-                // Inner container: inline-flex flex-col items-center, p-2 (8px), border, rounded, fontSize: 10px
-                $html .= '<span style="display: inline-flex; flex-direction: column; align-items: center; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; background: white; font-size: 10px;">';
+                // Inner container: flex column dengan padding yang cukup - TANPA BORDER
+                $html .= '<span style="display: inline-flex; flex-direction: column; align-items: center; padding: 12px; background: white; font-size: 11pt;">';
                 
-                // Position - text-center mb-1 (4px), font-medium (500)
-                $html .= '<span style="display: block; text-align: center; margin-bottom: 4px; font-weight: 500;">' . htmlspecialchars($position) . '</span>';
+                // Position
+                $html .= '<span style="display: block; text-align: center; margin-bottom: 8px; font-weight: 500; font-size: 11pt;">' . htmlspecialchars($position) . '</span>';
                 
-                // QR Code placeholder - border, bg-white, h-14 w-14 (56px), flex items-center justify-center, mb-1 (4px), text-xs (12px)
-                $html .= '<span style="display: flex; align-items: center; justify-content: center; border: 1px solid #d1d5db; background: white; width: 56px; height: 56px; margin-bottom: 4px; font-size: 12px; color: #9ca3af;">QR</span>';
+                // QR Code placeholder - ukuran lebih besar - TANPA BORDER
+                $html .= '<span style="display: flex; align-items: center; justify-content: center; background: white; width: 80px; height: 80px; margin-bottom: 8px; font-size: 10pt; color: #9ca3af;">QR</span>';
                 
-                // Signature image (optional) - h-8 (32px), w-auto, object-contain, mb-1 (4px)
+                // Signature image (optional)
                 if ($showSignatureImage && $signatureImage) {
-                    $html .= '<img src="' . htmlspecialchars($signatureImage) . '" alt="TTD" style="height: 32px; width: auto; object-fit: contain; margin-bottom: 4px; display: block;" />';
+                    $html .= '<img src="' . htmlspecialchars($signatureImage) . '" alt="TTD" style="height: 40px; width: auto; object-fit: contain; margin-bottom: 8px; display: block;" />';
                 }
                 
-                // Name - font-semibold (600), border-b, px-2 (8px), mb-0.5 (2px)
-                $html .= '<span style="display: inline-block; font-weight: 600; border-bottom: 1px solid #000; padding-left: 8px; padding-right: 8px; margin-bottom: 2px;">' . htmlspecialchars($userName) . '</span>';
+                // Name dengan underline
+                $html .= '<span style="display: inline-block; font-weight: 600; border-bottom: 1px solid #000; padding: 0 12px; margin-bottom: 4px; font-size: 11pt;">' . htmlspecialchars($userName) . '</span>';
                 
-                // NIP (optional) - text-[9px]
+                // NIP (optional)
                 if ($nip) {
-                    $html .= '<span style="display: block; font-size: 9px;">NIP. ' . htmlspecialchars($nip) . '</span>';
+                    $html .= '<span style="display: block; font-size: 9pt;">NIP. ' . htmlspecialchars($nip) . '</span>';
                 }
                 
-                $html .= '</span>'; // Close inner container
+                $html .= '</span>'; // Close flex container
                 $html .= '</span>'; // Close outer wrapper
                 break;
 
             case 'signatureBlock':
-                $html = '<div class="signature-block">';
-                foreach ($content['content'] ?? [] as $node) {
-                    $html .= $this->jsonToHtml($node);
+                // Signature block baru untuk digunakan di dalam alignment table
+                $userName = $content['attrs']['userName'] ?? 'Nama Penandatangan';
+                $position = $content['attrs']['position'] ?? 'Jabatan';
+                $nip = $content['attrs']['nip'] ?? null;
+                $userId = $content['attrs']['userId'] ?? null;
+                
+                $userIdAttr = $userId ? ' data-user-id="' . htmlspecialchars($userId) . '" data-user-name="' . htmlspecialchars($userName) . '"' : '';
+                $html = '<div data-type="signature-block"' . $userIdAttr . ' style="display: block; text-align: center; padding: 8px;">';
+                
+                // Position/Jabatan
+                $html .= '<div style="margin-bottom: 8px; font-weight: 500; font-size: 11pt;">' . htmlspecialchars($position) . '</div>';
+                
+                // QR Code placeholder - 80px
+                $html .= '<div style="display: flex; align-items: center; justify-content: center; background: white; width: 80px; height: 80px; margin: 0 auto 8px; font-size: 10pt; color: #9ca3af;">QR</div>';
+                
+                // Name dengan underline
+                $html .= '<div style="font-weight: 600; border-bottom: 1px solid #000; padding: 0 12px; margin-bottom: 4px; display: inline-block; font-size: 11pt;">' . htmlspecialchars($userName) . '</div>';
+                
+                // NIP
+                if ($nip) {
+                    $html .= '<div style="font-size: 9pt;">NIP. ' . htmlspecialchars($nip) . '</div>';
                 }
+                
                 $html .= '</div>';
                 break;
         }
@@ -295,16 +353,16 @@ class TemplateService
     /**
      * Prepend letterhead to HTML
      */
-    private function prependLetterhead(string $html, array $letterhead): string
+    /**
+     * Prepend letterhead to HTML content
+     */
+    public function prependLetterhead(string $html, array $letterhead): string
     {
         // New format: letterhead contains full logo image (base64 or URL)
-        // Size: 700x178px already rendered in template create
+        // Ukuran presisi: 700px x 147px (ukuran standar kop surat)
         if (!empty($letterhead['logo'])) {
-            $width = $letterhead['width'] ?? 700;
-            $height = $letterhead['height'] ?? 178;
-            
-            $letterheadHtml = '<div class="letterhead" style="width: '.$width.'px; height: '.$height.'px; margin: -32px -32px 0 -32px;">';
-            $letterheadHtml .= "<img src='{$letterhead['logo']}' alt='Kop Surat' style='width: 100%; height: 100%; object-fit: contain;' />";
+            $letterheadHtml = '<div class="letterhead" style="width: 700px; max-width: 100%; margin: 0 0 0 0; padding: 0;">';
+            $letterheadHtml .= "<img src='{$letterhead['logo']}' alt='Kop Surat' style='width: 700px; height: 147px; max-width: 100%; object-fit: contain; display: block; margin: 0; padding: 0;' />";
             $letterheadHtml .= '</div>';
             
             return $letterheadHtml . $html;
@@ -339,6 +397,62 @@ class TemplateService
             
             return $letterheadHtml . $html;
         }
+        
+        return $html;
+    }
+
+    /**
+     * Add letterhead after each page break
+     */
+    public function addLetterheadAfterPageBreaks(string $html, array $letterhead): string
+    {
+        // Generate letterhead HTML
+        $letterheadHtml = '';
+        
+        // New format: letterhead contains full logo image (base64 or URL)
+        if (!empty($letterhead['logo'])) {
+            $letterheadHtml = '<div class="letterhead" style="width: 700px; max-width: 100%; margin: 20px 0 0 0; padding: 0;">';
+            $letterheadHtml .= "<img src='{$letterhead['logo']}' alt='Kop Surat' style='width: 700px; height: 147px; max-width: 100%; object-fit: contain; display: block; margin: 0; padding: 0;' />";
+            $letterheadHtml .= '</div>';
+        }
+        // Legacy format: individual fields (backward compatibility)
+        else if (!empty($letterhead['organization_name'])) {
+            $letterheadHtml = '<div class="letterhead" style="margin-top: 20px;">';
+            
+            if (!empty($letterhead['logo_path'])) {
+                $letterheadHtml .= "<img src='{$letterhead['logo_path']}' alt='Logo' class='logo' />";
+            }
+            
+            $letterheadHtml .= "<h2>{$letterhead['organization_name']}</h2>";
+            
+            if (!empty($letterhead['address'])) {
+                $letterheadHtml .= "<p>{$letterhead['address']}</p>";
+            }
+            
+            $contact = [];
+            if (!empty($letterhead['phone'])) {
+                $contact[] = "Telp: {$letterhead['phone']}";
+            }
+            if (!empty($letterhead['email'])) {
+                $contact[] = "Email: {$letterhead['email']}";
+            }
+            if ($contact) {
+                $letterheadHtml .= "<p>" . implode(' | ', $contact) . "</p>";
+            }
+            
+            $letterheadHtml .= '</div><hr />';
+        }
+        
+        if (empty($letterheadHtml)) {
+            return $html;
+        }
+        
+        // Replace page breaks with page break + letterhead
+        $html = str_replace(
+            '<div data-type="page-break" style="page-break-after: always;"></div>',
+            '<div data-type="page-break" style="page-break-after: always;"></div>' . $letterheadHtml,
+            $html
+        );
         
         return $html;
     }
@@ -668,7 +782,10 @@ class TemplateService
     /**
      * Format date to Indonesian format: 1 November 2025
      */
-    private function formatIndonesianDate($date): string
+    /**
+     * Format date to Indonesian format
+     */
+    public function formatIndonesianDate($date): string
     {
         if (empty($date)) {
             return $date;
@@ -746,7 +863,7 @@ class TemplateService
      */
     private function extractSignaturesRecursive(array $node, array &$signatures): void
     {
-        // If this is a signature node
+        // If this is a signature node (old format)
         if (isset($node['type']) && $node['type'] === 'signature') {
             $attrs = $node['attrs'] ?? [];
             
@@ -761,6 +878,22 @@ class TemplateService
                 ];
             }
         }
+        
+        // If this is a signatureBlock node (new format)
+        if (isset($node['type']) && $node['type'] === 'signatureBlock') {
+            $attrs = $node['attrs'] ?? [];
+            
+            // Only add if it has a userId (assigned to someone)
+            if (!empty($attrs['userId'])) {
+                $signatures[] = [
+                    'userId' => $attrs['userId'],
+                    'userName' => $attrs['userName'] ?? 'Nama Penandatangan',
+                    'position' => $attrs['position'] ?? 'Jabatan',
+                    'nip' => $attrs['nip'] ?? null,
+                    'signatureIndex' => count($signatures), // Auto-increment
+                ];
+            }
+        }
 
         // Recursively process content array
         if (isset($node['content']) && is_array($node['content'])) {
@@ -768,5 +901,111 @@ class TemplateService
                 $this->extractSignaturesRecursive($childNode, $signatures);
             }
         }
+    }
+    
+    /**
+     * Auto-convert alignment patterns (Label : Value) to table for better alignment
+     * Detects ALL GROUPS of consecutive paragraphs with pattern: Label [TAB/spaces] : Value
+     * Works with regular paragraphs AND indented paragraphs (margin-left, padding-left)
+     * Converts to: <table><tr><td width=150px>Label</td><td>: Value</td></tr></table>
+     * This ensures colons align vertically regardless of label length
+     * PRESERVES margin-left indentation from original paragraphs
+     */
+    private function convertAlignmentPatternsToTable(string $html): string
+    {
+        // Auto-convert "Label : Value" pattern to table for alignment
+        // Match pattern: <p [with any style including margin/padding]>Label<span...></span>+:&nbsp;Value</p>
+        // Updated pattern to handle indented paragraphs with inline styles and capture margin-left
+        $pattern = '/<p([^>]*)>(\s*)([^<]+?)(<span[^>]*><\/span>)+\s*:\s*&nbsp;(.+?)<\/p>/i';
+        
+        preg_match_all($pattern, $html, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        
+        if (empty($matches)) {
+            return $html;
+        }
+        
+        // Group consecutive matches (gap < 500 chars to allow indented sections)
+        $groups = [];
+        $currentGroup = [];
+        $lastEnd = -1;
+        
+        foreach ($matches as $match) {
+            $fullMatch = $match[0][0];
+            $offset = $match[0][1];
+            $pAttributes = $match[1][0]; // Capture <p> attributes (includes style)
+            $whitespace = $match[2][0]; // Leading whitespace
+            $label = trim($match[3][0]);
+            $value = $match[5][0]; // Value is now at index 5
+            
+            // Extract margin-left from style attribute
+            $marginLeft = '';
+            if (preg_match('/margin-left:\s*(\d+)px/', $pAttributes, $styleMatch)) {
+                $marginLeft = $styleMatch[1] . 'px';
+            }
+            
+            // If gap too large, start new group
+            if ($lastEnd > 0 && $offset > $lastEnd + 500) {
+                // Save current group if it has enough items
+                if (count($currentGroup) >= 2) {
+                    $groups[] = $currentGroup;
+                }
+                $currentGroup = [];
+            }
+            
+            $currentGroup[] = [
+                'full' => $fullMatch,
+                'offset' => $offset,
+                'label' => $label,
+                'value' => $value,
+                'whitespace' => $whitespace,
+                'marginLeft' => $marginLeft,
+            ];
+            
+            $lastEnd = $offset + strlen($fullMatch);
+        }
+        
+        // Don't forget last group
+        if (count($currentGroup) >= 2) {
+            $groups[] = $currentGroup;
+        }
+        
+        if (empty($groups)) {
+            return $html; // No groups with 2+ items
+        }
+        
+        // Convert each group to table (in reverse order to maintain offsets)
+        foreach (array_reverse($groups) as $group) {
+            // Preserve indentation from first item
+            $indent = $group[0]['whitespace'] ?? '';
+            $marginLeft = $group[0]['marginLeft'] ?? '';
+            
+            // Add margin-left to table style if exists
+            $tableStyle = 'width: 100%; border: none; border-collapse: collapse; margin: 0.5em 0;';
+            if (!empty($marginLeft)) {
+                $tableStyle .= ' margin-left: ' . $marginLeft . ';';
+            }
+            
+            $tableHtml = $indent . '<table style="' . $tableStyle . '"><tbody>';
+            
+            foreach ($group as $item) {
+                $tableHtml .= '<tr>';
+                $tableHtml .= '<td style="border: none; padding: 2px 8px 2px 0; vertical-align: top; width: 150px;">' . $item['label'] . '</td>';
+                $tableHtml .= '<td style="border: none; padding: 2px 0; vertical-align: top;">: ' . $item['value'] . '</td>';
+                $tableHtml .= '</tr>';
+            }
+            
+            $tableHtml .= '</tbody></table>';
+            
+            // Replace this group with table
+            $firstOffset = $group[0]['offset'];
+            $lastItem = end($group);
+            $lastOffset = $lastItem['offset'];
+            $lastLength = strlen($lastItem['full']);
+            $totalLength = ($lastOffset + $lastLength) - $firstOffset;
+            
+            $html = substr_replace($html, $tableHtml, $firstOffset, $totalLength);
+        }
+        
+        return $html;
     }
 }

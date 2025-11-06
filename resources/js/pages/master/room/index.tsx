@@ -30,7 +30,7 @@ interface Props extends SharedData {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Ruangan', href: '/meeting/rooms' },
+    { title: 'Ruangan', href: '/master/rooms' },
 ];
 
 export default function RoomIndex() {
@@ -47,7 +47,7 @@ export default function RoomIndex() {
     });
 
     const handleSearch = (value: string) => {
-        router.get('/meeting/rooms', {
+        router.get('/master/rooms', {
             search: value,
             perPage: initialFilters.perPage,
         }, {
@@ -57,7 +57,7 @@ export default function RoomIndex() {
     };
 
     const handlePerPageChange = (perPage: number) => {
-        router.get('/meeting/rooms', {
+        router.get('/master/rooms', {
             search: initialFilters.search,
             perPage,
             page: 1,
@@ -68,7 +68,7 @@ export default function RoomIndex() {
     };
 
     const handlePageChange = (page: number) => {
-        router.get('/meeting/rooms', {
+        router.get('/master/rooms', {
             search: initialFilters.search,
             perPage: initialFilters.perPage,
             page,
@@ -127,7 +127,7 @@ export default function RoomIndex() {
                         <Button type="submit" variant="outline" size="sm">Cari</Button>
                     </form>
                     
-                    <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-green-50" onClick={() => router.visit('/meeting/rooms/create')}>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-green-50" onClick={() => router.visit('/master/rooms/create')}>
                         <PlusCircle className="h-4 w-4 text-green-600" />
                         Tambah
                     </Button>
@@ -253,3 +253,4 @@ export default function RoomIndex() {
         </AppLayout>
     );
 }
+

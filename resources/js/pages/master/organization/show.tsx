@@ -15,7 +15,7 @@ interface Props extends SharedData {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Unit Organisasi', href: '/meeting/organizations' },
+    { title: 'Unit Organisasi', href: '/master/organizations' },
     { title: 'Detail Unit Organisasi', href: '#' },
 ];
 
@@ -44,7 +44,7 @@ export default function OrganizationShow({ organization }: Props) {
                     </div>
                     <Button
                         variant="outline"
-                        onClick={() => router.visit(`/meeting/organizations/${organization.id}/edit`)}
+                        onClick={() => router.visit(`/master/organizations/${organization.id}/edit`)}
                     >
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
@@ -108,6 +108,19 @@ export default function OrganizationShow({ organization }: Props) {
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">Deskripsi</label>
                                     <p className="mt-1 text-sm">{organization.description}</p>
+                                </div>
+                            )}
+
+                            {organization.letterhead_image && (
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Kop Surat</label>
+                                    <div className="mt-2">
+                                        <img 
+                                            src={`/storage/${organization.letterhead_image}`}
+                                            alt="Kop surat"
+                                            className="max-w-full h-auto border rounded-lg max-h-48"
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
@@ -229,3 +242,4 @@ export default function OrganizationShow({ organization }: Props) {
         </AppLayout>
     );
 }
+

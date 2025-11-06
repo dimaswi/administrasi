@@ -21,6 +21,7 @@ class Letter extends Model
         'recipient',
         'data',
         'rendered_html',
+        'attachments',
         'pdf_path',
         'status',
         'notes',
@@ -35,6 +36,7 @@ class Letter extends Model
 
     protected $casts = [
         'data' => 'array',
+        'attachments' => 'array',
         'letter_date' => 'date',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',

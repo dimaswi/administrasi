@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Meeting;
+namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
@@ -27,7 +27,7 @@ class RoomController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return Inertia::render('meeting/room/index', [
+        return Inertia::render('master/room/index', [
             'rooms' => $rooms,
             'filters' => [
                 'search' => $search,
@@ -38,7 +38,7 @@ class RoomController extends Controller
 
     public function create()
     {
-        return Inertia::render('meeting/room/create');
+        return Inertia::render('master/room/create');
     }
 
     public function store(Request $request)
@@ -76,14 +76,14 @@ class RoomController extends Controller
             }
         ]);
 
-        return Inertia::render('meeting/room/show', [
+        return Inertia::render('master/room/show', [
             'room' => $room,
         ]);
     }
 
     public function edit(Room $room)
     {
-        return Inertia::render('meeting/room/edit', [
+        return Inertia::render('master/room/edit', [
             'room' => $room,
         ]);
     }

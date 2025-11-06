@@ -34,9 +34,27 @@ class PDFService
             mkdir($directory, 0755, true);
         }
 
+        // Debug: Save HTML untuk cek
+        $htmlPath = storage_path("app/public/letters/debug-{$letter->id}.html");
+        file_put_contents($htmlPath, $html);
+        Log::info("PDF HTML saved for debug", [
+            'html_path' => $htmlPath,
+            'has_qr_in_html' => strpos($html, 'data:image/png;base64') !== false,
+            'html_length' => strlen($html),
+        ]);
+
         // Generate PDF using DomPDF
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+        // Set options DULU sebelum loadHTML agar base64 images ter-render
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'enable_php' => false,
+            'chroot' => public_path(),
+        ]);
+        
+        $pdf->loadHTML($html);
         $pdf->setPaper('a4', 'portrait');
+        
         $pdf->save($fullPath);
 
         return $path;
@@ -49,64 +67,76 @@ class PDFService
     {
         $html = $letter->rendered_html;
         
-        // Replace signature placeholders with actual QR codes
+        // Replace text "QR" dengan QR code image - KEEP semua wrapper HTML
+        // Support both old signature (span) and new signatureBlock (div)
         foreach ($approvalSignatures as $signature) {
-            $userId = $signature['user_id'] ?? null;
-            if ($userId && isset($signature['qr_code'])) {
-                // QR code image replacement
-                $qrImage = '<img src="data:image/png;base64,' . $signature['qr_code'] . '" style="width: 56px; height: 56px; display: inline-block; vertical-align: middle; border: 1px solid #333; margin: 0 2px;" alt="QR" />';
-                
-                // Try multiple patterns to match signature spans (can be self-closing or empty)
-                $patterns = [
-                    // Pattern 1: Self-closing span
-                    '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $userId . '"[^>]*\/>/i',
-                    // Pattern 2: Empty span with data-type first
-                    '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $userId . '"[^>]*><\/span>/i',
-                    // Pattern 3: Empty span with data-user-id first
-                    '/<span[^>]*data-user-id="' . $userId . '"[^>]*data-type="signature"[^>]*><\/span>/i',
-                    // Pattern 4: Span with any content (fallback)
-                    '/<span[^>]*data-type="signature"[^>]*data-user-id="' . $userId . '"[^>]*>.*?<\/span>/is',
-                ];
-                
-                foreach ($patterns as $pattern) {
-                    $count = 0;
-                    $html = preg_replace($pattern, $qrImage, $html, -1, $count);
-                    if ($count > 0) {
-                        Log::info("PDF: Replaced {$count} signature(s) for user {$userId}");
-                        break;
-                    }
-                }
-            }
-        }
-        
-        // Remove any remaining signature placeholders that weren't replaced
-        $html = preg_replace('/<span[^>]*data-type="signature"[^>]*>.*?<\/span>/is', '', $html);
-        
-        // Replace text-based signatures in content with QR codes (keep CSS wrapper)
-        foreach ($approvalSignatures as $signature) {
-            if (isset($signature['qr_code']) && isset($signature['signer_name'])) {
+            if (isset($signature['qr_code']) && isset($signature['user_id'])) {
+                $userId = $signature['user_id'];
                 $userName = $signature['signer_name'];
+                $qrBase64 = $signature['qr_code'];
                 
-                // Replace entire <span>QR</span> with QR image (ganti seluruh span, bukan hanya teks)
-                // Pattern untuk struktur: <span><span>Label</span><span>QR</span><span>Nama</span></span>
-                $pattern = '/(<span[^>]*>[^<]*<span[^>]*>[^<]*<\/span>[^<]*)<span[^>]*>QR<\/span>([^<]*<span[^>]*>' . preg_quote($userName, '/') . '<\/span><\/span>)/is';
-                $replacement = '$1<img src="data:image/png;base64,' . $signature['qr_code'] . '" style="width: 85px; height: 85px; display: block; margin: 4px auto;" alt="QR Code" />$2';
+                // Generate QR image tag
+                $qrImage = '<img src="data:image/png;base64,' . $qrBase64 . '" style="width: 80px; height: 80px; display: block; margin: 0 auto;" alt="QR" />';
                 
-                $count = 0;
-                $html = preg_replace($pattern, $replacement, $html, 1, $count);
+                // Pattern 1: Old signature (span-based)
+                $pattern1 = '/<span([^>]*data-user-id="' . $userId . '"[^>]*)>(.*?)<\/span>\s*<\/span>/is';
                 
-                // Remove border from wrapper span (hapus border dari kotak signature)
-                if ($count > 0) {
-                    // Remove "border: 1px solid ..." from the outermost span
-                    $html = preg_replace(
-                        '/(<span[^>]*style="[^"]*?)border:\s*1px\s+solid[^;]*;?([^"]*")/is',
-                        '$1$2',
-                        $html
-                    );
+                // Pattern 2: New signatureBlock (div-based)
+                $pattern2 = '/<div([^>]*data-type="signature-block"[^>]*data-user-id="' . $userId . '"[^>]*)>(.*?)<\/div>/is';
+                
+                $replaced = false;
+                
+                // Try pattern 1 (old signature)
+                if (preg_match($pattern1, $html, $matches)) {
+                    $fullMatch = $matches[0];
+                    $outerAttributes = $matches[1];
+                    $innerContent = $matches[2];
+                    
+                    // Replace ">QR<" inside nested spans dengan img tag
+                    $newContent = preg_replace('/>QR</', '>' . $qrImage . '<', $innerContent, 1);
+                    
+                    // Reconstruct spans
+                    $newSpan = '<span' . $outerAttributes . '>' . $newContent . '</span></span>';
+                    
+                    // Replace di HTML
+                    $html = str_replace($fullMatch, $newSpan, $html);
+                    $replaced = true;
+                    
+                    Log::info('PDF QR Replaced (old signature)', [
+                        'user_id' => $userId,
+                        'user_name' => $userName,
+                        'certificate_id' => $signature['certificate_id'] ?? 'N/A',
+                    ]);
+                } 
+                // Try pattern 2 (new signatureBlock)
+                else if (preg_match($pattern2, $html, $matches)) {
+                    $fullMatch = $matches[0];
+                    $divAttributes = $matches[1];
+                    $innerContent = $matches[2];
+                    
+                    // Replace ">QR<" inside div dengan img tag
+                    $newContent = preg_replace('/>QR</', '>' . $qrImage . '<', $innerContent, 1);
+                    
+                    // Reconstruct div
+                    $newDiv = '<div' . $divAttributes . '>' . $newContent . '</div>';
+                    
+                    // Replace di HTML
+                    $html = str_replace($fullMatch, $newDiv, $html);
+                    $replaced = true;
+                    
+                    Log::info('PDF QR Replaced (new signatureBlock)', [
+                        'user_id' => $userId,
+                        'user_name' => $userName,
+                        'certificate_id' => $signature['certificate_id'] ?? 'N/A',
+                    ]);
                 }
                 
-                if ($count > 0) {
-                    Log::info("PDF: Replaced text QR with image for {$userName}");
+                if (!$replaced) {
+                    Log::warning('PDF: Could not find signature container for user', [
+                        'user_id' => $userId,
+                        'user_name' => $userName,
+                        'html_snippet' => substr($html, 0, 500),
+                    ]);
                 }
             }
         }
@@ -130,10 +160,43 @@ class PDFService
             $html .= '</div>';
         }
         
-        return view('pdf.letter', [
-            'letter' => (object)['rendered_html' => $html, 'letter_number' => $letter->letter_number],
-            'approvalSignatures' => [],
-        ])->render();
+        // Return HTML dengan margin yang lebih kecil dan tanpa border
+        return '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            box-shadow: none !important;
+        }
+        body {
+            margin: 0;
+            padding: 15mm;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+        }
+        /* Remove borders and shadows from all elements */
+        table, td, th, div, p, span, img {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        /* Page break styling */
+        div[data-type="page-break"] {
+            page-break-after: always;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            border: none !important;
+            box-shadow: none !important;
+        }
+    </style>
+</head>
+<body>' . $html . '</body>
+</html>';
     }
 
     /**
