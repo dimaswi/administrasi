@@ -74,7 +74,7 @@ class MeetingController extends Controller
 
     public function store(Request $request)
     {
-                $request->validate([
+        $request->validate([
             'title' => 'required|string|max:255',
             'agenda' => 'required|string',
             'meeting_date' => 'required|date|after_or_equal:today',
