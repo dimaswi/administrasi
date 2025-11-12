@@ -500,7 +500,9 @@ class MeetingController extends Controller
         // Get pimpinan rapat (moderator or organizer)
         $moderator = $meeting->participants->where('role', 'moderator')->first();
         // $leader = $moderator ? $moderator->user : $meeting->organizer;'
-        $leader = User::where('id', $meeting->organizer_id)->first(); 
+        $leader = User::where('id', $meeting->organizer_id)->first();
+
+        dd($leader);
 
         // Generate certificate ID untuk meeting invitation
         $certificateId = 'MTG-' . strtoupper(substr(md5($meeting->id . time()), 0, 12));
