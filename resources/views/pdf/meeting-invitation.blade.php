@@ -167,6 +167,7 @@
                 @php
                     $moderator = $meeting->participants->where('role', 'moderator')->first();
                     <!-- $leader = $moderator ? $moderator->user : $meeting->organizer;  -->
+                    $leader = \App\User::where(['id' => $meeting->organizer_id])->first();
                 @endphp
                 
                 <!-- QR Code Signature Certificate -->
@@ -175,9 +176,9 @@
                     <br>
                 @endif
                 
-                <strong><u>{{ $meeting_leader->name }}</u></strong>
-                @if($meeting_leader->nip)
-                    <br><span style="font-size: 10pt;">NIP. {{ $meeting_leader->nip }}</span>
+                <strong><u>{{ $leader->name }}</u></strong>
+                @if($leader->nip)
+                    <br><span style="font-size: 10pt;">NIP. {{ $leader->nip }}</span>
                 @endif
             </td>
         </tr>
