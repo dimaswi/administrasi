@@ -544,7 +544,7 @@ class MeetingController extends Controller
             'meeting' => $meeting,
             'qrCode' => $qrCode,
             'certificate' => $certificate,
-            'meeting-leader' => $meeting->organizer,
+            'meeting_leader' => $meeting->organizer,
         ]);
 
         // Replace "/" and "\" with "-" for filename safety
