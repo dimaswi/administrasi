@@ -506,8 +506,6 @@ class MeetingController extends Controller
         $certificateId = 'MTG-' . strtoupper(substr(md5($meeting->id . time()), 0, 12));
         
         $signedAt = now();
-
-        dd($meeting->organizer->name, $meeting->organizer->nip);
         
         // Generate document hash - use consistent format
         $documentHash = hash('sha256', json_encode([
