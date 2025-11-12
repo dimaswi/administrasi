@@ -166,7 +166,7 @@
             <td style="text-align: center; padding-top: 10px; padding-bottom: 5px;">
                 @php
                     $moderator = $meeting->participants->where('role', 'moderator')->first();
-                    <!-- $meeting_leader = $moderator ? $moderator->user : $meeting->organizer;  -->
+                    <!-- $leader = $moderator ? $moderator->user : $meeting->organizer;  -->
                 @endphp
                 
                 <!-- QR Code Signature Certificate -->
