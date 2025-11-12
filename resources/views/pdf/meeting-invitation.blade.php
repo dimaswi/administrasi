@@ -175,10 +175,8 @@
                     <br>
                 @endif
                 
-                <strong><u>{{$meeting_leader->name}}</u></strong> 
-                @if($meeting_leader->nip)
-                    <br><span style="font-size: 10pt;">NIP. {{ $meeting_leader->nip }}</span>
-                @endif
+                <strong><u>{{$meeting_leader->name, $meeting_leader->nip}}</u></strong> 
+                
             </td>
         </tr>
     </table>
