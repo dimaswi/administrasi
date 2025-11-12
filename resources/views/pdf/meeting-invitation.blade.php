@@ -11,7 +11,7 @@
         }
 
         body {
-                        margin-left: 10px;
+            margin-left: 10px;
             margin-right: 10px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 11pt;
