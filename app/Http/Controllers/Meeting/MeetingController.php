@@ -501,9 +501,7 @@ class MeetingController extends Controller
         $moderator = $meeting->participants->where('role', 'moderator')->first();
         // $leader = $moderator ? $moderator->user : $meeting->organizer;'
         $leader = User::where('id', $meeting->organizer_id)->first();
-
-        dd($leader);
-
+        
         // Generate certificate ID untuk meeting invitation
         $certificateId = 'MTG-' . strtoupper(substr(md5($meeting->id . time()), 0, 12));
         
@@ -517,7 +515,6 @@ class MeetingController extends Controller
             'meeting_date' => $meeting->meeting_date->format('Y-m-d H:i:s'),
             'signed_by' => $leader->id,
             'signed_at' => $signedAt->format('Y-m-d H:i:s'),
-            'meeting_leader' => $leader,
         ]));
 
         // Create certificate
@@ -547,7 +544,6 @@ class MeetingController extends Controller
             'meeting' => $meeting,
             'qrCode' => $qrCode,
             'certificate' => $certificate,
-            'meeting_leader' => $leader,
         ]);
 
         // Replace "/" and "\" with "-" for filename safety
