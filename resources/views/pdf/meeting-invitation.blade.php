@@ -166,7 +166,7 @@
             <td style="text-align: center; padding-top: 10px; padding-bottom: 5px;">
                 @php
                     $moderator = $meeting->participants->where('role', 'moderator')->first();
-                    $meeting_leader = $moderator ? $moderator->user : $meeting->organizer;
+                    <!-- $meeting_leader = $moderator ? $moderator->user : $meeting->organizer;  -->
                 @endphp
                 
                 <!-- QR Code Signature Certificate -->
@@ -175,9 +175,9 @@
                     <br>
                 @endif
                 
-                <strong><u>{{ $leader>name }}</u></strong>
-                @if($leader>nip)
-                    <br><span style="font-size: 10pt;">NIP. {{ $leader>nip }}</span>
+                <strong><u>{{ $meeting_leader>name }}</u></strong>
+                @if($meeting_leader>nip)
+                    <br><span style="font-size: 10pt;">NIP. {{ $meeting_leader>nip }}</span>
                 @endif
             </td>
         </tr>
