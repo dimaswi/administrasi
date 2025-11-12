@@ -167,7 +167,6 @@
                 @php
                     $moderator = $meeting->participants->where('role', 'moderator')->first();
                     <!-- $leader = $moderator ? $moderator->user : $meeting->organizer; -->
-                    $leader = auth()->user();
                 @endphp
                 
                 <!-- QR Code Signature Certificate -->
