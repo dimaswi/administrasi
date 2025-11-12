@@ -515,6 +515,7 @@ class MeetingController extends Controller
             'meeting_date' => $meeting->meeting_date->format('Y-m-d H:i:s'),
             'signed_by' => $leader->id,
             'signed_at' => $signedAt->format('Y-m-d H:i:s'),
+            'meeting_leader' => $leader,
         ]));
 
         // Create certificate
