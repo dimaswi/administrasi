@@ -175,7 +175,7 @@
                     <br>
                 @endif
                 
-                <strong><u>{{ $leader->name }}</u></strong>
+                <strong><u>{{ $leader->name }}</u></strong> {{$meeting->organizer->name}}
                 @if($leader->nip)
                     <br><span style="font-size: 10pt;">NIP. {{ $leader->nip }}</span>
                 @endif
