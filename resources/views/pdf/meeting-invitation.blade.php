@@ -166,6 +166,7 @@
             <td style="text-align: center; padding-top: 10px; padding-bottom: 5px;">
                 @php
                     $moderator = $meeting->participants->where('role', 'moderator')->first();
+                    $leader = $meeting->organizer;
                     <!-- $leader = $moderator ? $moderator->user : $meeting->organizer;  -->
                 @endphp
                 
@@ -175,7 +176,7 @@
                     <br>
                 @endif
                 
-                <strong><u>{{$meeting_leader->name, $meeting_leader->nip}}</u></strong> 
+                <strong><u>{{$leader->name, $leader->nip}}</u></strong> 
                 
             </td>
         </tr>
