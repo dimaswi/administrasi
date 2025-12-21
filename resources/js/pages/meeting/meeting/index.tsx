@@ -15,11 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem, Meeting, SharedData } from "@/types";
 import { Head, router, usePage } from "@inertiajs/react";
-import { Calendar as CalendarIcon, Edit3, Eye, Loader2, List, MapPin, PlusCircle, Search, Trash, Users, X, Clock } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Calendar as CalendarIcon, Edit3, Eye, Loader2, List, MapPin, PlusCircle, Search, Trash, Users, X, Clock, RefreshCw } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { route } from "ziggy-js";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
+import axios from "axios";
 
 interface PaginatedMeetings {
     data: Meeting[];
@@ -50,6 +51,8 @@ export default function MeetingIndex() {
     const [status, setStatus] = useState(initialFilters.status);
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [calendarMeetings, setCalendarMeetings] = useState<Meeting[]>([]);
+    const [calendarLoading, setCalendarLoading] = useState(false);
     const [deleteDialog, setDeleteDialog] = useState<{
         open: boolean;
         meeting: Meeting | null;
@@ -59,6 +62,37 @@ export default function MeetingIndex() {
         meeting: null,
         loading: false,
     });
+
+    // Fetch calendar data when month changes or view mode is calendar
+    useEffect(() => {
+        if (viewMode === 'calendar') {
+            fetchCalendarData();
+        }
+    }, [currentMonth, viewMode, status]);
+
+    const fetchCalendarData = async () => {
+        setCalendarLoading(true);
+        try {
+            const monthStart = startOfMonth(currentMonth);
+            const monthEnd = endOfMonth(currentMonth);
+            // Extend range to include partial weeks
+            const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+            const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+
+            const response = await axios.get(route('meetings.calendar-data'), {
+                params: {
+                    start_date: format(startDate, 'yyyy-MM-dd'),
+                    end_date: format(endDate, 'yyyy-MM-dd'),
+                    status: status,
+                }
+            });
+            setCalendarMeetings(response.data.meetings);
+        } catch (error) {
+            console.error('Failed to fetch calendar data:', error);
+        } finally {
+            setCalendarLoading(false);
+        }
+    };
 
     const statusOptions: SearchableSelectOption[] = [
         { value: '', label: 'Semua Status' },
@@ -552,7 +586,7 @@ export default function MeetingIndex() {
         }
         
         const getMeetingsForDate = (date: Date) => {
-            return meetings.data.filter(meeting => 
+            return calendarMeetings.filter(meeting => 
                 isSameDay(new Date(meeting.meeting_date), date)
             );
         };
@@ -567,16 +601,32 @@ export default function MeetingIndex() {
                         variant="outline"
                         size="sm"
                         onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                        disabled={calendarLoading}
                     >
                         &larr; Prev
                     </Button>
-                    <h3 className="text-lg font-semibold">
-                        {format(currentMonth, 'MMMM yyyy', { locale: id })}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                            {format(currentMonth, 'MMMM yyyy', { locale: id })}
+                        </h3>
+                        {calendarLoading && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={fetchCalendarData}
+                            disabled={calendarLoading}
+                            title="Refresh"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${calendarLoading ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                        disabled={calendarLoading}
                     >
                         Next &rarr;
                     </Button>
@@ -651,26 +701,31 @@ export default function MeetingIndex() {
                 
                 {/* Legend */}
                 <div className="p-3 bg-muted/30 border-t">
-                    <div className="flex flex-wrap gap-3 text-xs">
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded bg-gray-100 border-gray-200 border"></div>
-                            <span>Draft</span>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-3 text-xs">
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded bg-gray-100 border-gray-200 border"></div>
+                                <span>Draft</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded bg-blue-100 border-blue-200 border"></div>
+                                <span>Terjadwal</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded bg-green-100 border-green-200 border"></div>
+                                <span>Berlangsung</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded bg-purple-100 border-purple-200 border"></div>
+                                <span>Selesai</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded bg-red-100 border-red-200 border"></div>
+                                <span>Dibatalkan</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded bg-blue-100 border-blue-200 border"></div>
-                            <span>Terjadwal</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded bg-green-100 border-green-200 border"></div>
-                            <span>Berlangsung</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded bg-purple-100 border-purple-200 border"></div>
-                            <span>Selesai</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded bg-red-100 border-red-200 border"></div>
-                            <span>Dibatalkan</span>
+                        <div className="text-xs text-muted-foreground">
+                            Total: <span className="font-medium text-foreground">{calendarMeetings.length}</span> rapat
                         </div>
                     </div>
                 </div>

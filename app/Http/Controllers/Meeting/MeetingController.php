@@ -50,6 +50,31 @@ class MeetingController extends Controller
         ]);
     }
 
+    /**
+     * Get meetings for calendar view (all meetings in date range)
+     */
+    public function calendarData(Request $request)
+    {
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $status = $request->get('status', '');
+
+        $meetings = Meeting::query()
+            ->with(['room', 'organizer', 'organizationUnit'])
+            ->withCount(['participants', 'attendedParticipants'])
+            ->whereBetween('meeting_date', [$startDate, $endDate])
+            ->when($status, function ($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->orderBy('meeting_date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        return response()->json([
+            'meetings' => $meetings,
+        ]);
+    }
+
     public function create()
     {
         $rooms = Room::where('is_active', true)

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth')->group(function () {
     // Meeting Management
     Route::get('meeting/meetings', [MeetingController::class, 'index'])->name('meetings.index')->middleware('permission:meeting.view');
+    Route::get('meeting/meetings/calendar-data', [MeetingController::class, 'calendarData'])->name('meetings.calendar-data')->middleware('permission:meeting.view');
     Route::get('meeting/meetings/create', [MeetingController::class, 'create'])->name('meetings.create')->middleware('permission:meeting.create');
     Route::post('meeting/meetings', [MeetingController::class, 'store'])->name('meetings.store')->middleware('permission:meeting.create');
     Route::get('meeting/meetings/{meeting}', [MeetingController::class, 'show'])->name('meetings.show')->middleware('permission:meeting.view');
