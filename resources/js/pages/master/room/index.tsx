@@ -1,251 +1,250 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, Room, SharedData } from "@/types";
-import { Head, router, usePage } from "@inertiajs/react";
-import { DoorOpen, Edit3, Eye, Loader2, PlusCircle, Search, Trash, X } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { route } from "ziggy-js";
+import { Head, router, Link } from '@inertiajs/react';
+import { useState } from 'react';
+import AppLayout from '@/layouts/app-layout';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { IndexPage } from '@/components/ui/index-page';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, DoorOpen } from 'lucide-react';
+import { toast } from 'sonner';
 
-interface PaginatedRooms {
-    data: Room[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
+interface Room {
+    id: number;
+    code: string;
+    name: string;
+    building: string | null;
+    floor: string | null;
+    capacity: number;
+    facilities: string | null;
+    is_active: boolean;
+    created_at: string;
 }
 
-interface Props extends SharedData {
-    rooms: PaginatedRooms;
+interface Props {
+    rooms: {
+        data: Room[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number;
+        to: number;
+    };
     filters: {
         search: string;
         perPage: number;
     };
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Ruangan', href: '/master/rooms' },
-];
-
-export default function RoomIndex() {
-    const { rooms, filters: initialFilters } = usePage<Props>().props;
-    const [search, setSearch] = useState(initialFilters.search);
-    const [deleteDialog, setDeleteDialog] = useState<{
-        open: boolean;
-        room: Room | null;
-        loading: boolean;
-    }>({
-        open: false,
-        room: null,
-        loading: false,
+export default function Index({ rooms, filters }: Props) {
+    const [filterValues, setFilterValues] = useState({
+        search: filters.search || '',
     });
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
 
-    const handleSearch = (value: string) => {
-        router.get('/master/rooms', {
-            search: value,
-            perPage: initialFilters.perPage,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+    const handleFilterChange = (key: string, value: string) => {
+        setFilterValues(prev => ({ ...prev, [key]: value }));
     };
 
-    const handlePerPageChange = (perPage: number) => {
-        router.get('/master/rooms', {
-            search: initialFilters.search,
-            perPage,
-            page: 1,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+    const handleFilterSubmit = () => {
+        router.get('/master/rooms', filterValues, { preserveState: true });
+    };
+
+    const handleFilterReset = () => {
+        setFilterValues({ search: '' });
+        router.get('/master/rooms', {}, { preserveState: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get('/master/rooms', {
-            search: initialFilters.search,
-            perPage: initialFilters.perPage,
-            page,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+        router.get('/master/rooms', { ...filters, page }, { preserveState: true });
+    };
+
+    const handlePerPageChange = (perPage: number) => {
+        router.get('/master/rooms', { ...filters, perPage, page: 1 }, { preserveState: true });
     };
 
     const handleDeleteClick = (room: Room) => {
-        setDeleteDialog({
-            open: true,
-            room: room,
-            loading: false,
-        });
+        setRoomToDelete(room);
+        setDeleteDialogOpen(true);
     };
 
     const handleDeleteConfirm = () => {
-        if (!deleteDialog.room) return;
-        
-        setDeleteDialog(prev => ({ ...prev, loading: true }));
-        
-        router.delete(route('rooms.destroy', deleteDialog.room.id), {
-            onSuccess: () => {
-                toast.success(`Ruangan ${deleteDialog.room?.name} berhasil dihapus`);
-                setDeleteDialog({ open: false, room: null, loading: false });
-            },
-            onError: () => {
-                toast.error('Gagal menghapus ruangan');
-                setDeleteDialog(prev => ({ ...prev, loading: false }));
-            }
-        });
+        if (roomToDelete) {
+            router.delete(`/master/rooms/${roomToDelete.id}`, {
+                onSuccess: () => {
+                    toast.success(`Ruangan ${roomToDelete.name} berhasil dihapus`);
+                    setDeleteDialogOpen(false);
+                    setRoomToDelete(null);
+                },
+                onError: () => toast.error('Gagal menghapus ruangan'),
+            });
+        }
     };
 
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Ruangan" />
-            <div className="p-4">
-                <div className="mb-4 flex items-center justify-between gap-4">
-                    <form onSubmit={(e) => { e.preventDefault(); handleSearch(search); }} className="flex items-center gap-2 flex-1 max-w-sm">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="text"
-                                placeholder="Cari kode, nama, atau gedung..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 pr-10"
-                            />
-                            {search && (
-                                <button type="button" onClick={() => { setSearch(''); handleSearch(''); }} className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                                </button>
-                            )}
-                        </div>
-                        <Button type="submit" variant="outline" size="sm">Cari</Button>
-                    </form>
-                    
-                    <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-green-50" onClick={() => router.visit('/master/rooms/create')}>
-                        <PlusCircle className="h-4 w-4 text-green-600" />
-                        Tambah
-                    </Button>
-                </div>
-                
-                <div className="w-full overflow-x-auto rounded-md border">
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                            <TableRow>
-                                <TableHead className="w-[50px]">No.</TableHead>
-                                <TableHead>Kode</TableHead>
-                                <TableHead>Nama Ruangan</TableHead>
-                                <TableHead>Lokasi</TableHead>
-                                <TableHead>Kapasitas</TableHead>
-                                <TableHead>Fasilitas</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rooms.data.length > 0 ? (
-                                rooms.data.map((room, index) => (
-                                    <TableRow key={room.id}>
-                                        <TableCell>{(rooms.current_page - 1) * rooms.per_page + index + 1}</TableCell>
-                                        <TableCell className="font-mono text-sm">{room.code}</TableCell>
-                                        <TableCell className="font-medium">{room.name}</TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {room.building && room.floor ? `${room.building}, Lantai ${room.floor}` : room.building || '-'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary">{room.capacity} orang</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-sm max-w-xs truncate">{room.facilities || '-'}</TableCell>
-                                        <TableCell>
-                                            {room.is_active ? (
-                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Aktif</Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Nonaktif</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={() => router.visit(route('rooms.show', room.id))}
-                                                    title="Lihat Detail"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={() => router.visit(route('rooms.edit', room.id))}
-                                                    title="Edit"
-                                                >
-                                                    <Edit3 className="h-4 w-4" />
-                                                </Button>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={() => handleDeleteClick(room)}
-                                                    title="Hapus"
-                                                >
-                                                    <Trash className="h-4 w-4 text-red-600" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <DoorOpen className="h-8 w-8 text-muted-foreground/50" />
-                                            <span>Tidak ada data ruangan</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+    const columns = [
+        {
+            key: 'code',
+            label: 'Kode',
+            render: (room: Room) => (
+                <span className="font-mono text-sm">{room.code}</span>
+            ),
+        },
+        {
+            key: 'name',
+            label: 'Nama Ruangan',
+            render: (room: Room) => (
+                <div className="font-medium">{room.name}</div>
+            ),
+        },
+        {
+            key: 'location',
+            label: 'Lokasi',
+            render: (room: Room) => (
+                <span className="text-muted-foreground text-sm">
+                    {room.building && room.floor 
+                        ? `${room.building}, Lantai ${room.floor}` 
+                        : room.building || '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'capacity',
+            label: 'Kapasitas',
+            render: (room: Room) => (
+                <Badge variant="secondary">{room.capacity} orang</Badge>
+            ),
+        },
+        {
+            key: 'is_active',
+            label: 'Status',
+            render: (room: Room) => (
+                room.is_active ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Aktif
+                    </Badge>
+                ) : (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        Nonaktif
+                    </Badge>
+                )
+            ),
+        },
+        {
+            key: 'actions',
+            label: '',
+            className: 'w-[50px]',
+            render: (room: Room) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link href={`/master/rooms/${room.id}`}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Lihat Detail
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href={`/master/rooms/${room.id}/edit`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(room)}
+                            className="text-destructive focus:text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Hapus
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+        },
+    ];
 
-                <div className="flex items-center justify-between py-4">
-                    <div className="text-sm text-muted-foreground">
-                        Menampilkan {rooms.from} - {rooms.to} dari {rooms.total} data
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Baris per halaman:</span>
-                            <select className="rounded border px-2 py-1 text-sm" value={rooms.per_page} onChange={(e) => handlePerPageChange(Number(e.target.value))}>
-                                <option value={10}>10</option>
-                                <option value={20}>20</option>
-                                <option value={50}>50</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handlePageChange(rooms.current_page - 1)} disabled={rooms.current_page <= 1}>Previous</Button>
-                            <span className="text-sm">Page {rooms.current_page} of {rooms.last_page}</span>
-                            <Button variant="outline" size="sm" onClick={() => handlePageChange(rooms.current_page + 1)} disabled={rooms.current_page >= rooms.last_page}>Next</Button>
-                        </div>
-                    </div>
-                </div>
+    return (
+        <AppLayout>
+            <Head title="Ruangan" />
+
+            <div className="p-6">
+                <IndexPage
+                    title="Ruangan"
+                    description="Kelola data ruangan untuk rapat"
+                    actions={[
+                        {
+                            label: 'Tambah Ruangan',
+                            href: '/master/rooms/create',
+                            icon: Plus,
+                        },
+                    ]}
+                    data={rooms.data}
+                    columns={columns}
+                    pagination={{
+                        current_page: rooms.current_page,
+                        last_page: rooms.last_page,
+                        per_page: rooms.per_page || 10,
+                        total: rooms.total,
+                        from: rooms.from,
+                        to: rooms.to,
+                    }}
+                    onPageChange={handlePageChange}
+                    onPerPageChange={handlePerPageChange}
+                    filterValues={filterValues}
+                    onFilterChange={handleFilterChange}
+                    onFilterSubmit={handleFilterSubmit}
+                    onFilterReset={handleFilterReset}
+                    searchValue={filterValues.search}
+                    searchPlaceholder="Cari kode, nama, gedung..."
+                    onSearchChange={(val: string) => handleFilterChange('search', val)}
+                    emptyMessage="Belum ada ruangan"
+                    emptyIcon={DoorOpen}
+                />
             </div>
 
-            <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, room: null, loading: false })}>
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Konfirmasi Hapus Ruangan</DialogTitle>
+                        <DialogTitle>Hapus Ruangan</DialogTitle>
                         <DialogDescription>
-                            Apakah Anda yakin ingin menghapus ruangan <strong>{deleteDialog.room?.name}</strong>?
+                            Apakah Anda yakin ingin menghapus ruangan ini? Tindakan ini tidak dapat dibatalkan.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setDeleteDialog({ open: false, room: null, loading: false })} disabled={deleteDialog.loading}>Batal</Button>
-                        <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleteDialog.loading}>
-                            {deleteDialog.loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Menghapus...</> : <><Trash className="h-4 w-4 mr-2" />Hapus</>}
+                    {roomToDelete && (
+                        <div className="py-4">
+                            <div className="rounded-lg bg-muted p-4">
+                                <p className="text-sm font-medium">{roomToDelete.name}</p>
+                                <p className="text-sm text-muted-foreground">Kode: {roomToDelete.code}</p>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setRoomToDelete(null);
+                            }}
+                        >
+                            Batal
+                        </Button>
+                        <Button variant="destructive" onClick={handleDeleteConfirm}>
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Hapus
                         </Button>
                     </DialogFooter>
                 </DialogContent>

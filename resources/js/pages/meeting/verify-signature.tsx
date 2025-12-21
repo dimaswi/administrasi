@@ -107,7 +107,7 @@ export default function VerifySignature({ meeting, leader, verified, verifiedAt 
                 </Card>
 
                 <Card className="mb-6">
-                    <CardHeader>
+                    <CardHeader className="p-6">
                         <CardTitle>Ditandatangani Oleh</CardTitle>
                         <CardDescription>Pimpinan rapat yang menandatangani undangan ini</CardDescription>
                     </CardHeader>
@@ -130,7 +130,7 @@ export default function VerifySignature({ meeting, leader, verified, verifiedAt 
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="p-6">
                         <CardTitle>Informasi Verifikasi</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">

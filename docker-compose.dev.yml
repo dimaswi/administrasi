@@ -1,0 +1,21 @@
+version: '3.8'
+networks:
+  administrasi_dev:
+services:
+  administrasi_db_dev:
+    image: postgres:16-alpine
+    container_name: administrasi_db_dev
+    restart: always
+    environment:
+      POSTGRES_USER: 'dimas'
+      POSTGRES_PASSWORD: 'dimasw1950'
+      POSTGRES_DB: 'administrasi_dev'
+    ports:
+      - '5435:5432'
+    networks:
+      - administrasi_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_dev_data:

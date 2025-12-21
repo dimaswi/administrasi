@@ -7,7 +7,6 @@ use App\Models\Room;
 use App\Models\User;
 use App\Models\Archive;
 use App\Models\IncomingLetter;
-use App\Models\Letter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -156,7 +155,7 @@ class DashboardController extends Controller
             ->count();
 
         // Recent archives
-        $recentArchives = Archive::with(['letter', 'incomingLetter', 'archiver'])
+        $recentArchives = Archive::with(['incomingLetter', 'archiver'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
@@ -190,17 +189,9 @@ class DashboardController extends Controller
         // =====================
         $totalIncomingLetters = IncomingLetter::count();
         $incomingLettersThisMonth = IncomingLetter::whereDate('received_date', '>=', $currentMonth)->count();
-        
-        $totalOutgoingLetters = Letter::count();
-        $outgoingLettersThisMonth = Letter::whereDate('created_at', '>=', $currentMonth)->count();
 
         // Letters by status
         $incomingLettersByStatus = IncomingLetter::select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->pluck('total', 'status')
-            ->toArray();
-
-        $outgoingLettersByStatus = Letter::select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
@@ -226,9 +217,9 @@ class DashboardController extends Controller
                 'total_incoming_letters' => $totalIncomingLetters,
                 'incoming_letters_this_month' => $incomingLettersThisMonth,
                 'incoming_letters_by_status' => $incomingLettersByStatus,
-                'total_outgoing_letters' => $totalOutgoingLetters,
-                'outgoing_letters_this_month' => $outgoingLettersThisMonth,
-                'outgoing_letters_by_status' => $outgoingLettersByStatus,
+                'total_outgoing_letters' => 0, // TODO: Will be implemented with OutgoingLetter
+                'outgoing_letters_this_month' => 0,
+                'outgoing_letters_by_status' => [],
             ],
             'upcoming_meetings' => $upcomingMeetings,
             'recent_completed_meetings' => $recentCompletedMeetings,

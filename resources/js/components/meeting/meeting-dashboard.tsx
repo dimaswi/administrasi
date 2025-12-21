@@ -648,8 +648,8 @@ export function MeetingDashboard({
 
                     {/* Archive Trend */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Trend Pengarsipan (6 Bulan Terakhir)</CardTitle>
+                        <CardHeader className="p-6">
+                        <CardTitle>Trend Pengarsipan (6 Bulan Terakhir)</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="h-64 flex items-end justify-between gap-2">
@@ -670,8 +670,8 @@ export function MeetingDashboard({
 
                     {/* Recent Archives */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Arsip Terbaru</CardTitle>
+                        <CardHeader className="p-6">
+                        <CardTitle>Arsip Terbaru</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {recent_archives && recent_archives.length > 0 ? (

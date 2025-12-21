@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailPage } from "@/components/ui/form-page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, Room, Meeting, SharedData } from "@/types";
+import { Room, Meeting, SharedData } from "@/types";
 import { Head, router } from "@inertiajs/react";
 import { DoorOpen, Edit3, Users, Calendar, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
@@ -14,11 +15,6 @@ interface Props extends SharedData {
         meetings?: Meeting[];
     };
 }
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Ruangan', href: '/master/rooms' },
-    { title: 'Detail Ruangan', href: '#' },
-];
 
 export default function RoomShow({ room }: Props) {
     const getStatusBadgeColor = (status: string) => {
@@ -48,14 +44,13 @@ export default function RoomShow({ room }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Detail Ruangan - ${room.name}`} />
-            <div className="p-4 max-w-6xl">
-                <div className="mb-6 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-2xl font-semibold">{room.name}</h2>
-                        <p className="text-sm text-muted-foreground">Detail informasi ruangan rapat</p>
-                    </div>
+            <DetailPage
+                title={room.name}
+                description="Detail informasi ruangan rapat"
+                backUrl="/master/rooms"
+                actions={
                     <Button
                         variant="outline"
                         onClick={() => router.visit(`/master/rooms/${room.id}/edit`)}
@@ -63,12 +58,12 @@ export default function RoomShow({ room }: Props) {
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
                     </Button>
-                </div>
-
+                }
+            >
                 <div className="grid gap-6">
                     {/* Informasi Umum */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <CardTitle className="flex items-center gap-2">
                                 <DoorOpen className="h-5 w-5" />
                                 Informasi Ruangan
@@ -221,7 +216,7 @@ export default function RoomShow({ room }: Props) {
                         </Card>
                     )}
                 </div>
-            </div>
+            </DetailPage>
         </AppLayout>
     );
 }

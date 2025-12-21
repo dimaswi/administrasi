@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
+import { FormPage } from "@/components/ui/form-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, OrganizationUnit, SharedData, User } from "@/types";
-import { Head, router, useForm } from "@inertiajs/react";
-import { Loader2, Save, Upload, X } from "lucide-react";
+import { OrganizationUnit, SharedData, User } from "@/types";
+import { Head, useForm } from "@inertiajs/react";
+import { Upload, X } from "lucide-react";
 import { FormEventHandler, useState } from "react";
 import { toast } from "sonner";
 
@@ -15,11 +16,6 @@ interface Props extends SharedData {
     parentUnits: OrganizationUnit[];
     users: User[];
 }
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Unit Organisasi', href: '/master/organizations' },
-    { title: 'Tambah Unit Organisasi', href: '/master/organizations/create' },
-];
 
 export default function OrganizationCreate({ parentUnits, users }: Props) {
     const { data, setData, post, processing, errors } = useForm<{
@@ -99,17 +95,17 @@ export default function OrganizationCreate({ parentUnits, users }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Tambah Unit Organisasi" />
-            <div className="p-4 max-w-7xl">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-semibold">Tambah Unit Organisasi</h2>
-                    <p className="text-sm text-muted-foreground">Tambahkan unit organisasi baru ke dalam sistem</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="rounded-lg border p-6 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+            <FormPage
+                title="Tambah Unit Organisasi"
+                description="Tambahkan unit organisasi baru ke dalam sistem"
+                backUrl="/master/organizations"
+                onSubmit={handleSubmit}
+                isLoading={processing}
+            >
+                <div className="rounded-lg border p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="code">
                                     Kode Unit <span className="text-red-500">*</span>
@@ -254,33 +250,7 @@ export default function OrganizationCreate({ parentUnits, users }: Props) {
                             </Label>
                         </div>
                     </div>
-
-                    <div className="flex justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.visit('/master/organizations')}
-                            disabled={processing}
-                        >
-                            Batal
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Menyimpan...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Simpan
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                </form>
-            </div>
+            </FormPage>
         </AppLayout>
     );
 }
-

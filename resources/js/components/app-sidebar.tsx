@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, FileSignature, Folder, LayoutGrid, MailIcon } from 'lucide-react';
+import { BookOpen, FileSignature, Folder, LayoutGrid, MailIcon, FileText, Send, FileCode } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -17,6 +17,16 @@ const mainNavItems: NavItem[] = [
         title: 'Surat Masuk',
         href: '/arsip/incoming-letters',
         icon: MailIcon,
+    },
+    {
+        title: 'Surat Keluar',
+        href: '/arsip/outgoing-letters',
+        icon: Send,
+    },
+    {
+        title: 'Template Surat',
+        href: '/arsip/document-templates',
+        icon: FileCode,
     },
     {
         title: 'Disposisi Saya',

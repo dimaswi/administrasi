@@ -75,7 +75,7 @@ export default function AttendanceCheck({ meeting, auth }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Kehadiran - ${meeting.title}`} />
 
             <div className="p-4 max-w-7xl">

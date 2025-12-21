@@ -219,7 +219,7 @@ export default function MeetingCreate({ rooms, organizationUnits, users }: Props
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Tambah Rapat" />
 
             <div className="p-4 max-w-7xl">
@@ -231,8 +231,8 @@ export default function MeetingCreate({ rooms, organizationUnits, users }: Props
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Informasi Rapat */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Informasi Rapat</CardTitle>
+                        <CardHeader className="p-6">
+                        <CardTitle>Informasi Rapat</CardTitle>
                             <CardDescription>Data dasar mengenai rapat yang akan diadakan</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -358,7 +358,7 @@ export default function MeetingCreate({ rooms, organizationUnits, users }: Props
 
                     {/* Pemilihan Peserta */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
                                     <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
@@ -483,7 +483,7 @@ export default function MeetingCreate({ rooms, organizationUnits, users }: Props
 
                     {/* Status Selection */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                 <Calendar className="h-5 w-5" />
                                 Status Rapat

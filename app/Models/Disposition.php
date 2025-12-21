@@ -26,6 +26,10 @@ class Disposition extends Model
     ];
 
     protected $casts = [
+        'incoming_letter_id' => 'integer',
+        'parent_disposition_id' => 'integer',
+        'from_user_id' => 'integer',
+        'to_user_id' => 'integer',
         'deadline' => 'date',
         'read_at' => 'datetime',
         'completed_at' => 'datetime',
@@ -154,7 +158,7 @@ class Disposition extends Model
             return true;
         }
 
-        // User is in the disposition chain
+        // User is in the disposition chain (parent)
         $parent = $this->parentDisposition;
         while ($parent) {
             if ($parent->from_user_id === $user->id || $parent->to_user_id === $user->id) {
@@ -163,6 +167,41 @@ class Disposition extends Model
             $parent = $parent->parentDisposition;
         }
 
+        // User is in the disposition chain (child) - recursive check
+        if ($this->isUserInChildChain($user->id)) {
+            return true;
+        }
+
+        // User is the registrar of the incoming letter
+        if ($this->incomingLetter && $this->incomingLetter->registered_by === $user->id) {
+            return true;
+        }
+
+        // User is in the same organization unit as the incoming letter
+        if ($this->incomingLetter && 
+            $user->organization_unit_id && 
+            $this->incomingLetter->organization_unit_id === $user->organization_unit_id &&
+            $user->hasPermission('disposition.view')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user is in child disposition chain
+     */
+    protected function isUserInChildChain(int $userId): bool
+    {
+        foreach ($this->childDispositions as $child) {
+            if ($child->from_user_id === $userId || $child->to_user_id === $userId) {
+                return true;
+            }
+            // Recursive check for nested children
+            if ($child->isUserInChildChain($userId)) {
+                return true;
+            }
+        }
         return false;
     }
 }

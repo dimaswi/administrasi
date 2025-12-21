@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DetailPage } from '@/components/ui/form-page';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
@@ -22,13 +23,11 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
     AlertCircle,
-    ArrowLeft,
     Calendar,
     CheckCircle2,
     ChevronRight,
     Clock,
     Eye,
-    FileSignature,
     FileText,
     Mail,
     Play,
@@ -293,58 +292,53 @@ export default function Show({
 
     const isOverdue = disposition.deadline && new Date(disposition.deadline) < new Date() && disposition.status !== 'completed';
 
+    const actionButtons = (
+        <>
+            {can_update_status && (disposition.status === 'pending' || disposition.status === 'read') && (
+                <Button onClick={handleMarkInProgress} className="gap-2">
+                    <Play className="h-4 w-4" />
+                    Mulai Kerjakan
+                </Button>
+            )}
+            {can_update_status && disposition.status === 'in_progress' && (
+                <Button onClick={handleMarkCompleted} variant="default" className="gap-2 bg-green-600 hover:bg-green-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Selesaikan Disposisi
+                </Button>
+            )}
+            {can_create_child_disposition && (
+                <Link href={route('arsip.dispositions.create', { parent_disposition_id: disposition.id })}>
+                    <Button variant="outline" className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Disposisikan Lagi
+                    </Button>
+                </Link>
+            )}
+            <Link href={route('arsip.incoming-letters.show', disposition.incoming_letter.id)}>
+                <Button variant="outline" className="gap-2">
+                    <Eye className="h-4 w-4" />
+                    Lihat Surat
+                </Button>
+            </Link>
+            {can_delete && (
+                <Button onClick={handleDelete} variant="destructive" className="gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Batalkan Disposisi
+                </Button>
+            )}
+        </>
+    );
+
     return (
         <AppLayout>
             <Head title={`Detail Disposisi - ${disposition.incoming_letter.incoming_number}`} />
 
-            <div className="space-y-6 my-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                        <h2 className="text-xl md:text-2xl font-semibold">Detail Disposisi</h2>
-                        <p className="text-xs md:text-sm text-muted-foreground font-mono">{disposition.incoming_letter.subject}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {can_update_status && (disposition.status === 'pending' || disposition.status === 'read') && (
-                            <Button onClick={handleMarkInProgress} className="gap-2">
-                                <Play className="h-4 w-4" />
-                                Mulai Kerjakan
-                            </Button>
-                        )}
-                        {can_update_status && disposition.status === 'in_progress' && (
-                            <Button onClick={handleMarkCompleted} variant="default" className="gap-2 bg-green-600 hover:bg-green-700">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Selesaikan Disposisi
-                            </Button>
-                        )}
-                        {can_create_child_disposition && (
-                            <Link href={route('arsip.dispositions.create', { parent_disposition_id: disposition.id })}>
-                                <Button variant="outline" className="gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Disposisikan Lagi
-                                </Button>
-                            </Link>
-                        )}
-                        <Link href={route('arsip.incoming-letters.show', disposition.incoming_letter.id)}>
-                            <Button variant="outline" className="gap-2">
-                                <Eye className="h-4 w-4" />
-                                Lihat Surat
-                            </Button>
-                        </Link>
-                        {can_delete && (
-                            <Button onClick={handleDelete} variant="destructive" className="gap-2">
-                                <AlertCircle className="h-4 w-4" />
-                                Batalkan Disposisi
-                            </Button>
-                        )}
-                        <Link href={route('arsip.dispositions.index')}>
-                                <Button variant="outline">
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Kembali
-                                </Button>
-                            </Link>
-                    </div>
-                </div>
+            <DetailPage
+                title="Detail Disposisi"
+                description={disposition.incoming_letter.subject}
+                backUrl={route('arsip.dispositions.index')}
+                actions={actionButtons}
+            >
 
                 {/* Status Alert */}
                 {isOverdue && (
@@ -365,7 +359,7 @@ export default function Show({
 
                 {/* Main Info */}
                 <Card>
-                    <CardHeader>
+                    <CardHeader className='pt-4'>
                         <div className="flex items-start justify-between">
                             <div className="space-y-1 flex-1">
                                 <CardTitle className="text-xl">
@@ -449,8 +443,9 @@ export default function Show({
                 </Card>
 
                 {/* Follow Ups */}
-                <Card>
-                    <CardHeader>
+                <div className='pt-6'>
+                        <Card>
+                    <CardHeader className='pt-6'>
                         <div className="flex items-center justify-between">
                             <div>
                                 <CardTitle>Tindak Lanjut</CardTitle>
@@ -461,6 +456,11 @@ export default function Show({
                                     <Plus className="h-4 w-4" />
                                     Tambah Tindak Lanjut
                                 </Button>
+                            )}
+                            {(disposition.status === 'pending' || disposition.status === 'read') && !can_add_follow_up && (
+                                <p className="text-sm text-muted-foreground">
+                                    Klik "Mulai Kerjakan" untuk menambah tindak lanjut
+                                </p>
                             )}
                         </div>
                     </CardHeader>
@@ -616,12 +616,13 @@ export default function Show({
                         ))}
                     </CardContent>
                 </Card>
+                </div>
 
                 {/* Child Dispositions */}
                 {disposition.child_dispositions.length > 0 && (
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Sub Disposisi</CardTitle>
+                        <CardHeader className="p-6">
+                        <CardTitle>Sub Disposisi</CardTitle>
                             <CardDescription>Disposisi yang didelegasikan dari disposisi ini</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -644,7 +645,7 @@ export default function Show({
                         </CardContent>
                     </Card>
                 )}
-            </div>
+            </DetailPage>
 
             {/* Complete Dialog */}
             <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>

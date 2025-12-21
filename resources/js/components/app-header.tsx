@@ -40,22 +40,22 @@ const mainNavItems: NavItem[] = [
                 permission: 'incoming_letter.view',
             },
             {
+                title: 'Surat Keluar',
+                href: '/arsip/outgoing-letters',
+                icon: FileText,
+                permission: 'outgoing_letter.view',
+            },
+            {
+                title: 'Template Surat',
+                href: '/arsip/document-templates',
+                icon: FileSignature,
+                permission: 'document_template.view',
+            },
+            {
                 title: 'Disposisi Saya',
                 href: '/arsip/dispositions',
                 icon: FileSignature,
                 permission: 'disposition.view',
-            },
-            {
-                title: 'Template Surat',
-                href: '/arsip/templates',
-                icon: FileText,
-                permission: 'template.view',
-            },
-            {
-                title: 'Surat',
-                href: '/arsip/letters',
-                icon: FileText,
-                permission: 'letter.view',
             },
             {
                 title: 'Arsip Dokumen',

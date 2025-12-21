@@ -55,18 +55,19 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'disposition.add_follow_up', 'display_name' => 'Tambah Tindak Lanjut', 'description' => 'Dapat menambahkan tindak lanjut pada disposisi', 'module' => 'Disposisi'],
             ['name' => 'disposition.create_child', 'display_name' => 'Buat Sub-Disposisi', 'description' => 'Dapat membuat disposisi turunan/delegasi', 'module' => 'Disposisi'],
             
-            // Templates
-            ['name' => 'template.view', 'display_name' => 'Lihat Template', 'description' => 'Dapat melihat template surat', 'module' => 'Template'],
-            ['name' => 'template.create', 'display_name' => 'Buat Template', 'description' => 'Dapat membuat template surat', 'module' => 'Template'],
-            ['name' => 'template.edit', 'display_name' => 'Edit Template', 'description' => 'Dapat mengedit template surat', 'module' => 'Template'],
-            ['name' => 'template.delete', 'display_name' => 'Hapus Template', 'description' => 'Dapat menghapus template surat', 'module' => 'Template'],
+            // Document Templates (Template Surat)
+            ['name' => 'document_template.view', 'display_name' => 'Lihat Template Surat', 'description' => 'Dapat melihat daftar template surat', 'module' => 'Template Surat'],
+            ['name' => 'document_template.create', 'display_name' => 'Buat Template Surat', 'description' => 'Dapat membuat template surat baru', 'module' => 'Template Surat'],
+            ['name' => 'document_template.edit', 'display_name' => 'Edit Template Surat', 'description' => 'Dapat mengedit template surat', 'module' => 'Template Surat'],
+            ['name' => 'document_template.delete', 'display_name' => 'Hapus Template Surat', 'description' => 'Dapat menghapus template surat', 'module' => 'Template Surat'],
             
-            // Letters (Surat Keluar)
-            ['name' => 'letter.view', 'display_name' => 'Lihat Surat', 'description' => 'Dapat melihat surat keluar', 'module' => 'Surat Keluar'],
-            ['name' => 'letter.create', 'display_name' => 'Buat Surat', 'description' => 'Dapat membuat surat keluar', 'module' => 'Surat Keluar'],
-            ['name' => 'letter.edit', 'display_name' => 'Edit Surat', 'description' => 'Dapat mengedit surat keluar', 'module' => 'Surat Keluar'],
-            ['name' => 'letter.delete', 'display_name' => 'Hapus Surat', 'description' => 'Dapat menghapus surat keluar', 'module' => 'Surat Keluar'],
-            ['name' => 'letter.approve', 'display_name' => 'Approve Surat', 'description' => 'Dapat menyetujui surat keluar', 'module' => 'Surat Keluar'],
+            // Outgoing Letters (Surat Keluar)
+            ['name' => 'outgoing_letter.view', 'display_name' => 'Lihat Surat Keluar', 'description' => 'Dapat melihat daftar surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'outgoing_letter.create', 'display_name' => 'Buat Surat Keluar', 'description' => 'Dapat membuat surat keluar baru', 'module' => 'Surat Keluar'],
+            ['name' => 'outgoing_letter.edit', 'display_name' => 'Edit Surat Keluar', 'description' => 'Dapat mengedit surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'outgoing_letter.delete', 'display_name' => 'Hapus Surat Keluar', 'description' => 'Dapat menghapus surat keluar', 'module' => 'Surat Keluar'],
+            ['name' => 'outgoing_letter.submit', 'display_name' => 'Ajukan Surat Keluar', 'description' => 'Dapat mengajukan surat keluar untuk persetujuan', 'module' => 'Surat Keluar'],
+            ['name' => 'outgoing_letter.sign', 'display_name' => 'Tanda Tangan Surat', 'description' => 'Dapat menandatangani/menyetujui surat keluar', 'module' => 'Surat Keluar'],
             
             // Archives
             ['name' => 'archive.view', 'display_name' => 'Lihat Arsip', 'description' => 'Dapat melihat daftar arsip', 'module' => 'Arsip'],

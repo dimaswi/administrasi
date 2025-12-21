@@ -171,7 +171,7 @@ export default function MeetingIndex() {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Rapat" />
             <div className="p-4 max-w-7xl">
                 <div className="mb-4 flex flex-col gap-3">

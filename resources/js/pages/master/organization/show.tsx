@@ -1,11 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailPage } from "@/components/ui/form-page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, OrganizationUnit, SharedData, User } from "@/types";
+import { OrganizationUnit, SharedData, User } from "@/types";
 import { Head, router } from "@inertiajs/react";
-import { Building2, Edit3, Mail, Phone, Users } from "lucide-react";
+import { Building2, Edit3, Phone, Users } from "lucide-react";
 
 interface Props extends SharedData {
     organization: OrganizationUnit & {
@@ -13,11 +14,6 @@ interface Props extends SharedData {
         children?: OrganizationUnit[];
     };
 }
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Unit Organisasi', href: '/master/organizations' },
-    { title: 'Detail Unit Organisasi', href: '#' },
-];
 
 export default function OrganizationShow({ organization }: Props) {
     const getLevelBadgeColor = (level: number) => {
@@ -34,14 +30,13 @@ export default function OrganizationShow({ organization }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Detail Unit Organisasi - ${organization.name}`} />
-            <div className="p-4 max-w-7xl">
-                <div className="mb-6 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-2xl font-semibold">{organization.name}</h2>
-                        <p className="text-sm text-muted-foreground">Detail informasi unit organisasi</p>
-                    </div>
+            <DetailPage
+                title={organization.name}
+                description="Detail informasi unit organisasi"
+                backUrl="/master/organizations"
+                actions={
                     <Button
                         variant="outline"
                         onClick={() => router.visit(`/master/organizations/${organization.id}/edit`)}
@@ -49,12 +44,12 @@ export default function OrganizationShow({ organization }: Props) {
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
                     </Button>
-                </div>
-
+                }
+            >
                 <div className="grid gap-6">
                     {/* Informasi Umum */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <CardTitle className="flex items-center gap-2">
                                 <Building2 className="h-5 w-5" />
                                 Informasi Umum
@@ -238,7 +233,7 @@ export default function OrganizationShow({ organization }: Props) {
                         </Card>
                     )}
                 </div>
-            </div>
+            </DetailPage>
         </AppLayout>
     );
 }

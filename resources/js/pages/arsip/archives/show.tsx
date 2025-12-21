@@ -11,24 +11,24 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DetailPage } from '@/components/ui/form-page';
 import { Separator } from '@/components/ui/separator';
-import AppLayout from '@/layouts/app-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { AlertCircle, ArrowLeft, Building, Calendar, Clock, Download, Edit, FileText, Mail, Shield, Tag, Trash2, User } from 'lucide-react';
+import { AlertCircle, Building, Calendar, Clock, Download, Edit, Eye, FileText, Mail, Printer, Shield, Tag, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 
 interface Archive {
     id: number;
-    type: 'letter' | 'document';
+    type: 'letter' | 'incoming_letter' | 'outgoing_letter' | 'document';
     document_number: string | null;
     title: string;
     description: string | null;
     category: string | null;
     document_date: string;
     document_type: string | null;
-    file_path: string;
+    file_path: string | null;
     file_type: string | null;
     file_size: number | null;
     sender: string | null;
@@ -37,6 +37,8 @@ interface Archive {
     retention_period: number | null;
     retention_until: string | null;
     tags: string[];
+    incoming_letter_id: number | null;
+    outgoing_letter_id: number | null;
     archiver: {
         id: number;
         name: string;
@@ -65,7 +67,19 @@ export default function Show({ archive }: Props) {
     };
 
     const getTypeBadge = (type: Archive['type']) => {
-        return type === 'letter' ? <Badge variant="default">Surat</Badge> : <Badge variant="secondary">Dokumen</Badge>;
+        const typeLabels = {
+            letter: 'Surat',
+            incoming_letter: 'Surat Masuk',
+            outgoing_letter: 'Surat Keluar',
+            document: 'Dokumen',
+        };
+        const typeVariants = {
+            letter: 'default',
+            incoming_letter: 'default',
+            outgoing_letter: 'default',
+            document: 'secondary',
+        } as const;
+        return <Badge variant={typeVariants[type]}>{typeLabels[type]}</Badge>;
     };
 
     const getClassificationBadge = (classification: Archive['classification']) => {
@@ -102,65 +116,62 @@ export default function Show({ archive }: Props) {
         archive.retention_until && !isExpired && new Date(archive.retention_until) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     return (
-        <AppLayout>
-            <Head title={`Arsip: ${archive.title}`} />
-
-            <div className="space-y-6 my-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div>
-                            <h2 className="text-xl font-semibold md:text-2xl">Detail Arsip</h2>
-                            <p className="font-mono text-xs text-muted-foreground md:text-sm">{archive.document_number}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
+        <DetailPage
+            title="Detail Arsip"
+            description={archive.document_number ?? undefined}
+            backUrl={route('arsip.archives.index')}
+            actions={
+                <>
+                    {archive.type === 'outgoing_letter' ? (
+                        <Link href={route('arsip.archives.preview', archive.id)}>
+                            <Button variant="outline" className="gap-2">
+                                <Printer className="h-4 w-4" />
+                                Preview & Cetak
+                            </Button>
+                        </Link>
+                    ) : (
                         <a href={route('arsip.archives.download', archive.id)}>
                             <Button variant="outline" className="gap-2">
                                 <Download className="h-4 w-4" />
                                 Download
                             </Button>
                         </a>
-                        <Link href={route('arsip.archives.edit', archive.id)}>
-                            <Button variant="outline" className="gap-2">
-                                <Edit className="h-4 w-4" />
-                                Edit
-                            </Button>
-                        </Link>
-                        <Button variant="destructive" onClick={handleDelete} className="gap-2">
-                            <Trash2 className="h-4 w-4" />
-                            Hapus
+                    )}
+                    <Link href={route('arsip.archives.edit', archive.id)}>
+                        <Button variant="outline" className="gap-2">
+                            <Edit className="h-4 w-4" />
+                            Edit
                         </Button>
-                        <Link href={route('arsip.archives.index')}>
-                            <Button variant="outline">
-                                <ArrowLeft className="h-4 w-4" /> Kembali
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Retention Alert */}
-                {(isExpired || isExpiringSoon) && (
-                    <Card className={isExpired ? 'border-destructive bg-destructive/5' : 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10'}>
-                        <CardContent className="py-4">
-                            <div className="flex items-center gap-3">
-                                <AlertCircle className={isExpired ? 'h-5 w-5 text-destructive' : 'h-5 w-5 text-yellow-500'} />
-                                <div>
-                                    <p className={`font-medium ${isExpired ? 'text-destructive' : 'text-yellow-700 dark:text-yellow-500'}`}>
-                                        {isExpired ? 'Arsip Telah Kadaluarsa' : 'Arsip Akan Segera Kadaluarsa'}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Masa retensi berakhir: {format(new Date(archive.retention_until!), 'dd MMMM yyyy', { locale: idLocale })}
-                                    </p>
-                                </div>
+                    </Link>
+                    <Button variant="destructive" onClick={handleDelete} className="gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Hapus
+                    </Button>
+                </>
+            }
+        >
+            {/* Retention Alert */}
+            {(isExpired || isExpiringSoon) && (
+                <Card className={isExpired ? 'border-destructive bg-destructive/5' : 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10'}>
+                    <CardContent className="py-4">
+                        <div className="flex items-center gap-3">
+                            <AlertCircle className={isExpired ? 'h-5 w-5 text-destructive' : 'h-5 w-5 text-yellow-500'} />
+                            <div>
+                                <p className={`font-medium ${isExpired ? 'text-destructive' : 'text-yellow-700 dark:text-yellow-500'}`}>
+                                    {isExpired ? 'Arsip Telah Kadaluarsa' : 'Arsip Akan Segera Kadaluarsa'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Masa retensi berakhir: {format(new Date(archive.retention_until!), 'dd MMMM yyyy', { locale: idLocale })}
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
                 {/* Main Info */}
                 <Card>
-                    <CardHeader>
+                    <CardHeader className='pt-4'>
                         <div className="flex items-start justify-between">
                             <div className="flex-1 space-y-2">
                                 <div className="flex items-center gap-2">
@@ -356,7 +367,6 @@ export default function Show({ archive }: Props) {
                         )}
                     </CardContent>
                 </Card>
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -376,6 +386,6 @@ export default function Show({ archive }: Props) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </AppLayout>
+        </DetailPage>
     );
 }

@@ -1,13 +1,12 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormPage } from "@/components/ui/form-page";
 import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, SharedData } from "@/types";
+import { SharedData } from "@/types";
 import { Head, router, useForm, usePage } from "@inertiajs/react";
-import { Save, ArrowLeft, Shield, Loader2 } from "lucide-react";
 import { FormEventHandler } from "react";
 import { toast } from "sonner";
 
@@ -31,17 +30,6 @@ interface Props extends SharedData {
     role: Role;
     permissions: Permission[];
 }
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: <Shield className="h-4 w-4 mr-2" />,
-        href: '/master/roles',
-    },
-    {
-        title: 'Edit Role',
-        href: '#',
-    },
-];
 
 export default function EditRole() {
     const { role, permissions } = usePage<Props>().props;
@@ -101,69 +89,60 @@ export default function EditRole() {
     }, {} as Record<string, Permission[]>);
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Edit Role - ${role.display_name}`} />
-            <div className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-blue-600" />
-                        <h1 className="text-xl font-semibold">Edit Role: {role.display_name}</h1>
-                    </div>
-                    <Button 
-                        variant="outline" 
-                        onClick={() => router.visit('/master/roles')}
-                        className="flex items-center gap-2"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Roles
-                    </Button>
-                </div>
+            <FormPage
+                title={`Edit Role: ${role.display_name}`}
+                description="Update role information and permissions"
+                backUrl="/master/roles"
+                onSubmit={submit}
+                submitLabel="Update Role"
+                isLoading={processing}
+            >
+                <Card>
+                    <CardHeader className="p-6">
+                        <CardTitle>Role Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="display_name">Display Name</Label>
+                            <Input
+                                id="display_name"
+                                type="text"
+                                value={data.display_name}
+                                onChange={(e) => setData('display_name', e.target.value)}
+                                placeholder="Enter role display name"
+                                className={errors.display_name ? 'border-red-500' : ''}
+                            />
+                            {errors.display_name && (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{errors.display_name}</AlertDescription>
+                                </Alert>
+                            )}
+                        </div>
 
-                <form onSubmit={submit} className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Role Information</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="display_name">Display Name</Label>
-                                <Input
-                                    id="display_name"
-                                    type="text"
-                                    value={data.display_name}
-                                    onChange={(e) => setData('display_name', e.target.value)}
-                                    placeholder="Enter role display name"
-                                    className={errors.display_name ? 'border-red-500' : ''}
-                                />
-                                {errors.display_name && (
-                                    <Alert variant="destructive">
-                                        <AlertDescription>{errors.display_name}</AlertDescription>
-                                    </Alert>
-                                )}
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description</Label>
+                            <textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setData('description', e.target.value)}
+                                placeholder="Enter role description"
+                                rows={3}
+                                className={`flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.description ? 'border-red-500' : ''}`}
+                            />
+                            {errors.description && (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{errors.description}</AlertDescription>
+                                </Alert>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
-                                <textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setData('description', e.target.value)}
-                                    placeholder="Enter role description"
-                                    rows={3}
-                                    className={`flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.description ? 'border-red-500' : ''}`}
-                                />
-                                {errors.description && (
-                                    <Alert variant="destructive">
-                                        <AlertDescription>{errors.description}</AlertDescription>
-                                    </Alert>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Permissions</CardTitle>
+                <Card>
+                        <CardHeader className="p-6">
+                        <CardTitle>Permissions</CardTitle>
                             <p className="text-sm text-muted-foreground">
                                 Select the permissions that this role should have
                             </p>
@@ -227,31 +206,7 @@ export default function EditRole() {
                             </div>
                         </CardContent>
                     </Card>
-
-                    <div className="flex items-center justify-end space-x-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.visit('/master/roles')}
-                        >
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Updating...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Update Role
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        </AppLayout>
-    );
-}
+                </FormPage>
+            </AppLayout>
+        );
+    }

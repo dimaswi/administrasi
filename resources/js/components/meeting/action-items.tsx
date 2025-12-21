@@ -68,6 +68,8 @@ export function ActionItems({ meetingId, canEdit, users }: ActionItemsProps) {
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<ActionItem | null>(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -166,17 +168,22 @@ export function ActionItems({ meetingId, canEdit, users }: ActionItemsProps) {
     };
 
     // Delete action item
-    const handleDelete = async (itemId: number) => {
-        if (!confirm('Apakah Anda yakin ingin menghapus action item ini?')) {
-            return;
-        }
+    const handleDeleteClick = (item: ActionItem) => {
+        setItemToDelete(item);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!itemToDelete) return;
 
         try {
             const response = await axios.delete(
-                `/meeting/meetings/${meetingId}/action-items/${itemId}`
+                `/meeting/meetings/${meetingId}/action-items/${itemToDelete.id}`
             );
             toast.success(response.data.message);
             fetchActionItems();
+            setDeleteDialogOpen(false);
+            setItemToDelete(null);
         } catch (error: any) {
             console.error('Failed to delete action item:', error);
             toast.error(error.response?.data?.message || 'Gagal menghapus action item');
@@ -459,7 +466,7 @@ export function ActionItems({ meetingId, canEdit, users }: ActionItemsProps) {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() => handleDelete(item.id)}
+                                                onClick={() => handleDeleteClick(item)}
                                                 className="text-red-600 hover:text-red-700"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -472,6 +479,43 @@ export function ActionItems({ meetingId, canEdit, users }: ActionItemsProps) {
                     </div>
                 )}
             </CardContent>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus Action Item</DialogTitle>
+                        <DialogDescription>
+                            Apakah Anda yakin ingin menghapus action item ini? Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {itemToDelete && (
+                        <div className="py-4">
+                            <div className="rounded-lg bg-muted p-4">
+                                <p className="text-sm font-medium">{itemToDelete.title}</p>
+                                {itemToDelete.assigned_user && (
+                                    <p className="text-sm text-muted-foreground">Ditugaskan ke: {itemToDelete.assigned_user.name}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setItemToDelete(null);
+                            }}
+                        >
+                            Batal
+                        </Button>
+                        <Button variant="destructive" onClick={handleDeleteConfirm}>
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }

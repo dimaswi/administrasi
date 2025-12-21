@@ -1,36 +1,28 @@
+import { Head, router, Link } from '@inertiajs/react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { 
-    ArrowLeft, 
-    Calendar, 
-    Building2, 
-    User, 
-    FileText, 
-    Hash, 
-    Tag, 
-    Shield, 
-    Paperclip, 
-    Download, 
-    Edit, 
-    Trash2,
-    Plus,
-    Clock,
-    CheckCircle2,
-    AlertCircle,
-    Mail,
-    UserPlus,
-    ChevronRight,
-    Archive
+    ArrowLeft, Download, Edit, Trash2, Plus, Clock, CheckCircle2, Mail, UserPlus, 
+    ChevronRight, Archive, ZoomIn, ZoomOut, RotateCcw, FileText, User, Calendar, 
+    Hash, Building2, Tag, Paperclip, Info, ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface OrganizationUnit {
     id: number;
@@ -42,6 +34,18 @@ interface User {
     id: number;
     name: string;
     email: string;
+}
+
+interface FollowUp {
+    id: number;
+    follow_up_date: string;
+    follow_up_type: string;
+    follow_up_type_label: string;
+    description: string;
+    status: string;
+    creator: {
+        name: string;
+    };
 }
 
 interface Disposition {
@@ -57,7 +61,7 @@ interface Disposition {
     from_user: User;
     to_user: User;
     child_dispositions: Disposition[];
-    follow_ups_count: number;
+    follow_ups: FollowUp[];
     created_at: string;
 }
 
@@ -114,6 +118,33 @@ interface Props {
 export default function Show({ letter, can_edit, can_delete, can_create_disposition }: Props) {
     const [showArchiveDialog, setShowArchiveDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [activeTab, setActiveTab] = useState('info');
+    const [previewScale, setPreviewScale] = useState(0.7);
+    const previewContainerRef = useRef<HTMLDivElement>(null);
+
+    // Auto-fit preview scale based on container size
+    useEffect(() => {
+        const updateScale = () => {
+            if (previewContainerRef.current) {
+                const container = previewContainerRef.current;
+                const containerHeight = container.clientHeight - 80;
+                const containerWidth = container.clientWidth - 48;
+                
+                const a4Height = 1123;
+                const a4Width = 794;
+                
+                const scaleByHeight = containerHeight / a4Height;
+                const scaleByWidth = containerWidth / a4Width;
+                const optimalScale = Math.min(scaleByHeight, scaleByWidth, 0.8);
+                
+                setPreviewScale(Math.max(0.3, optimalScale));
+            }
+        };
+
+        updateScale();
+        window.addEventListener('resize', updateScale);
+        return () => window.removeEventListener('resize', updateScale);
+    }, []);
 
     // Helper function to check if all dispositions are completed (recursively)
     const areAllDispositionsCompleted = (dispositions: Disposition[]): boolean => {
@@ -206,14 +237,35 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
         return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
+    const handleZoom = (delta: number) => {
+        setPreviewScale(prev => Math.min(1.5, Math.max(0.3, prev + delta)));
+    };
+
+    const resetZoom = () => {
+        setPreviewScale(0.7);
+    };
+
+    // Count dispositions recursively
+    const countDispositions = (dispositions: Disposition[]): number => {
+        return dispositions.reduce((count, d) => count + 1 + countDispositions(d.child_dispositions || []), 0);
+    };
+
     const DispositionTree = ({ dispositions, level = 0 }: { dispositions: Disposition[]; level?: number }) => {
         if (dispositions.length === 0) return null;
+
+        const getFollowUpIcon = (type: string) => {
+            switch (type) {
+                case 'surat_balasan': return <Mail className="h-3.5 w-3.5" />;
+                case 'rapat': return <UserPlus className="h-3.5 w-3.5" />;
+                default: return <CheckCircle2 className="h-3.5 w-3.5" />;
+            }
+        };
 
         return (
             <div className={level > 0 ? 'ml-8 my-6 border-l-2 border-muted pl-4' : ''}>
                 {dispositions.map((disposition) => (
                     <Card key={disposition.id} className="my-4">
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1 flex-1">
                                     <div className="flex items-center gap-2">
@@ -256,10 +308,40 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
                                         ✓ Diselesaikan pada {format(new Date(disposition.completed_at), 'dd MMMM yyyy HH:mm', { locale: idLocale })}
                                     </div>
                                 )}
-                                {disposition.follow_ups_count > 0 && (
-                                    <Badge variant="outline">
-                                        {disposition.follow_ups_count} Tindak Lanjut
-                                    </Badge>
+                                
+                                {/* Tindak Lanjut Section */}
+                                {disposition.follow_ups && disposition.follow_ups.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t">
+                                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                            Tindak Lanjut ({disposition.follow_ups.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {disposition.follow_ups.map((followUp) => (
+                                                <div key={followUp.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                                                    <div className="mt-0.5 text-muted-foreground">
+                                                        {getFollowUpIcon(followUp.follow_up_type)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {followUp.follow_up_type_label}
+                                                            </Badge>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {format(new Date(followUp.follow_up_date), 'dd MMM yyyy', { locale: idLocale })}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm mt-1 text-muted-foreground line-clamp-2">
+                                                            {followUp.description}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                            oleh {followUp.creator.name}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                             {disposition.child_dispositions && disposition.child_dispositions.length > 0 && (
@@ -272,254 +354,440 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
         );
     };
 
+    const dispositionCount = countDispositions(letter.dispositions);
+    const relatedCount = letter.outgoing_letters.length + letter.meetings.length;
+
     return (
         <AppLayout>
             <Head title={`Detail Surat Masuk - ${letter.incoming_number}`} />
 
-            <div className="space-y-6 my-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl md:text-2xl font-semibold">Detail Surat Masuk</h2>
-                        <p className="text-xs md:text-sm text-muted-foreground font-mono">{letter.incoming_number}</p>
+            <div className="h-[calc(100vh-64px)] flex flex-col">
+                {/* Toolbar */}
+                <div className="h-14 border-b bg-background flex items-center justify-between px-4 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => router.visit('/arsip/incoming-letters')}
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <Separator orientation="vertical" className="h-6" />
+                        <div>
+                            <h1 className="text-sm font-semibold leading-none">{letter.incoming_number}</h1>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[300px]">
+                                {letter.subject}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        {getStatusBadge(letter.status)}
+                        {getClassificationBadge(letter.classification)}
+                        <Separator orientation="vertical" className="h-6 mx-1" />
+                        
                         {letter.file_path && (
                             <a href={route('arsip.incoming-letters.download', letter.id)} target="_blank" rel="noopener noreferrer">
-                                <Button variant="outline" className="gap-2">
-                                    <Download className="h-4 w-4" />
-                                    Unduh File
+                                <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4 mr-1.5" />
+                                    Unduh
                                 </Button>
                             </a>
                         )}
-                        {/* Archive button - only for completed letters that are not archived yet */}
+                        
                         {letter.status === 'completed' && !letter.archive && (
                             <Button
                                 variant="outline"
-                                className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+                                size="sm"
+                                className="border-purple-600 text-purple-600 hover:bg-purple-50"
                                 onClick={() => setShowArchiveDialog(true)}
                             >
-                                <Archive className="h-4 w-4" />
+                                <Archive className="h-4 w-4 mr-1.5" />
                                 Arsipkan
                             </Button>
                         )}
-                        {/* Show archive info if already archived */}
+                        
                         {letter.archive && (
                             <Button
                                 variant="outline"
-                                className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
+                                size="sm"
+                                className="border-green-600 text-green-600 hover:bg-green-50"
                                 onClick={() => router.visit(route('arsip.archives.show', letter.archive!.id))}
                             >
-                                <Archive className="h-4 w-4" />
+                                <Archive className="h-4 w-4 mr-1.5" />
                                 Lihat Arsip
                             </Button>
                         )}
+                        
                         {shouldShowCreateDisposition && (
                             <Link href={route('arsip.dispositions.create', { incoming_letter_id: letter.id })}>
-                                <Button className="gap-2">
-                                    <UserPlus className="h-4 w-4" />
+                                <Button size="sm">
+                                    <UserPlus className="h-4 w-4 mr-1.5" />
                                     Buat Disposisi
                                 </Button>
                             </Link>
                         )}
+                        
                         {can_edit && (
                             <Link href={route('arsip.incoming-letters.edit', letter.id)}>
-                                <Button variant="outline" className="gap-2">
-                                    <Edit className="h-4 w-4" />
+                                <Button variant="outline" size="sm">
+                                    <Edit className="h-4 w-4 mr-1.5" />
                                     Edit
                                 </Button>
                             </Link>
                         )}
+                        
                         {can_delete && (
-                            <Button variant="destructive" className="gap-2" onClick={() => setShowDeleteDialog(true)}>
+                            <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
                                 <Trash2 className="h-4 w-4" />
-                                Hapus
                             </Button>
                         )}
-                        <Button type="button" variant="outline" onClick={() => router.visit('/arsip/incoming-letters')}>
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Kembali
-                        </Button>
                     </div>
                 </div>
 
-                {/* Main Info Card */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-1 flex-1">
-                                <CardTitle className="text-xl">{letter.subject}</CardTitle>
-                                <CardDescription>
-                                    Dari: <span className="font-medium">{letter.sender}</span>
-                                </CardDescription>
-                            </div>
-                            <div className="flex gap-2">
-                                {getStatusBadge(letter.status)}
-                                {getClassificationBadge(letter.classification)}
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Details Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium">Nomor Surat Asli</p>
-                                        <p className="text-sm text-muted-foreground">{letter.original_number}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium">Tanggal Surat</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {format(new Date(letter.original_date), 'dd MMMM yyyy', { locale: idLocale })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium">Tanggal Diterima</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {format(new Date(letter.received_date), 'dd MMMM yyyy', { locale: idLocale })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium">Kategori</p>
-                                        <p className="text-sm text-muted-foreground">{letter.category}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium">Unit Organisasi</p>
-                                        <p className="text-sm text-muted-foreground">{letter.organization_unit.name}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium">Didaftarkan Oleh</p>
-                                        <p className="text-sm text-muted-foreground">{letter.registrar.name}</p>
-                                    </div>
-                                </div>
-                                {letter.attachment_count > 0 && (
-                                    <div className="flex items-start gap-3">
-                                        <Paperclip className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                        <div>
-                                            <p className="text-sm font-medium">Lampiran</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {letter.attachment_count} file
-                                                {letter.attachment_description && ` - ${letter.attachment_description}`}
-                                            </p>
+                {/* Main Content */}
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Left Panel - Info with Tabs */}
+                    <div className="w-[420px] border-r flex flex-col bg-background shrink-0">
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+                            <TabsList className="w-full h-auto p-0 bg-transparent justify-start gap-0 rounded-none border-b shrink-0">
+                                <TabsTrigger 
+                                    value="info" 
+                                    className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                >
+                                    <Info className="h-3.5 w-3.5 mr-1.5" />
+                                    Informasi
+                                </TabsTrigger>
+                                <TabsTrigger 
+                                    value="dispositions" 
+                                    className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                >
+                                    <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                                    Disposisi {dispositionCount > 0 && `(${dispositionCount})`}
+                                </TabsTrigger>
+                                <TabsTrigger 
+                                    value="related" 
+                                    className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                    Terkait {relatedCount > 0 && `(${relatedCount})`}
+                                </TabsTrigger>
+                            </TabsList>
+
+                            <ScrollArea className="flex-1">
+                                <div className="p-4">
+                                    {/* Info Tab */}
+                                    <TabsContent value="info" className="m-0 space-y-6">
+                                        {/* Header Info */}
+                                        <div className="space-y-3">
+                                            <h2 className="font-semibold text-lg leading-tight">{letter.subject}</h2>
+                                            <p className="text-sm text-muted-foreground">Dari: {letter.sender}</p>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        {letter.description && (
-                            <>
-                                <Separator />
-                                <div>
-                                    <h3 className="text-sm font-medium mb-2">Keterangan</h3>
-                                    <p className="text-sm text-muted-foreground">{letter.description}</p>
-                                </div>
-                            </>
-                        )}
+                                        <Separator />
 
-                        {letter.notes && (
-                            <>
-                                <Separator />
-                                <div>
-                                    <h3 className="text-sm font-medium mb-2">Catatan</h3>
-                                    <p className="text-sm text-muted-foreground">{letter.notes}</p>
-                                </div>
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Dispositions */}
-                {letter.dispositions.length > 0 && (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold">Riwayat Disposisi</h2>
-                            {shouldShowCreateDisposition && (
-                                <Link href={route('arsip.dispositions.create', { incoming_letter_id: letter.id })}>
-                                    <Button size="sm" className="gap-2">
-                                        <Plus className="h-4 w-4" />
-                                        Tambah Disposisi
-                                    </Button>
-                                </Link>
-                            )}
-                        </div>
-                        <DispositionTree dispositions={letter.dispositions} />
-                    </div>
-                )}
-
-                {/* Integrations */}
-                {(letter.outgoing_letters.length > 0 || letter.meetings.length > 0) && (
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-bold">Tindak Lanjut</h2>
-                        
-                        {letter.outgoing_letters.length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Surat Keluar Terkait</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2">
-                                        {letter.outgoing_letters.map((outgoing) => (
-                                            <div key={outgoing.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                                <div>
-                                                    <p className="font-medium">{outgoing.letter_number}</p>
-                                                    <p className="text-sm text-muted-foreground">{outgoing.subject}</p>
-                                                </div>
-                                                <Link href={route('arsip.letters.show', outgoing.id)}>
-                                                    <Button variant="ghost" size="sm">Lihat</Button>
-                                                </Link>
+                                        {/* Detail Grid */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 text-sm font-medium">
+                                                <FileText className="h-4 w-4 text-primary" />
+                                                Detail Surat
                                             </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
 
-                        {letter.meetings.length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Rapat Terkait</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2">
-                                        {letter.meetings.map((meeting) => (
-                                            <div key={meeting.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                            <div className="space-y-3">
+                                                <div className="flex items-start gap-3">
+                                                    <Hash className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-muted-foreground">Nomor Surat Asli</p>
+                                                        <p className="text-sm font-medium">{letter.original_number}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-muted-foreground">Tanggal Surat</p>
+                                                        <p className="text-sm font-medium">
+                                                            {format(new Date(letter.original_date), 'dd MMMM yyyy', { locale: idLocale })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-muted-foreground">Tanggal Diterima</p>
+                                                        <p className="text-sm font-medium">
+                                                            {format(new Date(letter.received_date), 'dd MMMM yyyy', { locale: idLocale })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Classification */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 text-sm font-medium">
+                                                <Tag className="h-4 w-4 text-primary" />
+                                                Klasifikasi
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <p className="font-medium">{meeting.title}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {format(new Date(meeting.scheduled_at), 'dd MMMM yyyy HH:mm', { locale: idLocale })}
+                                                    <p className="text-xs text-muted-foreground mb-1">Kategori</p>
+                                                    <p className="text-sm font-medium">{letter.category || '-'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">Sifat</p>
+                                                    {getClassificationBadge(letter.classification)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Organization */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 text-sm font-medium">
+                                                <Building2 className="h-4 w-4 text-primary" />
+                                                Unit & Registrar
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <div className="flex items-start gap-3">
+                                                    <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-muted-foreground">Unit Organisasi</p>
+                                                        <p className="text-sm font-medium">{letter.organization_unit.name}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-muted-foreground">Didaftarkan Oleh</p>
+                                                        <p className="text-sm font-medium">{letter.registrar.name}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Attachments */}
+                                        {letter.attachment_count > 0 && (
+                                            <>
+                                                <Separator />
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2 text-sm font-medium">
+                                                        <Paperclip className="h-4 w-4 text-primary" />
+                                                        Lampiran
+                                                    </div>
+                                                    <div className="bg-muted/50 rounded-lg p-3">
+                                                        <p className="text-sm font-medium">{letter.attachment_count} file</p>
+                                                        {letter.attachment_description && (
+                                                            <p className="text-xs text-muted-foreground mt-1">{letter.attachment_description}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Notes */}
+                                        {letter.notes && (
+                                            <>
+                                                <Separator />
+                                                <div className="space-y-3">
+                                                    <p className="text-xs font-medium text-muted-foreground">Catatan</p>
+                                                    <p className="text-sm">{letter.notes}</p>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Archive Info */}
+                                        {letter.archive && (
+                                            <>
+                                                <Separator />
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 text-green-700 mb-2">
+                                                        <Archive className="h-4 w-4" />
+                                                        <span className="text-sm font-medium">Telah Diarsipkan</span>
+                                                    </div>
+                                                    <p className="text-xs text-green-600">
+                                                        No. Arsip: {letter.archive.document_number}
                                                     </p>
                                                 </div>
-                                                <Link href={route('meetings.show', meeting.id)}>
-                                                    <Button variant="ghost" size="sm">Lihat</Button>
+                                            </>
+                                        )}
+                                    </TabsContent>
+
+                                    {/* Dispositions Tab */}
+                                    <TabsContent value="dispositions" className="m-0 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-sm font-medium">Riwayat Disposisi</h3>
+                                            {shouldShowCreateDisposition && (
+                                                <Link href={route('arsip.dispositions.create', { incoming_letter_id: letter.id })}>
+                                                    <Button size="sm" variant="outline">
+                                                        <Plus className="h-3.5 w-3.5 mr-1" />
+                                                        Tambah
+                                                    </Button>
                                                 </Link>
+                                            )}
+                                        </div>
+
+                                        {letter.dispositions.length === 0 ? (
+                                            <div className="text-center py-8">
+                                                <UserPlus className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                                                <p className="text-sm text-muted-foreground">Belum ada disposisi</p>
+                                                {shouldShowCreateDisposition && (
+                                                    <Link href={route('arsip.dispositions.create', { incoming_letter_id: letter.id })}>
+                                                        <Button size="sm" className="mt-3">
+                                                            <Plus className="h-4 w-4 mr-1.5" />
+                                                            Buat Disposisi Pertama
+                                                        </Button>
+                                                    </Link>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                                        ) : (
+                                            <DispositionTree dispositions={letter.dispositions} />
+                                        )}
+                                    </TabsContent>
+
+                                    {/* Related Tab */}
+                                    <TabsContent value="related" className="m-0 space-y-4">
+                                        <h3 className="text-sm font-medium">Tindak Lanjut Terkait</h3>
+
+                                        {relatedCount === 0 ? (
+                                            <div className="text-center py-8">
+                                                <ExternalLink className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                                                <p className="text-sm text-muted-foreground">Belum ada tindak lanjut terkait</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {/* Outgoing Letters */}
+                                                {letter.outgoing_letters.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <p className="text-xs font-medium text-muted-foreground">Surat Keluar</p>
+                                                        {letter.outgoing_letters.map((outgoing) => (
+                                                            <div key={outgoing.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium truncate">{outgoing.letter_number}</p>
+                                                                    <p className="text-xs text-muted-foreground truncate">{outgoing.subject}</p>
+                                                                </div>
+                                                                <Link href={route('arsip.letters.show', outgoing.id)}>
+                                                                    <Button variant="ghost" size="sm">
+                                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </Link>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Meetings */}
+                                                {letter.meetings.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <p className="text-xs font-medium text-muted-foreground">Rapat</p>
+                                                        {letter.meetings.map((meeting) => (
+                                                            <div key={meeting.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium truncate">{meeting.title}</p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        {format(new Date(meeting.scheduled_at), 'dd MMM yyyy HH:mm', { locale: idLocale })}
+                                                                    </p>
+                                                                </div>
+                                                                <Link href={route('meeting.meetings.show', meeting.id)}>
+                                                                    <Button variant="ghost" size="sm">
+                                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </Link>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </TabsContent>
+                                </div>
+                            </ScrollArea>
+                        </Tabs>
                     </div>
-                )}
+
+                    {/* Right Panel - Document Preview */}
+                    <div ref={previewContainerRef} className="flex-1 bg-muted/30 flex flex-col overflow-hidden">
+                        {/* Preview Toolbar */}
+                        <div className="h-10 border-b bg-background flex items-center justify-between px-4 shrink-0">
+                            <span className="text-xs text-muted-foreground">
+                                {letter.file_path ? 'Preview Dokumen' : 'Tidak ada file yang diupload'}
+                            </span>
+                            {letter.file_path && (
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => handleZoom(-0.1)}
+                                    >
+                                        <ZoomOut className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <span className="text-xs text-muted-foreground w-12 text-center">
+                                        {Math.round(previewScale * 100)}%
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => handleZoom(0.1)}
+                                    >
+                                        <ZoomIn className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Separator orientation="vertical" className="h-4 mx-1" />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={resetZoom}
+                                    >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Preview Content */}
+                        <div className="flex-1 overflow-auto p-6">
+                            {letter.file_path ? (
+                                <div className="flex justify-center">
+                                    <iframe
+                                        src={`${route('arsip.incoming-letters.preview', letter.id)}#toolbar=0&navpanes=0`}
+                                        className="bg-white shadow-lg rounded-lg border"
+                                        style={{
+                                            width: `${794 * previewScale}px`,
+                                            height: `${1123 * previewScale}px`,
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="h-full flex items-center justify-center">
+                                    <div className="text-center text-muted-foreground">
+                                        <div 
+                                            className="bg-white shadow-lg rounded-lg border flex items-center justify-center mx-auto"
+                                            style={{
+                                                width: `${794 * previewScale}px`,
+                                                height: `${1123 * previewScale}px`,
+                                            }}
+                                        >
+                                            <div className="text-center p-8">
+                                                <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                                                <p className="text-sm font-medium text-muted-foreground">
+                                                    Tidak ada file yang diupload
+                                                </p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Surat masuk ini tidak memiliki file lampiran
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Archive Dialog */}

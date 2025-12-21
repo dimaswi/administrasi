@@ -505,44 +505,28 @@ class MeetingController extends Controller
         $certificateId = 'MTG-' . strtoupper(substr(md5($meeting->id . time()), 0, 12));
         
         $signedAt = now();
-        
-        // Generate document hash - use consistent format
-        $documentHash = hash('sha256', json_encode([
+
+        // Generate QR Code dengan URL verifikasi (simplified - no certificate table for now)
+        $verificationData = [
+            'type' => 'meeting_invitation',
             'meeting_id' => $meeting->id,
             'meeting_number' => $meeting->meeting_number,
-            'title' => $meeting->title,
-            'meeting_date' => $meeting->meeting_date->format('Y-m-d H:i:s'),
-            'signed_by' => $leader->id,
+            'signed_by' => $leader->name,
             'signed_at' => $signedAt->format('Y-m-d H:i:s'),
-        ]));
-
-        // Create certificate
-        $certificate = \App\Models\LetterCertificate::create([
-            'certificate_id' => $certificateId,
-            'letter_id' => null, // Meeting tidak punya letter_id
-            'document_hash' => $documentHash,
-            'signed_by' => $leader->id,
-            'signer_name' => $leader->name,
-            'signer_position' => $leader->position ?? 'Pimpinan Rapat',
-            'signer_nip' => $leader->nip,
-            'signed_at' => $signedAt,
-            'signature_file' => null,
-            'metadata' => [
-                'type' => 'meeting_invitation',
-                'meeting_id' => $meeting->id,
-                'meeting_number' => $meeting->meeting_number,
-            ],
-            'status' => 'valid',
-        ]);
-
-        // Generate QR Code dengan URL verifikasi certificate
-        $verificationUrl = route('verify.certificate', $certificateId);
-        $qrCode = base64_encode(QrCode::format('png')->size(200)->margin(1)->generate($verificationUrl));
+        ];
+        
+        $qrCode = base64_encode(QrCode::format('png')->size(200)->margin(1)->generate(json_encode($verificationData)));
 
         $pdf = Pdf::loadView('pdf.meeting-invitation', [
             'meeting' => $meeting,
             'qrCode' => $qrCode,
-            'certificate' => $certificate,
+            'certificate' => (object)[
+                'certificate_id' => $certificateId,
+                'signer_name' => $leader->name,
+                'signer_position' => $leader->position ?? 'Pimpinan Rapat',
+                'signer_nip' => $leader->nip,
+                'signed_at' => $signedAt,
+            ],
         ]);
 
         // Replace "/" and "\" with "-" for filename safety

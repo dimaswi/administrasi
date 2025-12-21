@@ -1,10 +1,8 @@
 import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, SharedData } from "@/types";
+import { SharedData } from "@/types";
 import { Head, useForm, router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
-import { Users, ArrowLeft, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormPage } from "@/components/ui/form-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -66,42 +64,17 @@ export default function EditUser() {
         });
     };
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: <Users />,
-            href: '/master/users',
-        },
-        {
-            title: 'Edit User',
-            href: `/master/users/${user.id}`,
-        },
-    ];
-
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Edit User" />
-            <div className="p-4">
-                <div className="mb-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold">Edit User: {user.name}</h1>
-                    <Button
-                        variant="outline"
-                        onClick={() => router.visit('/master/users')}
-                        className="flex items-center gap-2"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Kembali
-                    </Button>
-                </div>
-
-                <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle>Form Edit User</CardTitle>
-                        <CardDescription>
-                            Perbarui data user. Kosongkan password jika tidak ingin mengubah password.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
+            <FormPage
+                title={`Edit User: ${user.name}`}
+                description="Perbarui data user. Kosongkan password jika tidak ingin mengubah password."
+                backUrl="/master/users"
+                onSubmit={handleSubmit}
+                submitLabel="Perbarui User"
+                isLoading={processing}
+            >
                             {/* Name Field */}
                             <div className="space-y-2">
                                 <Label htmlFor="name">Nama Lengkap</Label>
@@ -192,29 +165,7 @@ export default function EditUser() {
                                     </Alert>
                                 )}
                             </div>
-
-                            {/* Submit Button */}
-                            <div className="flex justify-end space-x-4 pt-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => router.visit('/master/users')}
-                                >
-                                    Batal
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="flex items-center gap-2"
-                                >
-                                    <Save className="h-4 w-4" />
-                                    {processing ? 'Menyimpan...' : 'Perbarui User'}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+            </FormPage>
         </AppLayout>
     );
 }

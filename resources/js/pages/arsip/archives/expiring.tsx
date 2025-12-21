@@ -117,7 +117,7 @@ export default function Expiring({ archives }: Props) {
 
                 {/* Archives List */}
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="p-6">
                         <CardTitle>{archives.total} Arsip Akan Kadaluarsa</CardTitle>
                         <CardDescription>Diurutkan berdasarkan tanggal kadaluarsa (paling dekat)</CardDescription>
                     </CardHeader>

@@ -59,7 +59,7 @@ export default function Dashboard({
     archives_trend,
 }: DashboardProps) {
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6 overflow-x-auto">
                 <MeetingDashboard

@@ -123,7 +123,7 @@ class IncomingLetterController extends Controller
             'attachment_description' => 'nullable|string',
             'organization_unit_id' => 'required|exists:organization_units,id',
             'notes' => 'nullable|string',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:20480',
         ]);
 
         DB::beginTransaction();
@@ -134,7 +134,7 @@ class IncomingLetterController extends Controller
             $validated['status'] = 'new';
 
             // Handle file upload
-            if ($request->hasFile('file')) {
+            if ($request->hasFile('file') && $request->file('file')->isValid()) {
                 $file = $request->file('file');
                 $filename = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
                 $path = $file->storeAs('incoming-letters', $filename, 'public');
@@ -165,6 +165,8 @@ class IncomingLetterController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to store incoming letter', ['error' => $e->getMessage()]);
+            
             return back()->withErrors(['error' => 'Gagal menyimpan surat masuk: ' . $e->getMessage()])->withInput();
         }
     }
@@ -192,8 +194,14 @@ class IncomingLetterController extends Controller
         // Check permissions
         $canEdit = $user->hasPermission('incoming_letter.edit') && $incomingLetter->status === 'new';
         $canDelete = $user->hasPermission('incoming_letter.delete') && $incomingLetter->status === 'new';
+        
+        // User can create disposition ONLY if:
+        // 1. Has permission disposition.create
+        // 2. Letter is not archived
+        // 3. User is the registrar (creator) of this letter
         $canCreateDisposition = $user->hasPermission('disposition.create') && 
-                               $incomingLetter->status !== 'archived';
+                               $incomingLetter->status !== 'archived' &&
+                               (int) $incomingLetter->registered_by === (int) $user->id;
 
         return Inertia::render('arsip/incoming-letters/show', [
             'letter' => [
@@ -266,6 +274,7 @@ class IncomingLetterController extends Controller
         return Inertia::render('arsip/incoming-letters/edit', [
             'letter' => [
                 'id' => $incomingLetter->id,
+                'incoming_number' => $incomingLetter->incoming_number,
                 'original_number' => $incomingLetter->original_number,
                 'original_date' => $incomingLetter->original_date->format('Y-m-d'),
                 'received_date' => $incomingLetter->received_date->format('Y-m-d'),
@@ -292,6 +301,9 @@ class IncomingLetterController extends Controller
     {
         // Only allow editing if status is 'new' or user is admin
         if ($incomingLetter->status !== 'new' && Auth::user()->role_id !== 1) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => 'Hanya surat dengan status baru yang dapat diedit'], 403);
+            }
             return back()->with('error', 'Hanya surat dengan status baru yang dapat diedit');
         }
 
@@ -307,13 +319,13 @@ class IncomingLetterController extends Controller
             'attachment_description' => 'nullable|string',
             'organization_unit_id' => 'required|exists:organization_units,id',
             'notes' => 'nullable|string',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:20480',
         ]);
 
         DB::beginTransaction();
         try {
             // Handle file upload
-            if ($request->hasFile('file')) {
+            if ($request->hasFile('file') && $request->file('file')->isValid()) {
                 // Delete old file
                 if ($incomingLetter->file_path) {
                     Storage::disk('public')->delete($incomingLetter->file_path);
@@ -334,6 +346,8 @@ class IncomingLetterController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to update incoming letter', ['error' => $e->getMessage()]);
+            
             return back()->withErrors(['error' => 'Gagal mengupdate surat masuk: ' . $e->getMessage()])->withInput();
         }
     }
@@ -398,6 +412,29 @@ class IncomingLetterController extends Controller
         
         return response()->download($filePath, $downloadFilename, [
             'Content-Type' => mime_content_type($filePath),
+        ]);
+    }
+
+    /**
+     * Preview file (inline)
+     */
+    public function preview(IncomingLetter $incomingLetter)
+    {
+        if (!$incomingLetter->file_path) {
+            abort(404, 'File tidak tersedia');
+        }
+
+        $filePath = storage_path('app/public/' . $incomingLetter->file_path);
+        
+        if (!file_exists($filePath)) {
+            abort(404, 'File tidak ditemukan');
+        }
+
+        $mimeType = mime_content_type($filePath);
+        
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline',
         ]);
     }
 

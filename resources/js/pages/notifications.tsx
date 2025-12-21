@@ -6,6 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Bell,
     CheckCheck,
     Trash2,
@@ -50,6 +58,7 @@ export default function NotificationsPage({ notifications: initialNotifications 
     const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
     const [activeTab, setActiveTab] = useState('all');
     const [loading, setLoading] = useState(false);
+    const [clearReadDialogOpen, setClearReadDialogOpen] = useState(false);
 
     // Filter notifications by tab
     const filteredNotifications = notifications.filter(notification => {
@@ -108,12 +117,11 @@ export default function NotificationsPage({ notifications: initialNotifications 
 
     // Clear all read notifications
     const handleClearRead = async () => {
-        if (!confirm('Hapus semua notifikasi yang sudah dibaca?')) return;
-
         try {
             await axios.delete('/notifications/clear-read');
             
             setNotifications(prev => prev.filter(n => !n.is_read));
+            setClearReadDialogOpen(false);
             toast.success('Notifikasi yang sudah dibaca telah dihapus');
         } catch (error) {
             console.error('Failed to clear read notifications:', error);
@@ -180,7 +188,7 @@ export default function NotificationsPage({ notifications: initialNotifications 
     const readCount = notifications.filter(n => n.is_read).length;
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Notifikasi" />
 
             <div className="space-y-6">
@@ -209,7 +217,7 @@ export default function NotificationsPage({ notifications: initialNotifications 
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={handleClearRead}
+                                onClick={() => setClearReadDialogOpen(true)}
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Hapus yang Dibaca
@@ -343,6 +351,30 @@ export default function NotificationsPage({ notifications: initialNotifications 
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Clear Read Confirmation Dialog */}
+            <Dialog open={clearReadDialogOpen} onOpenChange={setClearReadDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus Notifikasi yang Dibaca</DialogTitle>
+                        <DialogDescription>
+                            Apakah Anda yakin ingin menghapus semua notifikasi yang sudah dibaca? Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setClearReadDialogOpen(false)}
+                        >
+                            Batal
+                        </Button>
+                        <Button variant="destructive" onClick={handleClearRead}>
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

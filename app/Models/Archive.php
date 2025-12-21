@@ -12,8 +12,8 @@ class Archive extends Model
 
     protected $fillable = [
         'type',
-        'letter_id',
         'incoming_letter_id',
+        'outgoing_letter_id',
         'document_number',
         'title',
         'description',
@@ -42,14 +42,14 @@ class Archive extends Model
         'retention_period' => 'integer',
     ];
 
-    public function letter(): BelongsTo
-    {
-        return $this->belongsTo(Letter::class);
-    }
-
     public function incomingLetter(): BelongsTo
     {
         return $this->belongsTo(IncomingLetter::class);
+    }
+
+    public function outgoingLetter(): BelongsTo
+    {
+        return $this->belongsTo(OutgoingLetter::class);
     }
 
     public function archiver(): BelongsTo

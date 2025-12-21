@@ -1,6 +1,10 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Head, router, Link } from '@inertiajs/react';
+import { useState } from 'react';
+import AppLayout from '@/layouts/app-layout';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { IndexPage } from '@/components/ui/index-page';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
     Dialog,
     DialogContent,
@@ -8,29 +12,38 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import AppLayout from "@/layouts/app-layout";
-import { BreadcrumbItem, OrganizationUnit, SharedData } from "@/types";
-import { Head, router, usePage } from "@inertiajs/react";
-import { Building2, Edit3, Eye, Loader2, PlusCircle, Search, Trash, X } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { route } from "ziggy-js";
+} from '@/components/ui/dialog';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Building2, Users } from 'lucide-react';
+import { toast } from 'sonner';
 
-interface PaginatedOrganizationUnits {
-    data: OrganizationUnit[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
+interface OrganizationUnit {
+    id: number;
+    code: string;
+    name: string;
+    level: number;
+    parent_id: number | null;
+    parent?: OrganizationUnit;
+    head_id: number | null;
+    head?: {
+        id: number;
+        name: string;
+    };
+    is_active: boolean;
+    children_count?: number;
+    users_count?: number;
+    created_at: string;
 }
 
-interface Props extends SharedData {
-    organizationUnits: PaginatedOrganizationUnits;
+interface Props {
+    organizationUnits: {
+        data: OrganizationUnit[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number;
+        to: number;
+    };
     levels: number[];
     filters: {
         search: string;
@@ -39,353 +52,234 @@ interface Props extends SharedData {
     };
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Unit Organisasi', href: '/master/organizations' },
-];
-
-export default function OrganizationIndex() {
-    const { organizationUnits, levels, filters: initialFilters } = usePage<Props>().props;
-    const [search, setSearch] = useState(initialFilters.search);
-    const [level, setLevel] = useState(initialFilters.level);
-    const [deleteDialog, setDeleteDialog] = useState<{
-        open: boolean;
-        organization: OrganizationUnit | null;
-        loading: boolean;
-    }>({
-        open: false,
-        organization: null,
-        loading: false,
+export default function Index({ organizationUnits, levels, filters }: Props) {
+    const [filterValues, setFilterValues] = useState({
+        search: filters.search || '',
+        level: filters.level || '',
     });
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [unitToDelete, setUnitToDelete] = useState<OrganizationUnit | null>(null);
 
-    const levelOptions: SearchableSelectOption[] = [
-        { value: '', label: 'Semua Level' },
-        ...levels.map((lvl) => ({
-            value: lvl.toString(),
-            label: `Level ${lvl}`,
-        })),
-    ];
-
-    const handleSearch = (value: string, levelValue: string) => {
-        router.get('/master/organizations', {
-            search: value,
-            level: levelValue,
-            perPage: initialFilters.perPage,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+    const handleFilterChange = (key: string, value: string) => {
+        setFilterValues(prev => ({ ...prev, [key]: value }));
     };
 
-    const handlePerPageChange = (perPage: number) => {
-        router.get('/master/organizations', {
-            search: initialFilters.search,
-            level: initialFilters.level,
-            perPage,
-            page: 1,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+    const handleFilterSubmit = () => {
+        router.get('/master/organizations', filterValues, { preserveState: true });
+    };
+
+    const handleFilterReset = () => {
+        setFilterValues({ search: '', level: '' });
+        router.get('/master/organizations', {}, { preserveState: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get('/master/organizations', {
-            search: initialFilters.search,
-            level: initialFilters.level,
-            perPage: initialFilters.perPage,
-            page,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+        router.get('/master/organizations', { ...filters, page }, { preserveState: true });
     };
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        handleSearch(search, level);
+    const handlePerPageChange = (perPage: number) => {
+        router.get('/master/organizations', { ...filters, perPage, page: 1 }, { preserveState: true });
     };
 
-    const handleClearFilters = () => {
-        setSearch('');
-        setLevel('');
-        handleSearch('', '');
+    const handleDeleteClick = (unit: OrganizationUnit) => {
+        setUnitToDelete(unit);
+        setDeleteDialogOpen(true);
     };
 
-    const handleDeleteClick = (organization: OrganizationUnit) => {
-        setDeleteDialog({
-            open: true,
-            organization: organization,
-            loading: false,
-        });
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!deleteDialog.organization) return;
-        
-        setDeleteDialog(prev => ({ ...prev, loading: true }));
-        
-        router.delete(route('organizations.destroy', deleteDialog.organization.id), {
-            onSuccess: () => {
-                toast.success(`Unit organisasi ${deleteDialog.organization?.name} berhasil dihapus`);
-                setDeleteDialog({ open: false, organization: null, loading: false });
-            },
-            onError: () => {
-                toast.error('Gagal menghapus unit organisasi');
-                setDeleteDialog(prev => ({ ...prev, loading: false }));
-            }
-        });
-    };
-
-    const handleDeleteCancel = () => {
-        setDeleteDialog({ open: false, organization: null, loading: false });
-    };
-
-    const getLevelBadgeColor = (level: number) => {
-        switch (level) {
-            case 1:
-                return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 2:
-                return 'bg-green-100 text-green-800 border-green-200';
-            case 3:
-                return 'bg-purple-100 text-purple-800 border-purple-200';
-            default:
-                return 'bg-gray-100 text-gray-800 border-gray-200';
+    const handleDeleteConfirm = () => {
+        if (unitToDelete) {
+            router.delete(`/master/organizations/${unitToDelete.id}`, {
+                onSuccess: () => {
+                    toast.success(`Unit ${unitToDelete.name} berhasil dihapus`);
+                    setDeleteDialogOpen(false);
+                    setUnitToDelete(null);
+                },
+                onError: () => toast.error('Gagal menghapus unit'),
+            });
         }
     };
 
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Unit Organisasi" />
-            <div className="p-4">
-                <div className="mb-4 flex items-center justify-between gap-4">
-                    <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="text"
-                                placeholder="Cari kode atau nama unit..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 pr-10"
-                            />
-                            {search && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearch('')}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                                >
-                                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                                </button>
-                            )}
-                        </div>
-                        <SearchableSelect
-                            options={levelOptions}
-                            value={level}
-                            onValueChange={setLevel}
-                            placeholder="Semua Level"
-                            searchPlaceholder="Cari level..."
-                            className="w-[150px]"
-                        />
-                        <Button type="submit" variant="outline" size="sm">
-                            Cari
+    const columns = [
+        {
+            key: 'code',
+            label: 'Kode',
+            render: (unit: OrganizationUnit) => (
+                <span className="font-mono text-sm">{unit.code}</span>
+            ),
+        },
+        {
+            key: 'name',
+            label: 'Nama Unit',
+            render: (unit: OrganizationUnit) => (
+                <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{unit.name}</span>
+                </div>
+            ),
+        },
+        {
+            key: 'level',
+            label: 'Level',
+            render: (unit: OrganizationUnit) => (
+                <Badge variant="outline">Level {unit.level}</Badge>
+            ),
+        },
+        {
+            key: 'parent',
+            label: 'Induk',
+            render: (unit: OrganizationUnit) => (
+                <span className="text-muted-foreground text-sm">
+                    {unit.parent?.name || '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'head',
+            label: 'Kepala',
+            render: (unit: OrganizationUnit) => (
+                unit.head ? (
+                    <div className="flex items-center gap-1.5 text-sm">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{unit.head.name}</span>
+                    </div>
+                ) : (
+                    <span className="text-muted-foreground">-</span>
+                )
+            ),
+        },
+        {
+            key: 'is_active',
+            label: 'Status',
+            render: (unit: OrganizationUnit) => (
+                unit.is_active ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Aktif
+                    </Badge>
+                ) : (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        Nonaktif
+                    </Badge>
+                )
+            ),
+        },
+        {
+            key: 'actions',
+            label: '',
+            className: 'w-[50px]',
+            render: (unit: OrganizationUnit) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                        {(search || level) && (
-                            <Button type="button" variant="outline" size="sm" onClick={handleClearFilters}>
-                                Reset
-                            </Button>
-                        )}
-                    </form>
-                    
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center gap-2 hover:bg-green-50"
-                        onClick={() => router.visit('/master/organizations/create')}
-                    >
-                        <PlusCircle className="h-4 w-4 text-green-600" />
-                        Tambah
-                    </Button>
-                </div>
-                
-                <div className="w-full overflow-x-auto rounded-md border">
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                            <TableRow>
-                                <TableHead className="w-[50px]">No.</TableHead>
-                                <TableHead>Kode</TableHead>
-                                <TableHead>Nama Unit</TableHead>
-                                <TableHead>Level</TableHead>
-                                <TableHead>Parent Unit</TableHead>
-                                <TableHead>Kepala Unit</TableHead>
-                                <TableHead>Jumlah User</TableHead>
-                                <TableHead>Sub Unit</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {organizationUnits.data.length > 0 ? (
-                                organizationUnits.data.map((org, index) => (
-                                    <TableRow key={org.id}>
-                                        <TableCell>
-                                            {(organizationUnits.current_page - 1) * organizationUnits.per_page + index + 1}
-                                        </TableCell>
-                                        <TableCell className="font-mono text-sm">{org.code}</TableCell>
-                                        <TableCell className="font-medium">{org.name}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={getLevelBadgeColor(org.level)}>
-                                                Level {org.level}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {org.parent?.name || '-'}
-                                        </TableCell>
-                                        <TableCell className="text-sm">
-                                            {org.head?.name || '-'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary">{org.users_count || 0}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary">{org.children_count || 0}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {org.is_active ? (
-                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                    Aktif
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                                    Nonaktif
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                    onClick={() => router.visit(route('organizations.show', org.id))}
-                                                    title="Lihat Detail"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                    onClick={() => router.visit(route('organizations.edit', org.id))}
-                                                    title="Edit"
-                                                >
-                                                    <Edit3 className="h-4 w-4" />
-                                                </Button>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                    onClick={() => handleDeleteClick(org)}
-                                                    title="Hapus"
-                                                >
-                                                    <Trash className="h-4 w-4 text-red-600" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Building2 className="h-8 w-8 text-muted-foreground/50" />
-                                            <span>Tidak ada data unit organisasi</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link href={`/master/organizations/${unit.id}`}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Lihat Detail
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href={`/master/organizations/${unit.id}/edit`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(unit)}
+                            className="text-destructive focus:text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Hapus
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+        },
+    ];
 
-                {/* Pagination */}
-                <div className="flex items-center justify-between py-4">
-                    <div className="text-sm text-muted-foreground">
-                        Menampilkan {organizationUnits.from} - {organizationUnits.to} dari {organizationUnits.total} data
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Baris per halaman:</span>
-                            <select
-                                className="rounded border px-2 py-1 text-sm"
-                                value={organizationUnits.per_page}
-                                onChange={(e) => handlePerPageChange(Number(e.target.value))}
-                            >
-                                <option value={10}>10</option>
-                                <option value={20}>20</option>
-                                <option value={50}>50</option>
-                                <option value={100}>100</option>
-                            </select>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(organizationUnits.current_page - 1)}
-                                disabled={organizationUnits.current_page <= 1}
-                            >
-                                Previous
-                            </Button>
-                            
-                            <span className="text-sm">
-                                Page {organizationUnits.current_page} of {organizationUnits.last_page}
-                            </span>
-                            
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(organizationUnits.current_page + 1)}
-                                disabled={organizationUnits.current_page >= organizationUnits.last_page}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+    const filterFields = [
+        {
+            key: 'level',
+            label: 'Level',
+            type: 'select' as const,
+            placeholder: 'Semua Level',
+            options: levels.map(lvl => ({ value: lvl.toString(), label: `Level ${lvl}` })),
+        },
+    ];
+
+    return (
+        <AppLayout>
+            <Head title="Unit Organisasi" />
+
+            <div className="p-6">
+                <IndexPage
+                    title="Unit Organisasi"
+                    description="Kelola struktur organisasi"
+                    actions={[
+                        {
+                            label: 'Tambah Unit',
+                            href: '/master/organizations/create',
+                            icon: Plus,
+                        },
+                    ]}
+                    data={organizationUnits.data}
+                    columns={columns}
+                    pagination={{
+                        current_page: organizationUnits.current_page,
+                        last_page: organizationUnits.last_page,
+                        per_page: organizationUnits.per_page || 10,
+                        total: organizationUnits.total,
+                        from: organizationUnits.from,
+                        to: organizationUnits.to,
+                    }}
+                    onPageChange={handlePageChange}
+                    onPerPageChange={handlePerPageChange}
+                    filterFields={filterFields}
+                    filterValues={filterValues}
+                    onFilterChange={handleFilterChange}
+                    onFilterSubmit={handleFilterSubmit}
+                    onFilterReset={handleFilterReset}
+                    searchValue={filterValues.search}
+                    searchPlaceholder="Cari kode, nama unit..."
+                    onSearchChange={(val: string) => handleFilterChange('search', val)}
+                    emptyMessage="Belum ada unit organisasi"
+                    emptyIcon={Building2}
+                />
             </div>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && handleDeleteCancel()}>
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Konfirmasi Hapus Unit Organisasi</DialogTitle>
+                        <DialogTitle>Hapus Unit Organisasi</DialogTitle>
                         <DialogDescription>
-                            Apakah Anda yakin ingin menghapus unit <strong>{deleteDialog.organization?.name}</strong>?
-                            <br />
-                            <span className="text-red-600">Tindakan ini tidak dapat dibatalkan.</span>
+                            Apakah Anda yakin ingin menghapus unit organisasi ini? Tindakan ini tidak dapat dibatalkan.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2">
+                    {unitToDelete && (
+                        <div className="py-4">
+                            <div className="rounded-lg bg-muted p-4">
+                                <p className="text-sm font-medium">{unitToDelete.name}</p>
+                                <p className="text-sm text-muted-foreground">Kode: {unitToDelete.code}</p>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
                         <Button
                             variant="outline"
-                            onClick={handleDeleteCancel}
-                            disabled={deleteDialog.loading}
+                            onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setUnitToDelete(null);
+                            }}
                         >
                             Batal
                         </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleDeleteConfirm}
-                            disabled={deleteDialog.loading}
-                        >
-                            {deleteDialog.loading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Menghapus...
-                                </>
-                            ) : (
-                                <>
-                                    <Trash className="h-4 w-4 mr-2" />
-                                    Hapus
-                                </>
-                            )}
+                        <Button variant="destructive" onClick={handleDeleteConfirm}>
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Hapus
                         </Button>
                     </DialogFooter>
                 </DialogContent>

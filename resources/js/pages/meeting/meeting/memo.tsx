@@ -46,7 +46,7 @@ export default function MemoEditor({ meeting }: Props) {
     const formattedDate = format(meetingDate, 'EEEE, dd MMMM yyyy', { locale: indonesianLocale });
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Memo - ${meeting.title}`} />
 
             <div className="max-w-7xl p-4">

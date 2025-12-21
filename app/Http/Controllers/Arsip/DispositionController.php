@@ -7,7 +7,6 @@ use App\Models\Disposition;
 use App\Models\DispositionFollowUp;
 use App\Models\IncomingLetter;
 use App\Models\User;
-use App\Models\Letter;
 use App\Models\Meeting;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -200,6 +199,9 @@ class DispositionController extends Controller
      */
     public function show(Disposition $disposition)
     {
+        // Load required relations for access check
+        $disposition->load(['incomingLetter', 'childDispositions', 'parentDisposition']);
+        
         // Check access
         if (!$disposition->canUserAccess(Auth::user())) {
             abort(403, 'Anda tidak memiliki akses ke disposisi ini');
@@ -208,6 +210,7 @@ class DispositionController extends Controller
         // Mark as read if viewer is the recipient
         if ($disposition->to_user_id === Auth::id() && !$disposition->isRead()) {
             $disposition->markAsRead();
+            $disposition->refresh(); // Refresh to get updated status
         }
 
         $disposition->load([
@@ -297,7 +300,8 @@ class DispositionController extends Controller
                                   $disposition->to_user_id === Auth::id() && 
                                   $disposition->status !== 'completed',
             'can_add_follow_up' => Auth::user()->hasPermission('disposition.add_follow_up') && 
-                                  $disposition->to_user_id === Auth::id(),
+                                  $disposition->to_user_id === Auth::id() &&
+                                  $disposition->status === 'in_progress',
             'can_create_child_disposition' => Auth::user()->hasPermission('disposition.create_child') && 
                                              $disposition->to_user_id === Auth::id() && 
                                              $disposition->status !== 'completed',
@@ -319,22 +323,7 @@ class DispositionController extends Controller
                         'status' => $meeting->status,
                     ];
                 }),
-            'available_letters' => \App\Models\Letter::whereHas('creator', function ($q) {
-                    $q->where('organization_unit_id', Auth::user()->organization_unit_id);
-                })
-                ->whereIn('status', ['draft', 'pending_approval', 'approved', 'sent'])
-                ->orderBy('letter_date', 'desc')
-                ->limit(100)
-                ->get(['id', 'letter_number', 'subject', 'letter_date', 'status', 'created_by'])
-                ->map(function ($letter) {
-                    return [
-                        'id' => $letter->id,
-                        'letter_number' => $letter->letter_number,
-                        'subject' => $letter->subject,
-                        'letter_date' => $letter->letter_date->format('Y-m-d'),
-                        'status' => $letter->status,
-                    ];
-                }),
+            'available_letters' => [], // TODO: Will be replaced with OutgoingLetter when implemented
             'debug_user_org' => Auth::user()->organization_unit_id,
         ]);
     }

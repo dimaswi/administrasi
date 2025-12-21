@@ -1,12 +1,13 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { FormPage } from '@/components/ui/form-page';
+import { Upload, X } from 'lucide-react';
 import { FormEventHandler, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -68,80 +69,72 @@ export default function Create() {
         <AppLayout>
             <Head title="Tambah Arsip" />
 
-            <div className="space-y-6 my-6">
-                {/* Header */}
-                <div className="flex items-center gap-4 justify-between">
-                    <div>
-                        <h2 className="text-xl md:text-2xl font-semibold">Tambah Arsip Dokumen</h2>
-                        <p className="text-xs md:text-sm text-muted-foreground font-mono">Upload dan arsipkan dokumen baru</p>
-                    </div>
-                    <Link href={route('arsip.archives.index')}>
-                        <Button variant="outline">
-                            <ArrowLeft className="h-4 w-4" /> Kembali
-                        </Button>
-                    </Link>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit}>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Informasi Dokumen</CardTitle>
-                            <CardDescription>
-                                Lengkapi informasi dokumen yang akan diarsipkan
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* File Upload */}
+            <FormPage
+                title="Tambah Arsip Dokumen"
+                description="Upload dan arsipkan dokumen baru"
+                backUrl={route('arsip.archives.index')}
+                onSubmit={handleSubmit}
+                submitLabel="Simpan Arsip"
+                isLoading={processing}
+            >
+                <Card>
+                    <CardHeader className="p-6">
+                        <CardTitle>Informasi Dokumen</CardTitle>
+                        <CardDescription>
+                            Lengkapi informasi dokumen yang akan diarsipkan
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* File Upload */}
+                        <div className="space-y-2">
+                            <Label htmlFor="file">
+                                File Dokumen <span className="text-destructive">*</span>
+                            </Label>
                             <div className="space-y-2">
-                                <Label htmlFor="file">
-                                    File Dokumen <span className="text-destructive">*</span>
-                                </Label>
-                                <div className="space-y-2">
-                                    <input
-                                        ref={fileInputRef}
-                                        id="file"
-                                        type="file"
-                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) setData('file', file);
-                                        }}
-                                    />
-                                    <div className="flex gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="gap-2"
-                                        >
-                                            <Upload className="h-4 w-4" />
-                                            {data.file ? 'Ganti File' : 'Pilih File'}
-                                        </Button>
-                                        {data.file && (
-                                            <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
-                                                <span className="text-sm">{data.file.name}</span>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6"
-                                                    onClick={() => setData('file', null)}
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Format: PDF, DOC, DOCX, JPG, PNG (Max: 10MB)
-                                    </p>
-                                    {errors.file && (
-                                        <p className="text-sm text-destructive">{errors.file}</p>
+                                <input
+                                    ref={fileInputRef}
+                                    id="file"
+                                    type="file"
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) setData('file', file);
+                                    }}
+                                />
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="gap-2"
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        {data.file ? 'Ganti File' : 'Pilih File'}
+                                    </Button>
+                                    {data.file && (
+                                        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                                            <span className="text-sm">{data.file.name}</span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6"
+                                                onClick={() => setData('file', null)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Format: PDF, DOC, DOCX, JPG, PNG (Max: 10MB)
+                                </p>
+                                {errors.file && (
+                                    <p className="text-sm text-destructive">{errors.file}</p>
+                                )}
                             </div>
+                        </div>
 
                             {/* Title */}
                             <div className="space-y-2">
@@ -346,22 +339,9 @@ export default function Create() {
                                     </div>
                                 )}
                             </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2 pt-4">
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? 'Menyimpan...' : 'Simpan Arsip'}
-                                </Button>
-                                <Link href={route('arsip.archives.index')}>
-                                    <Button type="button" variant="outline">
-                                        Batal
-                                    </Button>
-                                </Link>
-                            </div>
                         </CardContent>
                     </Card>
-                </form>
-            </div>
-        </AppLayout>
-    );
+                </FormPage>
+            </AppLayout>
+        );
 }

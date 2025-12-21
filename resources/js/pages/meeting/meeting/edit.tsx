@@ -235,7 +235,7 @@ export default function MeetingEdit({ meeting, rooms, organizationUnits, users }
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Edit - ${meeting.title}`} />
 
             <div className="p-4 max-w-7xl">
@@ -266,8 +266,8 @@ export default function MeetingEdit({ meeting, rooms, organizationUnits, users }
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Informasi Rapat */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Informasi Rapat</CardTitle>
+                        <CardHeader className="p-6">
+                        <CardTitle>Informasi Rapat</CardTitle>
                             <CardDescription>Data dasar mengenai rapat yang akan diadakan</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -393,7 +393,7 @@ export default function MeetingEdit({ meeting, rooms, organizationUnits, users }
 
                     {/* Pemilihan Peserta */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="flex items-center gap-2">

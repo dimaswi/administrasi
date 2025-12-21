@@ -34,7 +34,7 @@ class DispositionFollowUp extends Model
 
     public function outgoingLetter(): BelongsTo
     {
-        return $this->belongsTo(Letter::class, 'outgoing_letter_id');
+        return $this->belongsTo(OutgoingLetter::class, 'outgoing_letter_id');
     }
 
     public function meeting(): BelongsTo

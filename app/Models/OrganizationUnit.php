@@ -22,6 +22,8 @@ class OrganizationUnit extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'level' => 'integer',
+        'head_id' => 'integer',
+        'parent_id' => 'integer',
     ];
 
     /**

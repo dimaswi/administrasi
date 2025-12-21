@@ -278,7 +278,7 @@ export default function MeetingShow({ meeting, users }: Props) {
     }, [meeting.meeting_date, meeting.start_time, meeting.status]);
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`Detail Rapat - ${meeting.title}`} />
             <div className="p-4 max-w-7xl">
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -435,7 +435,7 @@ export default function MeetingShow({ meeting, users }: Props) {
 
                     {/* Daftar Peserta */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
                                     <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
@@ -538,7 +538,7 @@ export default function MeetingShow({ meeting, users }: Props) {
 
                     {/* Dokumen */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="p-6">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
                                     <CardTitle className="flex items-center gap-2 text-lg md:text-xl">

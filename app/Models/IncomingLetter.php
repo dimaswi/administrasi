@@ -34,6 +34,8 @@ class IncomingLetter extends Model
         'original_date' => 'date',
         'received_date' => 'date',
         'attachment_count' => 'integer',
+        'registered_by' => 'integer',
+        'organization_unit_id' => 'integer',
     ];
 
     // Relationships
@@ -59,7 +61,7 @@ class IncomingLetter extends Model
 
     public function outgoingLetters(): HasMany
     {
-        return $this->hasMany(Letter::class, 'incoming_letter_id');
+        return $this->hasMany(OutgoingLetter::class, 'incoming_letter_id');
     }
 
     public function meetings(): HasMany

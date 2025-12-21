@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Arsip;
 
 use App\Http\Controllers\Controller;
 use App\Models\Archive;
-use App\Models\Letter;
 use App\Models\IncomingLetter;
+use App\Models\OutgoingLetter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class ArchiveController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Archive::with(['letter', 'incomingLetter', 'archiver'])
+        $query = Archive::with(['incomingLetter', 'outgoingLetter', 'archiver'])
             ->orderBy('document_date', 'desc');
 
         // Filter by type
@@ -55,7 +55,8 @@ class ArchiveController extends Controller
             $query->where('document_date', '<=', $request->date_to);
         }
 
-        $archives = $query->paginate(15);
+        $perPage = $request->input('per_page', 15);
+        $archives = $query->paginate($perPage)->withQueryString();
 
         // Get unique values for filters
         $categories = Archive::select('category')->distinct()->whereNotNull('category')->pluck('category');
@@ -65,7 +66,7 @@ class ArchiveController extends Controller
             'archives' => $archives,
             'categories' => $categories,
             'documentTypes' => $documentTypes,
-            'filters' => $request->only(['type', 'category', 'document_type', 'classification', 'search', 'date_from', 'date_to']),
+            'filters' => $request->only(['type', 'category', 'document_type', 'classification', 'search', 'date_from', 'date_to', 'per_page']),
         ]);
     }
 
@@ -139,7 +140,7 @@ class ArchiveController extends Controller
      */
     public function show(Archive $archive)
     {
-        $archive->load(['letter.certificate', 'incomingLetter', 'archiver']);
+        $archive->load(['incomingLetter', 'outgoingLetter', 'archiver']);
 
         return Inertia::render('arsip/archives/show', [
             'archive' => $archive,
@@ -213,8 +214,10 @@ class ArchiveController extends Controller
      */
     public function destroy(Archive $archive)
     {
-        // Delete file
-        Storage::disk('public')->delete($archive->file_path);
+        // Delete file only if it exists and is not an outgoing letter
+        if ($archive->file_path && $archive->type !== 'outgoing_letter') {
+            Storage::disk('public')->delete($archive->file_path);
+        }
 
         $archive->delete();
 
@@ -223,10 +226,43 @@ class ArchiveController extends Controller
     }
 
     /**
+     * Preview archive - for outgoing letters, show the letter preview
+     */
+    public function preview(Archive $archive)
+    {
+        // For outgoing letter archives, show the letter preview
+        if ($archive->type === 'outgoing_letter' && $archive->outgoingLetter) {
+            $archive->load('archiver');
+            $outgoingLetter = $archive->outgoingLetter;
+            $outgoingLetter->load(['template', 'signatories.user', 'creator']);
+
+            return Inertia::render('arsip/archives/preview-letter', [
+                'archive' => $archive,
+                'letter' => $outgoingLetter,
+                'paper_sizes' => \App\Models\DocumentTemplate::paperSizes(),
+            ]);
+        }
+
+        // For other archives, redirect to show page
+        return redirect()->route('arsip.archives.show', $archive);
+    }
+
+    /**
      * Download archive file
      */
     public function download(Archive $archive)
     {
+        // For outgoing letter archives, redirect to preview/print page
+        // because we don't store PDF files on server (using browser print for accurate output)
+        if ($archive->type === 'outgoing_letter' && $archive->outgoingLetter) {
+            return redirect()->route('arsip.archives.preview', $archive);
+        }
+
+        // For other archives, download from storage
+        if (!$archive->file_path) {
+            return back()->with('error', 'File tidak ditemukan');
+        }
+
         $path = storage_path('app/public/' . $archive->file_path);
 
         if (!file_exists($path)) {
@@ -234,44 +270,6 @@ class ArchiveController extends Controller
         }
 
         return response()->download($path, $archive->title . '.' . $archive->file_type);
-    }
-
-    /**
-     * Archive a letter (auto-archive after approval)
-     */
-    public function archiveLetter(Letter $letter)
-    {
-        // Check if letter is fully signed
-        if ($letter->status !== 'fully_signed') {
-            return back()->with('error', 'Hanya surat yang sudah ditandatangani lengkap yang dapat diarsipkan');
-        }
-
-        if ($letter->archive()->exists()) {
-            return back()->with('error', 'Surat sudah diarsipkan');
-        }
-
-        // Check if PDF exists
-        if (!$letter->pdf_path) {
-            return back()->with('error', 'PDF surat belum dibuat. Harap generate PDF terlebih dahulu.');
-        }
-
-        $archive = Archive::create([
-            'type' => 'letter',
-            'letter_id' => $letter->id,
-            'document_number' => $letter->letter_number,
-            'title' => $letter->subject,
-            'description' => 'Arsip surat keluar: ' . $letter->letter_number,
-            'category' => $letter->template->category ?? null,
-            'document_date' => $letter->letter_date,
-            'document_type' => $letter->template->code ?? null,
-            'file_path' => $letter->pdf_path,
-            'file_type' => 'pdf',
-            'recipient' => $letter->recipient,
-            'classification' => 'internal',
-            'archived_by' => Auth::id(),
-        ]);
-
-        return back()->with('success', 'Surat keluar berhasil diarsipkan');
     }
 
     /**
@@ -326,12 +324,58 @@ class ArchiveController extends Controller
     }
 
     /**
+     * Archive an outgoing letter
+     */
+    public function archiveOutgoingLetter(Request $request, OutgoingLetter $outgoingLetter)
+    {
+        // Check if letter can be archived (should be fully signed)
+        if ($outgoingLetter->status !== 'fully_signed') {
+            return back()->with('error', 'Hanya surat yang sudah selesai ditandatangani yang dapat diarsipkan');
+        }
+
+        if ($outgoingLetter->archive()->exists()) {
+            return back()->with('error', 'Surat keluar sudah diarsipkan');
+        }
+
+        $request->validate([
+            'category' => 'required|string|max:255',
+            'classification' => 'required|in:public,internal,confidential,secret',
+            'retention_period' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        // Create archive
+        $archive = Archive::create([
+            'type' => 'outgoing_letter',
+            'outgoing_letter_id' => $outgoingLetter->id,
+            'document_number' => $outgoingLetter->letter_number,
+            'title' => $outgoingLetter->subject,
+            'description' => 'Arsip surat keluar - Template: ' . ($outgoingLetter->template->name ?? 'Unknown'),
+            'category' => $request->category,
+            'document_date' => $outgoingLetter->letter_date,
+            'document_type' => 'Surat Keluar',
+            'file_path' => $outgoingLetter->pdf_path,
+            'file_type' => 'pdf',
+            'file_size' => $outgoingLetter->pdf_path && Storage::disk('public')->exists($outgoingLetter->pdf_path) 
+                ? Storage::disk('public')->size($outgoingLetter->pdf_path) 
+                : null,
+            'classification' => $request->classification,
+            'retention_period' => $request->retention_period,
+            'retention_until' => $request->retention_period 
+                ? now()->addYears($request->retention_period) 
+                : null,
+            'archived_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Surat keluar berhasil diarsipkan');
+    }
+
+    /**
      * Get expiring archives
      */
     public function expiring()
     {
         $archives = Archive::expiringSoon(30)
-            ->with(['letter', 'incomingLetter', 'archiver'])
+            ->with(['incomingLetter', 'outgoingLetter', 'archiver'])
             ->orderBy('retention_until')
             ->paginate(15);
 
