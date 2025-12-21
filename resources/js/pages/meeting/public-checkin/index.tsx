@@ -38,7 +38,7 @@ interface Props {
 export default function PublicCheckin({ meeting, token, expires_at, pending_count, total_count }: Props) {
     const { flash } = usePage().props as any;
     
-    const [nipLast4, setNipLast4] = useState('');
+    const [nip, setNip] = useState('');
     const [confirmDialog, setConfirmDialog] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [remainingTime, setRemainingTime] = useState<number>(0);
@@ -71,14 +71,14 @@ export default function PublicCheckin({ meeting, token, expires_at, pending_coun
     };
 
     const handleSubmit = () => {
-        if (nipLast4.length !== 4) return;
+        if (nip.length < 4) return;
         setConfirmDialog(true);
     };
 
     const handleConfirmCheckin = () => {
         setProcessing(true);
         router.post(`/meeting/checkin/${token}`, {
-            nip_last4: nipLast4,
+            nip: nip,
         }, {
             onFinish: () => {
                 setProcessing(false);
@@ -194,7 +194,7 @@ export default function PublicCheckin({ meeting, token, expires_at, pending_coun
                                 Konfirmasi Kehadiran
                             </CardTitle>
                             <CardDescription>
-                                Masukkan 4 digit terakhir NIP Anda (angka saja, tanpa titik)
+                                Masukkan NIP Anda (angka saja, tanpa titik)
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -206,27 +206,26 @@ export default function PublicCheckin({ meeting, token, expires_at, pending_coun
                             ) : (
                                 <>
                                     <div className="space-y-2">
-                                        <Label htmlFor="nip">4 Digit Terakhir NIP</Label>
+                                        <Label htmlFor="nip">NIP (angka saja)</Label>
                                         <Input
                                             id="nip"
                                             type="text"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
-                                            maxLength={4}
-                                            placeholder="Contoh: 0203"
-                                            value={nipLast4}
-                                            onChange={(e) => setNipLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                            className="text-center text-3xl tracking-[0.5em] font-mono h-16"
+                                            placeholder="Contoh: 2023010203"
+                                            value={nip}
+                                            onChange={(e) => setNip(e.target.value.replace(/\D/g, ''))}
+                                            className="text-center text-xl tracking-widest font-mono h-14"
                                             autoFocus
                                         />
                                         <p className="text-xs text-muted-foreground text-center">
-                                            Contoh: NIP 2023.01.02.03 → masukkan <strong>0203</strong>
+                                            Contoh: NIP 2023.01.02.03 → masukkan <strong>2023010203</strong>
                                         </p>
                                     </div>
 
                                     <Button
                                         onClick={handleSubmit}
-                                        disabled={nipLast4.length !== 4}
+                                        disabled={nip.length < 4}
                                         className="w-full"
                                         size="lg"
                                     >
@@ -250,14 +249,14 @@ export default function PublicCheckin({ meeting, token, expires_at, pending_coun
                     <DialogHeader>
                         <DialogTitle>Konfirmasi Check-in</DialogTitle>
                         <DialogDescription>
-                            Pastikan 4 digit terakhir NIP yang Anda masukkan sudah benar
+                            Pastikan NIP yang Anda masukkan sudah benar
                         </DialogDescription>
                     </DialogHeader>
                     
                     <div className="space-y-4 py-4">
                         <div className="bg-muted rounded-lg p-4 text-center">
-                            <p className="text-sm text-muted-foreground mb-1">4 Digit Terakhir NIP</p>
-                            <p className="text-3xl font-bold font-mono tracking-[0.3em]">{nipLast4}</p>
+                            <p className="text-sm text-muted-foreground mb-1">NIP</p>
+                            <p className="text-2xl font-bold font-mono tracking-widest">{nip}</p>
                         </div>
 
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">

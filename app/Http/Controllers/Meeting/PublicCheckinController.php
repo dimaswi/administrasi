@@ -143,14 +143,12 @@ class PublicCheckinController extends Controller
     }
 
     /**
-     * Helper: Get 4 digit terakhir NIP (tanpa titik/karakter non-angka)
+     * Helper: Normalize NIP (hapus titik dan karakter non-angka)
      */
-    private function getNipLast4(string $nip): string
+    private function normalizeNip(string $nip): string
     {
         // Hapus semua karakter non-angka (titik, spasi, dll)
-        $nipDigitsOnly = preg_replace('/[^0-9]/', '', $nip);
-        // Ambil 4 digit terakhir
-        return substr($nipDigitsOnly, -4);
+        return preg_replace('/[^0-9]/', '', $nip);
     }
 
     /**
@@ -165,19 +163,19 @@ class PublicCheckinController extends Controller
         }
 
         $request->validate([
-            'nip_last4' => 'required|string|min:4|max:4',
+            'nip' => 'required|string|min:4',
         ]);
 
-        $inputNipLast4 = $request->nip_last4;
+        $inputNip = $this->normalizeNip($request->nip);
 
-        // Cari peserta berdasarkan 4 digit terakhir NIP
+        // Cari peserta berdasarkan NIP (normalized)
         $meeting->load('participants.user');
         $matchedParticipant = null;
 
         foreach ($meeting->participants as $participant) {
             if ($participant->user) {
-                $participantNipLast4 = $this->getNipLast4($participant->user->nip);
-                if ($participantNipLast4 === $inputNipLast4) {
+                $participantNip = $this->normalizeNip($participant->user->nip);
+                if ($participantNip === $inputNip) {
                     $matchedParticipant = $participant;
                     break;
                 }
