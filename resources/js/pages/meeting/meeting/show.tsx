@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ActionItems } from "@/components/meeting/action-items";
+import { CheckinQRCode } from "@/components/meeting/checkin-qrcode";
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem, Meeting, MeetingParticipant, SharedData } from "@/types";
 import { Head, router, usePage } from "@inertiajs/react";
@@ -37,10 +38,11 @@ import {
     Loader2,
     Play,
     Ban,
+    RefreshCw,
 } from "lucide-react";
 import { format, parse, isBefore, subMinutes } from "date-fns";
 import { id } from "date-fns/locale";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 
 interface Props extends SharedData {
@@ -53,8 +55,57 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Detail Rapat', href: '#' },
 ];
 
-export default function MeetingShow({ meeting, users }: Props) {
+export default function MeetingShow({ meeting: initialMeeting, users }: Props) {
     const { auth } = usePage<SharedData>().props;
+    
+    // State untuk meeting data yang bisa di-update
+    const [meeting, setMeeting] = useState(initialMeeting);
+    const [isAutoRefresh, setIsAutoRefresh] = useState(initialMeeting.status === 'ongoing');
+    const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+    // Auto-refresh setiap 10 detik saat rapat ongoing
+    useEffect(() => {
+        if (!isAutoRefresh || meeting.status !== 'ongoing') return;
+
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['meeting'],
+                onSuccess: (page) => {
+                    const newMeeting = (page.props as any).meeting;
+                    setMeeting(newMeeting);
+                    setLastRefresh(new Date());
+                    
+                    // Matikan auto-refresh jika rapat sudah selesai
+                    if (newMeeting.status !== 'ongoing') {
+                        setIsAutoRefresh(false);
+                    }
+                },
+            });
+        }, 10000); // 10 detik
+
+        return () => clearInterval(interval);
+    }, [isAutoRefresh, meeting.status]);
+
+    // Update meeting state when props change
+    useEffect(() => {
+        setMeeting(initialMeeting);
+        if (initialMeeting.status === 'ongoing') {
+            setIsAutoRefresh(true);
+        }
+    }, [initialMeeting]);
+
+    // Manual refresh
+    const handleManualRefresh = useCallback(() => {
+        router.reload({
+            only: ['meeting'],
+            onSuccess: (page) => {
+                const newMeeting = (page.props as any).meeting;
+                setMeeting(newMeeting);
+                setLastRefresh(new Date());
+                toast.success('Data berhasil diperbarui');
+            },
+        });
+    }, []);
     
     const [markAttendanceDialog, setMarkAttendanceDialog] = useState<{
         open: boolean;
@@ -239,6 +290,9 @@ export default function MeetingShow({ meeting, users }: Props) {
         p => p.user_id === auth.user.id && p.role === 'moderator'
     );
 
+    const isOrganizer = meeting.organizer?.id === auth.user.id;
+    const isModeratorOrOrganizer = isModerator || isOrganizer;
+
     // Check if meeting can be started (30 minutes before)
     const canStartMeeting = useMemo(() => {
         if (!['draft', 'scheduled'].includes(meeting.status)) {
@@ -286,7 +340,33 @@ export default function MeetingShow({ meeting, users }: Props) {
                         <h2 className="text-xl md:text-2xl font-semibold">{meeting.title}</h2>
                         <p className="text-xs md:text-sm text-muted-foreground font-mono">{meeting.meeting_number}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Auto-refresh indicator */}
+                        {meeting.status === 'ongoing' && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
+                                <RefreshCw className={`h-3 w-3 ${isAutoRefresh ? 'animate-spin' : ''}`} />
+                                <span>
+                                    {isAutoRefresh ? 'Auto-refresh aktif' : 'Auto-refresh nonaktif'}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 px-1.5 text-xs"
+                                    onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+                                >
+                                    {isAutoRefresh ? 'Matikan' : 'Aktifkan'}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 px-1.5"
+                                    onClick={handleManualRefresh}
+                                    title="Refresh sekarang"
+                                >
+                                    <RefreshCw className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        )}
                         {(meeting.status === 'draft' || meeting.status === 'cancelled') && (
                             <Button
                                 variant="outline"
@@ -317,7 +397,7 @@ export default function MeetingShow({ meeting, users }: Props) {
                                         <Badge variant="outline" className={getStatusBadgeColor(meeting.status)}>
                                             {getStatusLabel(meeting.status)}
                                         </Badge>
-                                        {isModerator && (meeting.status === 'draft' || meeting.status === 'scheduled') && (
+                                        {isModeratorOrOrganizer && (meeting.status === 'draft' || meeting.status === 'scheduled') && (
                                             <Button
                                                 size="sm"
                                                 variant="default"
@@ -330,7 +410,7 @@ export default function MeetingShow({ meeting, users }: Props) {
                                                 Mulai Rapat
                                             </Button>
                                         )}
-                                        {meeting.status === 'ongoing' && isModerator && (
+                                        {meeting.status === 'ongoing' && isModeratorOrOrganizer && (
                                             <Button
                                                 size="sm"
                                                 variant="default"
@@ -352,7 +432,7 @@ export default function MeetingShow({ meeting, users }: Props) {
                                                 Batal Rapat
                                             </Button>
                                         )}
-                                        {!canStartMeeting && isModerator && (meeting.status === 'draft' || meeting.status === 'scheduled') && (
+                                        {!canStartMeeting && isModeratorOrOrganizer && (meeting.status === 'draft' || meeting.status === 'scheduled') && (
                                             <p className="text-xs text-muted-foreground w-full mt-1">
                                                 Rapat dapat dimulai 30 menit sebelum waktu yang dijadwalkan
                                             </p>
@@ -535,6 +615,15 @@ export default function MeetingShow({ meeting, users }: Props) {
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* QR Code Check-in - Only for ongoing meetings and moderator/organizer */}
+                    <CheckinQRCode
+                        meetingId={meeting.id}
+                        meetingStatus={meeting.status}
+                        isModeratorOrOrganizer={isModeratorOrOrganizer}
+                        attendedCount={meeting.attended_participants_count || 0}
+                        totalParticipants={meeting.participants?.length || 0}
+                    />
 
                     {/* Dokumen */}
                     <Card>

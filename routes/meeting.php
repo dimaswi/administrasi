@@ -2,7 +2,12 @@
 
 use App\Http\Controllers\Meeting\ActionItemController;
 use App\Http\Controllers\Meeting\MeetingController;
+use App\Http\Controllers\Meeting\PublicCheckinController;
 use Illuminate\Support\Facades\Route;
+
+// Public routes (tanpa login) - untuk check-in peserta via QR Code
+Route::get('meeting/checkin/{token}', [PublicCheckinController::class, 'showCheckinPage'])->name('public.checkin');
+Route::post('meeting/checkin/{token}', [PublicCheckinController::class, 'processCheckin'])->name('public.checkin.process');
 
 Route::middleware('auth')->group(function () {
     // Meeting Management
@@ -21,6 +26,11 @@ Route::middleware('auth')->group(function () {
     Route::post('meeting/meetings/{meeting}/cancel', [MeetingController::class, 'cancelMeeting'])->name('meetings.cancel')->middleware('permission:meeting.edit');
     Route::put('meeting/meetings/{meeting}/complete', [MeetingController::class, 'complete'])->name('meetings.complete')->middleware('permission:meeting.complete');
     Route::put('meeting/meetings/{meeting}/participants/{participant}/attendance', [MeetingController::class, 'markAttendance'])->name('meetings.mark-attendance')->middleware('permission:meeting.mark-attendance');
+    
+    // Check-in Token Management (untuk moderator/organizer)
+    Route::post('meeting/meetings/{meeting}/checkin-token', [PublicCheckinController::class, 'generateToken'])->name('meetings.generate-checkin-token');
+    Route::get('meeting/meetings/{meeting}/checkin-token', [PublicCheckinController::class, 'getTokenStatus'])->name('meetings.checkin-token-status');
+    Route::delete('meeting/meetings/{meeting}/checkin-token', [PublicCheckinController::class, 'stopCheckin'])->name('meetings.stop-checkin');
     
     // Memo and Attendance Management
     Route::get('meeting/meetings/{meeting}/memo', [MeetingController::class, 'editMemo'])->name('meetings.edit-memo')->middleware('permission:meeting.edit');

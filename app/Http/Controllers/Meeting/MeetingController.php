@@ -204,6 +204,9 @@ class MeetingController extends Controller
             'participants.user.organizationUnit',
         ]);
 
+        // Hitung jumlah peserta yang sudah hadir
+        $meeting->attended_participants_count = $meeting->participants->where('attendance_status', 'attended')->count();
+
         $users = \App\Models\User::select('id', 'name')
             ->orderBy('name', 'asc')
             ->get();
@@ -358,14 +361,16 @@ class MeetingController extends Controller
 
     public function startMeeting(Meeting $meeting)
     {
-        // Hanya moderator yang bisa memulai rapat
+        // Hanya moderator atau organizer yang bisa memulai rapat
         $isModerator = $meeting->participants()
             ->where('user_id', Auth::user()->id)
             ->where('role', 'moderator')
             ->exists();
+        
+        $isOrganizer = $meeting->organizer_id === Auth::user()->id;
 
-        if (!$isModerator) {
-            return redirect()->back()->with('error', 'Hanya moderator yang dapat memulai rapat');
+        if (!$isModerator && !$isOrganizer) {
+            return redirect()->back()->with('error', 'Hanya moderator atau penyelenggara yang dapat memulai rapat');
         }
 
         // Hanya meeting draft atau scheduled yang bisa dimulai

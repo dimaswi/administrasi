@@ -26,10 +26,14 @@ class Meeting extends Model
         'invitation_file',
         'memo_file',
         'attendance_file',
+        'checkin_token',
+        'checkin_token_expires_at',
+        'checkin_token_duration',
     ];
 
     protected $casts = [
         'meeting_date' => 'date',
+        'checkin_token_expires_at' => 'datetime',
     ];
 
     /**
@@ -205,5 +209,68 @@ class Meeting extends Model
             'cancelled' => 'Dibatalkan',
             default => 'Unknown',
         };
+    }
+
+    /**
+     * Generate new check-in token
+     */
+    public function generateCheckinToken(int $durationMinutes = null): string
+    {
+        $duration = $durationMinutes ?? $this->checkin_token_duration ?? 5;
+        $token = bin2hex(random_bytes(32));
+        
+        $this->update([
+            'checkin_token' => $token,
+            'checkin_token_expires_at' => now()->addMinutes($duration),
+            'checkin_token_duration' => $duration,
+        ]);
+        
+        return $token;
+    }
+
+    /**
+     * Check if check-in token is valid
+     */
+    public function isCheckinTokenValid(): bool
+    {
+        if (!$this->checkin_token || !$this->checkin_token_expires_at) {
+            return false;
+        }
+        
+        return now()->lessThan($this->checkin_token_expires_at);
+    }
+
+    /**
+     * Get remaining time for check-in token in seconds
+     */
+    public function getCheckinTokenRemainingSeconds(): int
+    {
+        if (!$this->isCheckinTokenValid()) {
+            return 0;
+        }
+        
+        return now()->diffInSeconds($this->checkin_token_expires_at, false);
+    }
+
+    /**
+     * Invalidate check-in token
+     */
+    public function invalidateCheckinToken(): void
+    {
+        $this->update([
+            'checkin_token' => null,
+            'checkin_token_expires_at' => null,
+        ]);
+    }
+
+    /**
+     * Find meeting by valid check-in token
+     */
+    public static function findByCheckinToken(string $token): ?self
+    {
+        return static::where('checkin_token', $token)
+            ->where('checkin_token_expires_at', '>', now())
+            ->where('status', 'ongoing')
+            ->first();
     }
 }
