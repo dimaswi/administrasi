@@ -355,6 +355,7 @@ export default function Edit({ template: initialTemplate, categories = [] }: Pro
                                         <SignatureSettingsPanel
                                             settings={template.signature_settings}
                                             totalPages={template.content_blocks.filter(b => b.type === 'page-break').length + 1}
+                                            variables={template.variables}
                                             onUpdate={updateSignatureSettings}
                                             onAddSlot={addSignatureSlot}
                                             onUpdateSlot={updateSignatureSlot}

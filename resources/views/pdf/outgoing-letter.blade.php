@@ -255,6 +255,50 @@
             <div style="height: {{ ($style['margin_top'] ?? 5) + ($style['margin_bottom'] ?? 5) }}mm;"></div>
         @elseif($block['type'] === 'page-break')
             <div style="page-break-after: always;"></div>
+        @elseif($block['type'] === 'table')
+            @php
+                $tableConfig = $block['table_config'] ?? [];
+                $rows = $tableConfig['rows'] ?? [];
+                $hasBorder = $tableConfig['border'] ?? true;
+                $borderColor = $tableConfig['border_color'] ?? '#000000';
+                $headerRow = $tableConfig['header_row'] ?? true;
+                $cellPadding = $tableConfig['cell_padding'] ?? 2;
+                $columnWidths = $tableConfig['column_widths'] ?? [];
+            @endphp
+            @if(count($rows) > 0)
+            <div style="{{ $marginStyle }}">
+                <table style="width: 100%; border-collapse: collapse; {{ $fontStyle }}">
+                    @foreach($rows as $rowIndex => $row)
+                        @php
+                            $isHeader = $rowIndex === 0 && $headerRow;
+                        @endphp
+                        <tr>
+                            @foreach($row as $colIndex => $cell)
+                                @php
+                                    $cellAlign = $cell['align'] ?? 'left';
+                                    $cellBold = $cell['bold'] ?? false;
+                                    $cellContent = replaceVars($cell['content'] ?? '', $variableValues, $letter);
+                                    $colWidth = isset($columnWidths[$colIndex]) ? $columnWidths[$colIndex] . '%' : 'auto';
+                                    $cellColspan = $cell['colspan'] ?? 1;
+                                    $cellRowspan = $cell['rowspan'] ?? 1;
+                                    $borderStyle = $hasBorder ? "border: 1px solid {$borderColor};" : '';
+                                    $bgColor = $isHeader ? 'background-color: #f3f4f6;' : '';
+                                @endphp
+                                @if($isHeader)
+                                    <th style="{{ $borderStyle }} padding: {{ $cellPadding }}mm; text-align: {{ $cellAlign }}; font-weight: bold; {{ $bgColor }} width: {{ $colWidth }};" colspan="{{ $cellColspan }}" rowspan="{{ $cellRowspan }}">
+                                        {{ $cellContent }}
+                                    </th>
+                                @else
+                                    <td style="{{ $borderStyle }} padding: {{ $cellPadding }}mm; text-align: {{ $cellAlign }}; {{ $cellBold ? 'font-weight: bold;' : '' }} width: {{ $colWidth }};" colspan="{{ $cellColspan }}" rowspan="{{ $cellRowspan }}">
+                                        {{ $cellContent }}
+                                    </td>
+                                @endif
+                            @endforeach
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+            @endif
         @endif
     @endforeach
     
@@ -281,10 +325,10 @@
                     @endphp
                     <div class="signature-slot" style="text-align: {{ $slot['text_align'] ?? 'center' }}; font-size: {{ $slot['font_size'] ?? 12 }}pt;">
                         @if($slot['label_above'] ?? null)
-                        <div>{{ $slot['label_above'] }}</div>
+                        <div>{{ replaceVars($slot['label_above'], $variableValues, $letter) }}</div>
                         @endif
                         @if($slot['label_position'] ?? null)
-                        <div>{{ $slot['label_position'] }}</div>
+                        <div>{{ replaceVars($slot['label_position'], $variableValues, $letter) }}</div>
                         @endif
                         
                         <div class="signature-space" style="height: {{ $slot['signature_height'] ?? 25 }}mm;">

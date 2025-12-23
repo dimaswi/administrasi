@@ -127,14 +127,28 @@ export interface ContentBlock {
     type: 'text' | 'paragraph' | 'spacer' | 'table' | 'list' | 'field-group' | 'page-break' | 'letter-opening';
     content: string;
     style: BlockStyle;
-    table_config?: {
-        columns: number;
-        rows: any[][];
-        border: boolean;
-    };
+    table_config?: TableConfig;
     field_group?: FieldGroupConfig;
     page_break?: PageBreakConfig;
     letter_opening?: LetterOpeningConfig;
+}
+
+export interface TableCell {
+    content: string;
+    colspan?: number;
+    rowspan?: number;
+    align?: 'left' | 'center' | 'right';
+    bold?: boolean;
+}
+
+export interface TableConfig {
+    columns: number;
+    rows: TableCell[][];
+    border: boolean;
+    border_color: string;
+    header_row: boolean; // First row as header with bold text and background
+    column_widths: number[]; // Width in percentage (should sum to 100)
+    cell_padding: number; // in mm
 }
 
 export interface FooterSettings {
@@ -226,6 +240,27 @@ export const defaultContentBlock: ContentBlock = {
     type: 'text',
     content: '',
     style: { ...defaultBlockStyle },
+};
+
+export const defaultTableCell: TableCell = {
+    content: '',
+    colspan: 1,
+    rowspan: 1,
+    align: 'left',
+    bold: false,
+};
+
+export const defaultTableConfig: TableConfig = {
+    columns: 3,
+    rows: [
+        [{ content: 'Header 1', align: 'center', bold: true }, { content: 'Header 2', align: 'center', bold: true }, { content: 'Header 3', align: 'center', bold: true }],
+        [{ content: '', align: 'left' }, { content: '', align: 'left' }, { content: '', align: 'left' }],
+    ],
+    border: true,
+    border_color: '#000000',
+    header_row: true,
+    column_widths: [33.33, 33.33, 33.34],
+    cell_padding: 2,
 };
 
 export const defaultFieldGroupConfig: FieldGroupConfig = {

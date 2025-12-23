@@ -91,9 +91,18 @@ class DocumentTemplateController extends Controller
      */
     public function store(Request $request)
     {
+        $userOrgId = Auth::user()->organization_unit_id;
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:document_templates,code',
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                // Unique within the user's organization unit only
+                \Illuminate\Validation\Rule::unique('document_templates', 'code')
+                    ->where('organization_unit_id', $userOrgId),
+            ],
             'category' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'page_settings' => 'required|array',
@@ -180,7 +189,15 @@ class DocumentTemplateController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:document_templates,code,' . $documentTemplate->id,
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                // Unique within the same organization unit, excluding current template
+                \Illuminate\Validation\Rule::unique('document_templates', 'code')
+                    ->where('organization_unit_id', $documentTemplate->organization_unit_id)
+                    ->ignore($documentTemplate->id),
+            ],
             'category' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'page_settings' => 'required|array',

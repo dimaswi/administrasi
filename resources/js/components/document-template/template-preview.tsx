@@ -490,6 +490,60 @@ export function TemplatePreview({
                 );
             }
 
+            // Table block
+            if (block.type === 'table') {
+                const tableConfig = block.table_config;
+                if (!tableConfig || !tableConfig.rows || tableConfig.rows.length === 0) {
+                    return (
+                        <div key={block.id} style={commonStyle}>
+                            <span className="text-gray-400 italic text-sm">[Tabel kosong]</span>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={block.id} style={commonStyle}>
+                        <table 
+                            style={{ 
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontSize: style.font_size ? ptToPx(style.font_size) : ptToPx(defaultFont.size),
+                            }}
+                        >
+                            <tbody>
+                                {tableConfig.rows.map((row, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {row.map((cell, colIndex) => {
+                                            const isHeader = rowIndex === 0 && tableConfig.header_row;
+                                            const CellTag = isHeader ? 'th' : 'td';
+                                            return (
+                                                <CellTag
+                                                    key={colIndex}
+                                                    style={{
+                                                        border: tableConfig.border ? `1px solid ${tableConfig.border_color || '#000'}` : 'none',
+                                                        padding: mmToPx(tableConfig.cell_padding || 2),
+                                                        textAlign: cell.align || 'left',
+                                                        fontWeight: isHeader || cell.bold ? 'bold' : 'normal',
+                                                        backgroundColor: isHeader ? '#f3f4f6' : 'transparent',
+                                                        width: tableConfig.column_widths?.[colIndex] 
+                                                            ? `${tableConfig.column_widths[colIndex]}%` 
+                                                            : 'auto',
+                                                    }}
+                                                    colSpan={cell.colspan || 1}
+                                                    rowSpan={cell.rowspan || 1}
+                                                >
+                                                    {cell.content ? replaceVariables(cell.content) : ''}
+                                                </CellTag>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                );
+            }
+
             return (
                 <div key={block.id} style={commonStyle}>
                     {block.content ? replaceVariables(block.content) : <span className="text-gray-400 italic text-sm">[Teks]</span>}
@@ -559,10 +613,10 @@ export function TemplatePreview({
                                             }}
                                         >
                                             {slot.label_above && (
-                                                <div>{slot.label_above}</div>
+                                                <div>{replaceVariables(slot.label_above)}</div>
                                             )}
                                             {slot.label_position && (
-                                                <div className="mb-1">{slot.label_position}</div>
+                                                <div className="mb-1">{replaceVariables(slot.label_position)}</div>
                                             )}
                                             <div 
                                                 style={{ 

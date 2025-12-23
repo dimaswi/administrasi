@@ -3,13 +3,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { SignatureSettings, SignatureSlot } from '@/types/document-template';
-import { Plus, Trash2, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SignatureSettings, SignatureSlot, TemplateVariable } from '@/types/document-template';
+import { Plus, Trash2, AlignLeft, AlignCenter, AlignRight, Variable, Zap } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface SignatureSettingsPanelProps {
     settings: SignatureSettings;
     totalPages: number; // Dynamic page count from content blocks
+    variables?: TemplateVariable[];
     onUpdate: (updates: Partial<SignatureSettings>) => void;
     onAddSlot: (column: number) => void;
     onUpdateSlot: (id: string, updates: Partial<SignatureSlot>) => void;
@@ -26,6 +28,7 @@ const layoutOptions = [
 export function SignatureSettingsPanel({
     settings,
     totalPages,
+    variables = [],
     onUpdate,
     onAddSlot,
     onUpdateSlot,
@@ -169,22 +172,98 @@ export function SignatureSettingsPanel({
 
                                             <div className="space-y-1">
                                                 <Label className="text-[9px] text-muted-foreground">Label Atas</Label>
-                                                <Input
-                                                    value={slot.label_above}
-                                                    onChange={(e) => onUpdateSlot(slot.id, { label_above: e.target.value })}
-                                                    placeholder="Contoh: Mengetahui,"
-                                                    className="h-6 text-[10px]"
-                                                />
+                                                <div className="flex items-center gap-1">
+                                                    <Input
+                                                        value={slot.label_above}
+                                                        onChange={(e) => onUpdateSlot(slot.id, { label_above: e.target.value })}
+                                                        placeholder="Contoh: {{tempat}}, {{tanggal_surat}}"
+                                                        className="h-6 text-[10px] flex-1"
+                                                    />
+                                                    {variables.length > 0 && (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 w-6 p-0"
+                                                                    title="Sisipkan Variabel"
+                                                                >
+                                                                    <Variable className="h-3 w-3" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-48">
+                                                                <DropdownMenuLabel className="text-[10px]">
+                                                                    Pilih Variabel
+                                                                </DropdownMenuLabel>
+                                                                <DropdownMenuSeparator />
+                                                                {variables.map((v) => (
+                                                                    <DropdownMenuItem
+                                                                        key={v.key}
+                                                                        className="text-xs cursor-pointer"
+                                                                        onClick={() => {
+                                                                            const newValue = (slot.label_above || '') + `{{${v.key}}}`;
+                                                                            onUpdateSlot(slot.id, { label_above: newValue });
+                                                                        }}
+                                                                    >
+                                                                        {v.source !== 'manual' && (
+                                                                            <Zap className="h-3 w-3 mr-1.5 text-amber-500" />
+                                                                        )}
+                                                                        <span className="truncate">{v.label || v.key}</span>
+                                                                    </DropdownMenuItem>
+                                                                ))}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="space-y-1">
                                                 <Label className="text-[9px] text-muted-foreground">Jabatan</Label>
-                                                <Input
-                                                    value={slot.label_position}
-                                                    onChange={(e) => onUpdateSlot(slot.id, { label_position: e.target.value })}
-                                                    placeholder="Contoh: Kepala Bagian"
-                                                    className="h-6 text-[10px]"
-                                                />
+                                                <div className="flex items-center gap-1">
+                                                    <Input
+                                                        value={slot.label_position}
+                                                        onChange={(e) => onUpdateSlot(slot.id, { label_position: e.target.value })}
+                                                        placeholder="Contoh: Kepala Bagian"
+                                                        className="h-6 text-[10px] flex-1"
+                                                    />
+                                                    {variables.length > 0 && (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 w-6 p-0"
+                                                                    title="Sisipkan Variabel"
+                                                                >
+                                                                    <Variable className="h-3 w-3" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-48">
+                                                                <DropdownMenuLabel className="text-[10px]">
+                                                                    Pilih Variabel
+                                                                </DropdownMenuLabel>
+                                                                <DropdownMenuSeparator />
+                                                                {variables.map((v) => (
+                                                                    <DropdownMenuItem
+                                                                        key={v.key}
+                                                                        className="text-xs cursor-pointer"
+                                                                        onClick={() => {
+                                                                            const newValue = (slot.label_position || '') + `{{${v.key}}}`;
+                                                                            onUpdateSlot(slot.id, { label_position: newValue });
+                                                                        }}
+                                                                    >
+                                                                        {v.source !== 'manual' && (
+                                                                            <Zap className="h-3 w-3 mr-1.5 text-amber-500" />
+                                                                        )}
+                                                                        <span className="truncate">{v.label || v.key}</span>
+                                                                    </DropdownMenuItem>
+                                                                ))}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">

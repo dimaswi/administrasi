@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ContentBlock, BlockStyle, PageSettings, FieldItem, FieldGroupConfig, defaultFieldItem, defaultFieldGroupConfig, TemplateVariable, PageBreakConfig, defaultPageBreakConfig, LetterOpeningConfig, defaultLetterOpeningConfig, RecipientSlot, defaultRecipientSlot, defaultLetterDateConfig } from '@/types/document-template';
+import { ContentBlock, BlockStyle, PageSettings, FieldItem, FieldGroupConfig, defaultFieldItem, defaultFieldGroupConfig, TemplateVariable, PageBreakConfig, defaultPageBreakConfig, LetterOpeningConfig, defaultLetterOpeningConfig, RecipientSlot, defaultRecipientSlot, defaultLetterDateConfig, TableConfig, TableCell, defaultTableConfig, defaultTableCell } from '@/types/document-template';
 import { 
     ChevronDown, ChevronUp, Copy, GripVertical, Plus, Trash2, 
     Bold, Italic, AlignLeft, AlignCenter, AlignRight, AlignJustify,
     Type, Pilcrow, Minus, Settings2, List, Variable, Zap, FileText, Mail,
-    Calendar, User, MapPin, Building
+    Calendar, User, MapPin, Building, Table
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -42,6 +42,7 @@ const blockTypeOptions = [
     { value: 'text', label: 'Teks', icon: Type },
     { value: 'paragraph', label: 'Paragraf', icon: Pilcrow },
     { value: 'field-group', label: 'Field', icon: List },
+    { value: 'table', label: 'Tabel', icon: Table },
     { value: 'spacer', label: 'Spasi', icon: Minus },
     { value: 'page-break', label: 'Halaman Baru', icon: FileText },
 ];
@@ -594,6 +595,206 @@ function LetterOpeningEditor({ block, variables = [], onUpdate }: LetterOpeningE
     );
 }
 
+// Table Editor Component
+interface TableEditorProps {
+    block: ContentBlock;
+    variables?: TemplateVariable[];
+    onUpdate: (id: string, updates: Partial<ContentBlock>) => void;
+}
+
+function TableEditor({ block, variables = [], onUpdate }: TableEditorProps) {
+    const config: TableConfig = block.table_config || defaultTableConfig;
+    
+    const updateConfig = (updates: Partial<TableConfig>) => {
+        onUpdate(block.id, {
+            table_config: { ...config, ...updates }
+        });
+    };
+
+    const updateCell = (rowIndex: number, colIndex: number, updates: Partial<TableCell>) => {
+        const newRows = config.rows.map((row, ri) => 
+            ri === rowIndex 
+                ? row.map((cell, ci) => ci === colIndex ? { ...cell, ...updates } : cell)
+                : row
+        );
+        updateConfig({ rows: newRows });
+    };
+
+    const addRow = () => {
+        const newRow: TableCell[] = Array(config.columns).fill(null).map(() => ({ ...defaultTableCell }));
+        updateConfig({ rows: [...config.rows, newRow] });
+    };
+
+    const removeRow = (rowIndex: number) => {
+        if (config.rows.length <= 1) return;
+        updateConfig({ rows: config.rows.filter((_, i) => i !== rowIndex) });
+    };
+
+    const addColumn = () => {
+        const newColumns = config.columns + 1;
+        const newWidths = Array(newColumns).fill(100 / newColumns);
+        const newRows = config.rows.map(row => [...row, { ...defaultTableCell }]);
+        updateConfig({ columns: newColumns, rows: newRows, column_widths: newWidths });
+    };
+
+    const removeColumn = (colIndex: number) => {
+        if (config.columns <= 1) return;
+        const newColumns = config.columns - 1;
+        const newWidths = Array(newColumns).fill(100 / newColumns);
+        const newRows = config.rows.map(row => row.filter((_, i) => i !== colIndex));
+        updateConfig({ columns: newColumns, rows: newRows, column_widths: newWidths });
+    };
+
+    return (
+        <div className="space-y-3">
+            {/* Table Settings */}
+            <div className="flex items-center gap-3 flex-wrap pb-2 border-b border-dashed">
+                <div className="flex items-center gap-1">
+                    <Switch
+                        id={`border-${block.id}`}
+                        checked={config.border}
+                        onCheckedChange={(checked) => updateConfig({ border: checked })}
+                    />
+                    <Label htmlFor={`border-${block.id}`} className="text-[9px]">Border</Label>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Switch
+                        id={`header-${block.id}`}
+                        checked={config.header_row}
+                        onCheckedChange={(checked) => updateConfig({ header_row: checked })}
+                    />
+                    <Label htmlFor={`header-${block.id}`} className="text-[9px]">Header</Label>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Label className="text-[9px] text-muted-foreground">Padding:</Label>
+                    <Input
+                        type="number"
+                        value={config.cell_padding}
+                        onChange={(e) => updateConfig({ cell_padding: parseFloat(e.target.value) || 2 })}
+                        className="w-10 h-5 text-[10px] px-1"
+                        min={0}
+                        max={10}
+                    />
+                    <span className="text-[9px] text-muted-foreground">mm</span>
+                </div>
+            </div>
+
+            {/* Table Preview/Editor */}
+            <div className="border rounded overflow-hidden">
+                <table className="w-full border-collapse text-[10px]">
+                    <tbody>
+                        {config.rows.map((row, rowIndex) => (
+                            <tr key={rowIndex} className={rowIndex === 0 && config.header_row ? 'bg-muted/50' : ''}>
+                                {row.map((cell, colIndex) => (
+                                    <td 
+                                        key={colIndex} 
+                                        className={`border p-1 ${cell.bold ? 'font-bold' : ''}`}
+                                        style={{ textAlign: cell.align || 'left' }}
+                                    >
+                                        <div className="flex items-center gap-0.5">
+                                            <Input
+                                                value={cell.content || ''}
+                                                onChange={(e) => updateCell(rowIndex, colIndex, { content: e.target.value })}
+                                                placeholder="Isi sel..."
+                                                className="h-5 text-[9px] px-1 border-0 shadow-none focus-visible:ring-0"
+                                            />
+                                            {variables.length > 0 && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-4 w-4 p-0 shrink-0"
+                                                        >
+                                                            <Variable className="h-2.5 w-2.5" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-40">
+                                                        <DropdownMenuLabel className="text-[10px]">
+                                                            Sisipkan Variabel
+                                                        </DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {variables.map((v) => (
+                                                            <DropdownMenuItem
+                                                                key={v.key}
+                                                                className="text-xs cursor-pointer"
+                                                                onClick={() => {
+                                                                    const newContent = (cell.content || '') + `{{${v.key}}}`;
+                                                                    updateCell(rowIndex, colIndex, { content: newContent });
+                                                                }}
+                                                            >
+                                                                <span className="truncate">{v.label || v.key}</span>
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                    </td>
+                                ))}
+                                <td className="w-6 border-l">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 p-0"
+                                        onClick={() => removeRow(rowIndex)}
+                                        disabled={config.rows.length <= 1}
+                                    >
+                                        <Trash2 className="h-2.5 w-2.5 text-destructive" />
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Cell Style Controls */}
+            <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                <span>Tip: Gunakan {`{{variabel}}`} untuk data dinamis</span>
+            </div>
+
+            {/* Row/Column Actions */}
+            <div className="flex items-center gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px]"
+                    onClick={addRow}
+                >
+                    <Plus className="h-2.5 w-2.5 mr-1" />
+                    Baris
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px]"
+                    onClick={addColumn}
+                >
+                    <Plus className="h-2.5 w-2.5 mr-1" />
+                    Kolom
+                </Button>
+                {config.columns > 1 && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] text-destructive"
+                        onClick={() => removeColumn(config.columns - 1)}
+                    >
+                        <Trash2 className="h-2.5 w-2.5 mr-1" />
+                        Kolom
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function ContentBlocksPanel({
     blocks,
     defaultFont,
@@ -800,6 +1001,12 @@ export function ContentBlocksPanel({
                                     </div>
                                 ) : block.type === 'letter-opening' ? (
                                     <LetterOpeningEditor
+                                        block={block}
+                                        variables={variables}
+                                        onUpdate={onUpdate}
+                                    />
+                                ) : block.type === 'table' ? (
+                                    <TableEditor
                                         block={block}
                                         variables={variables}
                                         onUpdate={onUpdate}

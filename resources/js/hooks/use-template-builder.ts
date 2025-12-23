@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { DocumentTemplate, PageSettings, HeaderSettings, ContentBlock, SignatureSettings, TemplateVariable, FooterSettings, SignatureSlot, defaultSignatureSlot, defaultContentBlock, HeaderTextLine, BlockStyle, defaultBlockStyle, defaultLetterOpeningConfig } from '@/types/document-template';
+import { DocumentTemplate, PageSettings, HeaderSettings, ContentBlock, SignatureSettings, TemplateVariable, FooterSettings, SignatureSlot, defaultSignatureSlot, defaultContentBlock, HeaderTextLine, BlockStyle, defaultBlockStyle, defaultLetterOpeningConfig, defaultTableConfig } from '@/types/document-template';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -233,6 +233,10 @@ export function useTemplateBuilder(initialTemplate?: Partial<DocumentTemplate>) 
                     // Add letter_opening config for letter-opening type
                     ...(type === 'letter-opening' && {
                         letter_opening: { ...defaultLetterOpeningConfig },
+                    }),
+                    // Add table_config for table type
+                    ...(type === 'table' && {
+                        table_config: { ...defaultTableConfig },
                     }),
                 },
             ],

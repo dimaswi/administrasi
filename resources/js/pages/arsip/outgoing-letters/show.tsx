@@ -233,137 +233,6 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
         setPreviewScale(0.5);
     };
 
-    const handleDownloadPdf = () => {
-        if (!previewRef.current) return;
-        
-        // Get all preview pages
-        const previewElements = previewRef.current.querySelectorAll('.template-preview-content');
-        if (!previewElements.length) {
-            return;
-        }
-
-        // Get page settings
-        const pageSettings = template?.page_settings || {};
-        const pageSize = pageSettings.paper_size || 'A4';
-        const orientation = pageSettings.orientation || 'portrait';
-        const margins = pageSettings.margins || { top: 25, bottom: 25, left: 30, right: 25 };
-        const defaultFont = pageSettings.default_font || { family: 'Times New Roman', size: 12, line_height: 1.5 };
-
-        // Create print window
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            return;
-        }
-
-        // Get page dimensions
-        const pageSizes: Record<string, { width: number; height: number }> = {
-            'A4': { width: 210, height: 297 },
-            'Letter': { width: 216, height: 279 },
-            'Legal': { width: 216, height: 356 },
-            'F4': { width: 215, height: 330 },
-        };
-        const size = pageSizes[pageSize] || pageSizes['A4'];
-        const pageWidth = orientation === 'portrait' ? size.width : size.height;
-        const pageHeight = orientation === 'portrait' ? size.height : size.width;
-
-        // Build HTML content - copy the actual rendered content
-        let pagesHtml = '';
-        previewElements.forEach((el, index) => {
-            // Get the inner div that has the actual content (without transform)
-            const innerDiv = el.querySelector('div');
-            if (innerDiv) {
-                const clonedInner = innerDiv.cloneNode(true) as HTMLElement;
-                // Remove transform
-                clonedInner.style.transform = 'none';
-                clonedInner.style.width = `${pageWidth}mm`;
-                clonedInner.style.height = `${pageHeight}mm`;
-                pagesHtml += `<div class="page${index > 0 ? ' page-break' : ''}">${clonedInner.outerHTML}</div>`;
-            }
-        });
-
-        // Get all stylesheets from current page
-        let styles = '';
-        document.querySelectorAll('style, link[rel="stylesheet"]').forEach(styleEl => {
-            if (styleEl.tagName === 'STYLE') {
-                styles += styleEl.outerHTML;
-            }
-        });
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>${letter.letter_number || 'Surat'}</title>
-                ${styles}
-                <style>
-                    @page {
-                        size: ${pageWidth}mm ${pageHeight}mm;
-                        margin: 0;
-                    }
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    html, body {
-                        width: ${pageWidth}mm;
-                        background: white;
-                    }
-                    body {
-                        font-family: '${defaultFont.family}', 'Times New Roman', Times, serif;
-                        font-size: ${defaultFont.size}pt;
-                        line-height: ${defaultFont.line_height};
-                    }
-                    .page {
-                        width: ${pageWidth}mm;
-                        min-height: ${pageHeight}mm;
-                        background: white;
-                        overflow: hidden;
-                        position: relative;
-                    }
-                    .page > div {
-                        transform: none !important;
-                        width: ${pageWidth}mm !important;
-                        min-height: ${pageHeight}mm !important;
-                    }
-                    .page-break {
-                        page-break-before: always;
-                    }
-                    @media print {
-                        html, body {
-                            width: ${pageWidth}mm;
-                            height: ${pageHeight}mm;
-                        }
-                        body {
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                        .page {
-                            page-break-after: always;
-                            page-break-inside: avoid;
-                        }
-                        .page:last-child {
-                            page-break-after: auto;
-                        }
-                    }
-                </style>
-            </head>
-            <body>
-                ${pagesHtml}
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() {
-                            window.print();
-                        }, 500);
-                    };
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-    };
-
     const signedCount = letter.signatories?.filter(s => s.status === 'approved').length || 0;
     const totalSignatories = letter.signatories?.length || 0;
     const template = letter.template;
@@ -469,7 +338,7 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                         <Button 
                             size="sm" 
                             variant="outline" 
-                            onClick={handleDownloadPdf}
+                            onClick={() => window.open(`/arsip/outgoing-letters/${letter.id}/preview`, '_blank')}
                         >
                             <Download className="h-4 w-4 mr-1.5" />
                             Download PDF
