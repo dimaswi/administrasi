@@ -16,8 +16,6 @@ export default defineConfig({
     ],
     esbuild: {
         jsx: 'automatic',
-        // Remove console.log in production
-        drop: ['console', 'debugger'],
     },
     resolve: {
         alias: {
@@ -25,47 +23,24 @@ export default defineConfig({
         },
     },
     build: {
-        // Optimize chunk splitting for production
+        // Increase chunk size warning limit
+        chunkSizeWarningLimit: 1500,
+        // Use esbuild for minification
+        minify: 'esbuild',
+        // Disable source maps for production
+        sourcemap: false,
         rollupOptions: {
             output: {
-                manualChunks: (id) => {
-                    // Group all node_modules into vendor chunk
-                    if (id.includes('node_modules')) {
-                        // React core
-                        if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-                            return 'vendor-react';
-                        }
-                        // Radix UI components (grouped together)
-                        if (id.includes('@radix-ui')) {
-                            return 'vendor-radix';
-                        }
-                        // Lucide icons
-                        if (id.includes('lucide-react')) {
-                            return 'vendor-icons';
-                        }
-                        // TipTap editor
-                        if (id.includes('@tiptap') || id.includes('prosemirror')) {
-                            return 'vendor-editor';
-                        }
-                        // Other utilities
-                        if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-                            return 'vendor-utils';
-                        }
-                        // Inertia
-                        if (id.includes('@inertiajs')) {
-                            return 'vendor-inertia';
-                        }
-                        // Everything else from node_modules
-                        return 'vendor';
-                    }
+                // Simpler chunking strategy - just separate vendor from app
+                manualChunks: {
+                    'vendor': [
+                        'react',
+                        'react-dom',
+                        'react/jsx-runtime',
+                        '@inertiajs/react',
+                    ],
                 },
             },
         },
-        // Increase chunk size warning limit
-        chunkSizeWarningLimit: 1000,
-        // Use esbuild for minification (faster than terser)
-        minify: 'esbuild',
-        // Enable source maps for debugging (optional, remove in strict production)
-        sourcemap: false,
     },
 });
