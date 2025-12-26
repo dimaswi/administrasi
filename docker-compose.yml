@@ -38,3 +38,13 @@ services:
     working_dir: /var/www/html
     networks:
       - administrasi
+
+  cloudflared_administrasi:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared_administrasi
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token eyJhIjoiZGRlZTM4YmMyNDBlYTIzZjQ1OTlmNjI4MmEyNGMyMTUiLCJ0IjoiNmM0ZDY4NTItZjk5NC00ZTViLWFhZTUtZDQ5M2E0ZjM2NjgyIiwicyI6IlpETXlNR1prTVRBdFpqWXlOeTAwWlRobExXRmpNRE10TkRBMVpHTmtPV1F5TVRKbSJ9
+    depends_on:
+      - nginx_administrasi
+    networks:
+      - administrasi
