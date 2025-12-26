@@ -164,6 +164,9 @@ class OutgoingLetterController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
+            // Load relations needed for letter number generation
+            $letter->load(['template', 'creator.organizationUnit']);
+            
             // Generate letter number immediately
             $letter->update([
                 'letter_number' => $letter->generateLetterNumber(),

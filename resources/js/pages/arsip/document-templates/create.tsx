@@ -21,6 +21,7 @@ import { ContentBlocksPanel } from '@/components/document-template/content-block
 import { SignatureSettingsPanel } from '@/components/document-template/signature-settings-panel';
 import { VariablesPanel } from '@/components/document-template/variables-panel';
 import { TemplatePreview } from '@/components/document-template/template-preview';
+import { NumberingFormatBuilder } from '@/components/document-template/numbering-format-builder';
 
 interface Props {
     categories?: string[];
@@ -264,19 +265,12 @@ export default function Create({ categories = [] }: Props) {
                                                 />
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label htmlFor="numbering_format" className="text-xs">Format Penomoran</Label>
-                                                <Input
-                                                    id="numbering_format"
-                                                    value={template.numbering_format || ''}
-                                                    onChange={(e) => updateTemplate({ numbering_format: e.target.value || null })}
-                                                    placeholder="{no}/{kode}/{unit}/{bulan}/{tahun}"
-                                                    className="h-9 font-mono text-xs"
-                                                />
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    Kosongkan untuk format default
-                                                </p>
-                                            </div>
+                                            <Separator />
+
+                                            <NumberingFormatBuilder
+                                                value={template.numbering_format}
+                                                onChange={(format) => updateTemplate({ numbering_format: format })}
+                                            />
 
                                             <Separator />
 

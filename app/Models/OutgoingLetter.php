@@ -213,7 +213,7 @@ class OutgoingLetter extends Model
     public function generateLetterNumber(): string
     {
         $template = $this->template;
-        $format = $template->numbering_format ?? '{CODE}/{NO}/{MONTH}/{YEAR}';
+        $format = $template->numbering_format ?? '{no}/{kode}/{unit}/{bulan}/{tahun}';
         
         // Get current year and month (roman)
         $year = now()->format('Y');
@@ -236,16 +236,32 @@ class OutgoingLetter extends Model
             ->count();
         $sequenceNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         
-        // Replace placeholders
+        // Get organization unit code from the creator
+        $creator = $this->creator;
+        $unitCode = '';
+        if ($creator && $creator->organizationUnit) {
+            $unitCode = $creator->organizationUnit->code ?? '';
+        }
+        
+        // Replace placeholders (case-insensitive)
+        $replacements = [
+            // Lowercase format (from builder)
+            '{no}' => $sequenceNumber,
+            '{kode}' => $template->code ?? 'OUT',
+            '{unit}' => $unitCode,
+            '{bulan}' => $month,
+            '{tahun}' => $year,
+            // Legacy uppercase format (backward compatibility)
+            '{CODE}' => $template->code ?? 'OUT',
+            '{NO}' => $sequenceNumber,
+            '{MONTH}' => $month,
+            '{YEAR}' => $year,
+            '{UNIT}' => $unitCode,
+        ];
+        
         $number = str_replace(
-            ['{CODE}', '{NO}', '{MONTH}', '{YEAR}', '{UNIT}'],
-            [
-                $template->code ?? 'OUT',
-                $sequenceNumber,
-                $month,
-                $year,
-                $template->organizationUnit?->code ?? '',
-            ],
+            array_keys($replacements),
+            array_values($replacements),
             $format
         );
         
