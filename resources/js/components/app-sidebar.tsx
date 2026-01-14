@@ -1,74 +1,136 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
+import { 
+    Sidebar, 
+    SidebarContent, 
+    SidebarFooter, 
+    SidebarHeader,
+} from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, FileSignature, Folder, LayoutGrid, MailIcon, FileText, Send, FileCode } from 'lucide-react';
-import AppLogo from './app-logo';
+import { usePermission } from '@/hooks/use-permission';
+import { 
+    Home, 
+    Calendar, 
+    Archive, 
+    MailIcon, 
+    FileText, 
+    FileSignature, 
+    Users, 
+    Shield, 
+    Key, 
+    LayoutGrid, 
+    BookOpen,
+} from 'lucide-react';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
-        icon: LayoutGrid,
+        icon: Home,
     },
+    {
+        title: 'Rapat',
+        href: '/meeting/meetings',
+        icon: Calendar,
+    },
+];
+
+const arsipNavItems: NavItem[] = [
     {
         title: 'Surat Masuk',
         href: '/arsip/incoming-letters',
         icon: MailIcon,
+        permission: 'incoming_letter.view',
     },
     {
         title: 'Surat Keluar',
         href: '/arsip/outgoing-letters',
-        icon: Send,
+        icon: FileText,
+        permission: 'outgoing_letter.view',
     },
     {
         title: 'Template Surat',
         href: '/arsip/document-templates',
-        icon: FileCode,
+        icon: FileSignature,
+        permission: 'document_template.view',
     },
     {
         title: 'Disposisi Saya',
         href: '/arsip/dispositions',
         icon: FileSignature,
+        permission: 'disposition.view',
+    },
+    {
+        title: 'Arsip Dokumen',
+        href: '/arsip/archives',
+        icon: Archive,
+        permission: 'archive.view',
     },
 ];
 
-const footerNavItems: NavItem[] = [
+const settingsNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
+        title: 'Daftar User',
+        href: '/master/users',
+        icon: Users,
+        permission: 'user.view',
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        title: 'Daftar Role',
+        href: '/master/roles',
+        icon: Shield,
+        permission: 'role.view',
+    },
+    {
+        title: 'Daftar Permission',
+        href: '/master/permissions',
+        icon: Key,
+        permission: 'permission.view',
+    },
+    {
+        title: 'Daftar Ruangan',
+        href: '/master/rooms',
+        icon: LayoutGrid,
+        permission: 'room.view',
+    },
+    {
+        title: 'Unit Organisasi',
+        href: '/master/organizations',
         icon: BookOpen,
+        permission: 'organization.view',
     },
 ];
 
 export function AppSidebar() {
+    const { hasPermission } = usePermission();
+
+    // Filter navigation items based on permissions
+    const filteredArsipItems = arsipNavItems.filter(item => 
+        !item.permission || hasPermission(item.permission)
+    );
+
+    const filteredSettingsItems = settingsNavItems.filter(item => 
+        !item.permission || hasPermission(item.permission)
+    );
+
     return (
         <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader className="shrink-0">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+            <SidebarHeader>
+                <WorkspaceSwitcher />
             </SidebarHeader>
 
-            <SidebarContent className="flex-1 overflow-y-auto">
-                <NavMain items={mainNavItems} />
+            <SidebarContent>
+                <NavMain items={mainNavItems} label="Menu" />
+                {filteredArsipItems.length > 0 && (
+                    <NavMain items={filteredArsipItems} label="Arsip" />
+                )}
+                {filteredSettingsItems.length > 0 && (
+                    <NavMain items={filteredSettingsItems} label="Pengaturan" />
+                )}
             </SidebarContent>
 
-            <SidebarFooter className="shrink-0 mt-auto">
-                <NavFooter items={footerNavItems} />
+            <SidebarFooter>
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

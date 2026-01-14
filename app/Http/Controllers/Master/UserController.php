@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Master;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -72,6 +73,9 @@ class UserController extends Controller
             'role_id' => $request->role_id === '0' ? null : $request->role_id,
         ]);
 
+        // Clear related cache
+        CacheService::clearUserCache();
+
         return redirect()->route('users.index');
     }
 
@@ -111,12 +115,19 @@ class UserController extends Controller
             'role_id' => $request->role_id === '0' ? null : $request->role_id,
         ]);
 
+        // Clear related cache
+        CacheService::clearUserCache($user->id);
+
         return redirect()->route('users.index');
     }
 
     public function destroy(User $user)
     {
+        $userId = $user->id;
         $user->delete();
+
+        // Clear related cache
+        CacheService::clearUserCache($userId);
 
         return redirect()->route('users.index');
     }

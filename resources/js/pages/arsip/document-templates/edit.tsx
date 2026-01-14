@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -294,16 +293,21 @@ export default function Edit({ template: initialTemplate, categories = [] }: Pro
 
                                             <Separator />
 
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <Label htmlFor="is_active" className="text-xs">Status</Label>
-                                                    <p className="text-[10px] text-muted-foreground">Template aktif dapat digunakan</p>
-                                                </div>
-                                                <Switch
-                                                    id="is_active"
-                                                    checked={template.is_active}
-                                                    onCheckedChange={(checked) => updateTemplate({ is_active: checked })}
-                                                />
+                                            <div className="space-y-2">
+                                                <Label htmlFor="is_active" className="text-xs">Status</Label>
+                                                <Select
+                                                    value={template.is_active ? 'true' : 'false'}
+                                                    onValueChange={(value) => updateTemplate({ is_active: value === 'true' })}
+                                                >
+                                                    <SelectTrigger className="h-8">
+                                                        <SelectValue placeholder="Pilih status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="true">Aktif</SelectItem>
+                                                        <SelectItem value="false">Nonaktif</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-[10px] text-muted-foreground">Template aktif dapat digunakan</p>
                                             </div>
                                         </div>
                                     </TabsContent>

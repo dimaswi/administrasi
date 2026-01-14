@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Master;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,10 @@ class RoleController extends Controller
             }
         });
 
+        // Clear related cache
+        CacheService::clearRoleCache();
+        CacheService::clearPermissionCache();
+
         return redirect()->route('roles.index')->with('success', 'Role berhasil ditambahkan');
     }
 
@@ -136,6 +141,10 @@ class RoleController extends Controller
             $role->permissions()->sync($request->permission_ids ?? []);
         });
 
+        // Clear related cache
+        CacheService::clearRoleCache($role->id);
+        CacheService::clearPermissionCache();
+
         return redirect()->route('roles.index')->with('success', 'Role berhasil diperbarui');
     }
 
@@ -150,6 +159,10 @@ class RoleController extends Controller
 
         $role->permissions()->detach();
         $role->delete();
+
+        // Clear related cache
+        CacheService::clearRoleCache($role->id);
+        CacheService::clearPermissionCache();
 
         return redirect()->route('roles.index')->with('success', 'Role berhasil dihapus');
     }

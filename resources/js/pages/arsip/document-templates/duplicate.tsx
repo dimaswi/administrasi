@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -164,32 +164,43 @@ export default function Duplicate({ template, organizationUnits, currentLetterCo
                                 {/* Template Type Selection */}
                                 <Card className={data.is_new_template ? '' : 'border-primary'}>
                                     <CardContent className="space-y-3 pt-4">
-                                        <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
-                                            <div className="flex items-center gap-2">
-                                                {data.is_new_template ? (
-                                                    <Unlink className="h-4 w-4 text-muted-foreground" />
-                                                ) : (
-                                                    <Link2 className="h-4 w-4 text-primary" />
-                                                )}
-                                                <div>
-                                                    <p className="text-sm font-medium">
-                                                        {data.is_new_template 
-                                                            ? 'Template Baru (Independen)' 
-                                                            : 'Template Terhubung (Linked)'
-                                                        }
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {data.is_new_template 
-                                                            ? 'Kode & nama bisa berbeda, nomor mulai dari 001' 
-                                                            : 'Kode & nama sama, nomor melanjutkan'
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <Switch
-                                                checked={data.is_new_template}
-                                                onCheckedChange={handleNewTemplateChange}
-                                            />
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-medium">Tipe Duplikasi</Label>
+                                            <Select
+                                                value={data.is_new_template ? 'new' : 'linked'}
+                                                onValueChange={(value) => handleNewTemplateChange(value === 'new')}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <div className="flex items-center gap-2">
+                                                        {data.is_new_template ? (
+                                                            <Unlink className="h-4 w-4 text-muted-foreground" />
+                                                        ) : (
+                                                            <Link2 className="h-4 w-4 text-primary" />
+                                                        )}
+                                                        <SelectValue />
+                                                    </div>
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="new">
+                                                        <div className="flex items-center gap-2">
+                                                            <Unlink className="h-4 w-4" />
+                                                            Template Baru (Independen)
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="linked">
+                                                        <div className="flex items-center gap-2">
+                                                            <Link2 className="h-4 w-4" />
+                                                            Template Terhubung (Linked)
+                                                        </div>
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">
+                                                {data.is_new_template 
+                                                    ? 'Kode & nama bisa berbeda, nomor mulai dari 001' 
+                                                    : 'Kode & nama sama, nomor melanjutkan'
+                                                }
+                                            </p>
                                         </div>
 
                                         {data.is_new_template ? (

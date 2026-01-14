@@ -15,6 +15,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Table,
     TableBody,
@@ -107,6 +108,9 @@ interface IndexPageProps<T> {
     emptyMessage?: string;
     emptyIcon?: LucideIcon;
     isLoading?: boolean;
+    
+    // Extra content in header
+    headerExtra?: React.ReactNode;
 }
 
 // ============ Component ============
@@ -131,6 +135,7 @@ export function IndexPage<T extends { id: number | string }>({
     emptyMessage = "Tidak ada data",
     emptyIcon: EmptyIcon,
     isLoading = false,
+    headerExtra,
 }: IndexPageProps<T>) {
     const [filterOpen, setFilterOpen] = React.useState(false);
     
@@ -143,9 +148,9 @@ export function IndexPage<T extends { id: number | string }>({
     ).length;
 
     return (
-        <Card>
+        <Card className="h-[calc(100vh-7rem)] flex flex-col">
             {/* Card Header */}
-            <CardHeader className="bg-muted/40 border-b py-4">
+            <CardHeader className="bg-muted/40 border-b py-4 flex-shrink-0">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <CardTitle className="text-xl">{title}</CardTitle>
@@ -153,6 +158,13 @@ export function IndexPage<T extends { id: number | string }>({
                             <CardDescription>{description}</CardDescription>
                         )}
                     </div>
+                    
+                    {/* Header Extra Content (e.g., date navigation) */}
+                    {headerExtra && (
+                        <div className="flex items-center">
+                            {headerExtra}
+                        </div>
+                    )}
                     
                     {/* Actions + Filter Button */}
                     <div className="flex items-center gap-2">
@@ -203,135 +215,141 @@ export function IndexPage<T extends { id: number | string }>({
                 </div>
             </CardHeader>
 
-            <CardContent className="p-4">
-                {/* Search Bar */}
-                {onSearchChange && (
-                    <div className="mb-4">
-                        <Input
-                            value={searchValue || ""}
-                            onChange={(e) => onSearchChange(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
-                            placeholder={searchPlaceholder}
-                            className="h-9 max-w-sm"
-                        />
-                    </div>
-                )}
-
-                {/* Collapsible Filter */}
-                {filterFields && filterFields.length > 0 && (
-                    <Collapsible open={filterOpen} onOpenChange={setFilterOpen}>
-                        <CollapsibleContent>
-                            <div className="mb-4 p-4 rounded-lg border bg-muted/20">
-                                <div className="flex flex-wrap items-end gap-3">
-                                        {filterFields.map((field) => (
-                                            <div key={field.key} className="space-y-1.5">
-                                                {field.label && (
-                                                    <label className="text-xs font-medium text-muted-foreground">
-                                                        {field.label}
-                                                    </label>
-                                                )}
-                                                {field.type === "select" && field.options && (
-                                                    <Select 
-                                                        value={filterValues[field.key] || "all"} 
-                                                        onValueChange={(val) => onFilterChange?.(field.key, val === "all" ? "" : val)}
-                                                    >
-                                                        <SelectTrigger className={cn("h-9 w-[180px]", field.className)}>
-                                                            <SelectValue placeholder={field.placeholder || "Pilih..."} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="all">{field.placeholder || "Semua"}</SelectItem>
-                                                            {field.options.map((option) => (
-                                                                <SelectItem key={option.value} value={option.value}>
-                                                                    {option.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                                {field.type === "text" && (
-                                                    <Input
-                                                        value={filterValues[field.key] || ""}
-                                                        onChange={(e) => onFilterChange?.(field.key, e.target.value)}
-                                                        onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
-                                                        placeholder={field.placeholder}
-                                                        className={cn("h-9 w-[180px]", field.className)}
-                                                    />
-                                                )}
-                                            </div>
-                                        ))}
-                                        <div className="flex gap-2">
-                                            <Button onClick={onFilterSubmit} size="sm" className="h-9">
-                                                Terapkan
-                                            </Button>
-                                            {hasActiveFilters && (
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={onFilterReset}
-                                                    className="h-9"
-                                                >
-                                                    <RotateCcw className="h-4 w-4 mr-1.5" />
-                                                    Reset
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
+            <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
+                <div className="p-4 flex-shrink-0">
+                    {/* Search Bar */}
+                    {onSearchChange && (
+                        <div className="mb-4">
+                            <Input
+                                value={searchValue || ""}
+                                onChange={(e) => onSearchChange(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
+                                placeholder={searchPlaceholder}
+                                className="h-9 max-w-sm"
+                            />
+                        </div>
                     )}
 
-                {/* Table */}
-                <div className="rounded-lg border overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                {columns.map((column) => (
-                                    <TableHead key={column.key} className={cn("font-medium text-muted-foreground", column.className)}>
-                                        {column.label}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={columns.length} className="h-32 text-center">
-                                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                            Memuat data...
+                    {/* Collapsible Filter */}
+                    {filterFields && filterFields.length > 0 && (
+                        <Collapsible open={filterOpen} onOpenChange={setFilterOpen}>
+                            <CollapsibleContent>
+                                <div className="mb-4 p-4 rounded-lg border bg-muted/20">
+                                    <div className="flex flex-wrap items-end gap-3">
+                                            {filterFields.map((field) => (
+                                                <div key={field.key} className="space-y-1.5">
+                                                    {field.label && (
+                                                        <label className="text-xs font-medium text-muted-foreground">
+                                                            {field.label}
+                                                        </label>
+                                                    )}
+                                                    {field.type === "select" && field.options && (
+                                                        <Select 
+                                                            value={filterValues[field.key] || "all"} 
+                                                            onValueChange={(val) => onFilterChange?.(field.key, val === "all" ? "" : val)}
+                                                        >
+                                                            <SelectTrigger className={cn("h-9 w-[180px]", field.className)}>
+                                                                <SelectValue placeholder={field.placeholder || "Pilih..."} />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="all">{field.placeholder || "Semua"}</SelectItem>
+                                                                {field.options.map((option) => (
+                                                                    <SelectItem key={option.value} value={option.value}>
+                                                                        {option.label}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                    {field.type === "text" && (
+                                                        <Input
+                                                            value={filterValues[field.key] || ""}
+                                                            onChange={(e) => onFilterChange?.(field.key, e.target.value)}
+                                                            onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
+                                                            placeholder={field.placeholder}
+                                                            className={cn("h-9 w-[180px]", field.className)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <div className="flex gap-2">
+                                                <Button onClick={onFilterSubmit} size="sm" className="h-9">
+                                                    Terapkan
+                                                </Button>
+                                                {hasActiveFilters && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={onFilterReset}
+                                                        className="h-9"
+                                                    >
+                                                        <RotateCcw className="h-4 w-4 mr-1.5" />
+                                                        Reset
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </TableCell>
-                                </TableRow>
-                            ) : data.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={columns.length} className="h-32 text-center">
-                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                            {EmptyIcon && <EmptyIcon className="h-10 w-10 opacity-40" />}
-                                            <span>{emptyMessage}</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                data.map((item) => (
-                                    <TableRow key={item.id} className="hover:bg-muted/50">
-                                        {columns.map((column) => (
-                                            <TableCell key={column.key} className={column.className}>
-                                                {column.render 
-                                                    ? column.render(item) 
-                                                    : (item as any)[column.key]}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        )}
                 </div>
 
-                {/* Pagination */}
+                {/* Scrollable Table */}
+                <div className="flex-1 overflow-hidden px-4">
+                    <ScrollArea className="h-full">
+                        <div className="rounded-lg border overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                        {columns.map((column) => (
+                                            <TableHead key={column.key} className={cn("font-medium text-muted-foreground", column.className)}>
+                                                {column.label}
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} className="h-32 text-center">
+                                                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                                    Memuat data...
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : data.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} className="h-32 text-center">
+                                                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                                    {EmptyIcon && <EmptyIcon className="h-10 w-10 opacity-40" />}
+                                                    <span>{emptyMessage}</span>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        data.map((item) => (
+                                            <TableRow key={item.id} className="hover:bg-muted/50">
+                                                {columns.map((column) => (
+                                                    <TableCell key={column.key} className={column.className}>
+                                                        {column.render 
+                                                            ? column.render(item) 
+                                                            : (item as any)[column.key]}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </ScrollArea>
+                </div>
+
+                {/* Pagination - Fixed at bottom */}
                 {pagination && pagination.total > 0 && (
-                    <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-4 border-t text-sm text-muted-foreground flex-shrink-0">
                         <span>
                             Menampilkan {pagination.from || 1} - {pagination.to || data.length} dari {pagination.total}
                         </span>

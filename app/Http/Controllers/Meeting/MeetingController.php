@@ -9,6 +9,7 @@ use App\Models\OrganizationUnit;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -192,6 +193,9 @@ class MeetingController extends Controller
             }
         });
 
+        // Clear related cache
+        CacheService::clearMeetingCache();
+
         return redirect()->route('meetings.index')->with('success', 'Rapat berhasil dibuat');
     }
 
@@ -340,6 +344,9 @@ class MeetingController extends Controller
             }
         });
 
+        // Clear related cache
+        CacheService::clearMeetingCache($meeting->id);
+
         $successMessage = $meeting->wasChanged('status') && $meeting->status === 'scheduled' 
             ? 'Rapat berhasil dijadwalkan ulang' 
             : 'Rapat berhasil diperbarui';
@@ -355,6 +362,9 @@ class MeetingController extends Controller
 
         $meeting->participants()->delete();
         $meeting->delete();
+
+        // Clear related cache
+        CacheService::clearMeetingCache($meeting->id);
 
         return redirect()->route('meetings.index')->with('success', 'Rapat berhasil dihapus');
     }
