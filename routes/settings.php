@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Settings\CompanySettingsController;
 use App\Http\Controllers\Settings\OrganizationUnitController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\RoomController;
+use App\Http\Controllers\Settings\SystemLogController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -20,6 +22,15 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
     })->name('appearance');
+
+    // Company Settings
+    Route::get('settings/company', [CompanySettingsController::class, 'index'])->name('settings.company');
+    Route::patch('settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');
+    Route::post('settings/company/logo', [CompanySettingsController::class, 'uploadLogo'])->name('settings.company.logo');
+
+    // System Logs
+    Route::get('settings/system-logs', [SystemLogController::class, 'index'])->name('settings.system-logs');
+    Route::post('settings/system-logs/clear', [SystemLogController::class, 'clear'])->name('settings.system-logs.clear');
 
     // Organization Unit Management
     Route::get('master/organizations', [OrganizationUnitController::class, 'index'])->name('organizations.index')->middleware('permission:organization.view');

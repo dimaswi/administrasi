@@ -167,7 +167,6 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
     const handleDelete = () => {
         router.delete(route('arsip.incoming-letters.destroy', letter.id), {
             onSuccess: () => {
-                toast.success('Surat masuk berhasil dihapus');
                 setShowDeleteDialog(false);
             },
             onError: () => {
@@ -180,7 +179,6 @@ export default function Show({ letter, can_edit, can_delete, can_create_disposit
         router.post(route('arsip.archives.archive-incoming-letter', letter.id), {}, {
             onSuccess: () => {
                 setShowArchiveDialog(false);
-                toast.success('Surat masuk berhasil diarsipkan');
             },
             onError: (errors) => {
                 const errorMessage = Object.values(errors).flat().join(', ') || 'Gagal mengarsipkan surat';

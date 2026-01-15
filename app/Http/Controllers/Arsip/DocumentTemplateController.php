@@ -8,6 +8,7 @@ use App\Models\OrganizationUnit;
 use App\Models\OutgoingLetter;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -138,6 +139,9 @@ class DocumentTemplateController extends Controller
             'is_active' => true,
         ]);
 
+        // Clear related cache
+        CacheService::clearTemplateCache();
+
         return redirect()->route('arsip.document-templates.show', $template)
             ->with('success', 'Template berhasil dibuat');
     }
@@ -224,6 +228,9 @@ class DocumentTemplateController extends Controller
 
         $documentTemplate->update($validated);
 
+        // Clear related cache
+        CacheService::clearTemplateCache($documentTemplate->id);
+
         return back()->with('success', 'Template berhasil diperbarui');
     }
 
@@ -246,6 +253,9 @@ class DocumentTemplateController extends Controller
 
         $documentTemplate->delete();
 
+        // Clear related cache
+        CacheService::clearTemplateCache($documentTemplate->id);
+
         return redirect()->route('arsip.document-templates.index')
             ->with('success', 'Template berhasil dihapus');
     }
@@ -261,6 +271,9 @@ class DocumentTemplateController extends Controller
             'is_active' => !$documentTemplate->is_active,
             'updated_by' => Auth::id(),
         ]);
+
+        // Clear related cache
+        CacheService::clearTemplateCache($documentTemplate->id);
 
         return back()->with('success', 'Status template berhasil diubah');
     }
@@ -359,6 +372,9 @@ class DocumentTemplateController extends Controller
             $newTemplate->update(['numbering_group_id' => $newTemplate->id]);
         }
 
+        // Clear related cache
+        CacheService::clearTemplateCache();
+
         // Send notification to original template creator
         NotificationService::notifyTemplateDuplicated($documentTemplate, $newTemplate, Auth::user());
 
@@ -395,6 +411,9 @@ class DocumentTemplateController extends Controller
             'header_settings' => $headerSettings,
             'updated_by' => Auth::id(),
         ]);
+
+        // Clear related cache
+        CacheService::clearTemplateCache($documentTemplate->id);
 
         return response()->json([
             'success' => true,

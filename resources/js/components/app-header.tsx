@@ -3,6 +3,7 @@ import { Icon } from '@/components/icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserMenuContent } from '@/components/user-menu-content';
@@ -12,7 +13,7 @@ import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Cog, Folder, Home, LayoutGrid, Menu, Search, Users, Shield, Key, Calendar, FileText, Archive, MailIcon, FileSignature } from 'lucide-react';
+import { BookOpen, Cog, Folder, Home, LayoutGrid, Menu, Search, Users, Shield, Key, Calendar, FileText, Archive, MailIcon, FileSignature, Building } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 
@@ -208,19 +209,36 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             ))}
                                         </div>
 
-                                        <div className="flex flex-col space-y-4">
-                                            {rightNavItems.map((item) => (
-                                                <a
-                                                    key={item.title}
-                                                    href={item.href}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center space-x-2 font-medium"
+                                        <div className="flex flex-col space-y-4 border-t pt-4">
+                                            <div className="space-y-2">
+                                                <span className="text-xs text-muted-foreground">Modul</span>
+                                                <Select
+                                                    value="administrasi"
+                                                    onValueChange={(value) => {
+                                                        if (value === 'hr') {
+                                                            window.location.href = '/hr';
+                                                        }
+                                                    }}
                                                 >
-                                                    {item.icon && <Icon iconNode={item.icon} className="h-5 w-5" />}
-                                                    <span>{item.title}</span>
-                                                </a>
-                                            ))}
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="administrasi">
+                                                            <div className="flex items-center gap-2">
+                                                                <Building className="h-4 w-4" />
+                                                                <span>Administrasi</span>
+                                                            </div>
+                                                        </SelectItem>
+                                                        <SelectItem value="hr">
+                                                            <div className="flex items-center gap-2">
+                                                                <Users className="h-4 w-4" />
+                                                                <span>HR</span>
+                                                            </div>
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -230,6 +248,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
                     <Link href="/dashboard" prefetch className="flex items-center space-x-2">
                         <AppLogo />
+                        <span className="hidden sm:inline-block text-sm font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            ADM
+                        </span>
                     </Link>
 
                     {/* Desktop Navigation */}
@@ -324,6 +345,36 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 ))}
                             </div>
                         </div> */}
+
+                        {/* Module Switcher */}
+                        <div className="hidden lg:block">
+                            <Select
+                                value="administrasi"
+                                onValueChange={(value) => {
+                                    if (value === 'hr') {
+                                        window.location.href = '/hr';
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-[160px] h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="administrasi">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="h-4 w-4" />
+                                            <span>Administrasi</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="hr">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="h-4 w-4" />
+                                            <span>HR</span>
+                                        </div>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
                         {/* Notifications */}
                         <NotificationBell />

@@ -61,7 +61,7 @@ export default function Dashboard({
     return (
         <AppLayout>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6 overflow-x-auto">
+            <div className="h-[calc(100vh-7rem)] overflow-auto p-4 sm:p-6">
                 <MeetingDashboard
                     statistics={statistics}
                     archive_statistics={archive_statistics}

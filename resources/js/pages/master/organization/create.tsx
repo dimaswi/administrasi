@@ -3,7 +3,7 @@ import { FormPage } from "@/components/ui/form-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import AppLayout from "@/layouts/app-layout";
 import { OrganizationUnit, SharedData, User } from "@/types";
@@ -239,15 +239,20 @@ export default function OrganizationCreate({ parentUnits, users }: Props) {
                             )}
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                            <Switch
-                                id="is_active"
-                                checked={data.is_active}
-                                onCheckedChange={(checked) => setData('is_active', checked)}
-                            />
-                            <Label htmlFor="is_active" className="cursor-pointer">
-                                Unit Aktif
-                            </Label>
+                        <div className="space-y-2">
+                            <Label htmlFor="is_active">Status</Label>
+                            <Select
+                                value={data.is_active ? 'true' : 'false'}
+                                onValueChange={(value) => setData('is_active', value === 'true')}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="true">Aktif</SelectItem>
+                                    <SelectItem value="false">Nonaktif</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
             </FormPage>

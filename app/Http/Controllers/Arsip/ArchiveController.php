@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Archive;
 use App\Models\IncomingLetter;
 use App\Models\OutgoingLetter;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -131,6 +132,9 @@ class ArchiveController extends Controller
             'archived_by' => Auth::id(),
         ]);
 
+        // Clear related cache
+        CacheService::clearArchiveCache();
+
         return redirect()->route('arsip.archives.show', $archive)
             ->with('success', 'Dokumen berhasil diarsipkan');
     }
@@ -205,6 +209,9 @@ class ArchiveController extends Controller
 
         $archive->update($validated);
 
+        // Clear related cache
+        CacheService::clearArchiveCache($archive->id);
+
         return redirect()->route('arsip.archives.show', $archive)
             ->with('success', 'Arsip berhasil diperbarui');
     }
@@ -220,6 +227,9 @@ class ArchiveController extends Controller
         }
 
         $archive->delete();
+
+        // Clear related cache
+        CacheService::clearArchiveCache($archive->id);
 
         return redirect()->route('arsip.archives.index')
             ->with('success', 'Arsip berhasil dihapus');

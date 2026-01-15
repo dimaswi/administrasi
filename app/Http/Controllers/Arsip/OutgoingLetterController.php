@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\IncomingLetter;
 use App\Services\LetterRenderService;
 use App\Services\NotificationService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +185,9 @@ class OutgoingLetterController extends Controller
             }
 
             DB::commit();
+
+            // Clear related cache
+            CacheService::clearLetterCache(null, 'outgoing');
 
             // Send notifications to signatories
             NotificationService::notifyLetterCreated($letter);
@@ -368,6 +372,9 @@ class OutgoingLetterController extends Controller
 
             DB::commit();
 
+            // Clear related cache
+            CacheService::clearLetterCache($outgoingLetter->id, 'outgoing');
+
             return redirect()->route('arsip.outgoing-letters.show', $outgoingLetter)
                 ->with('success', 'Surat berhasil diperbarui');
         } catch (\Exception $e) {
@@ -388,6 +395,9 @@ class OutgoingLetterController extends Controller
         }
 
         $outgoingLetter->delete();
+
+        // Clear related cache
+        CacheService::clearLetterCache($outgoingLetter->id, 'outgoing');
 
         return redirect()->route('arsip.outgoing-letters.index')
             ->with('success', 'Surat berhasil dihapus');

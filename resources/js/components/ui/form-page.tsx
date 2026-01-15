@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link } from "@inertiajs/react";
 import { ArrowLeft, Save, Loader2, LucideIcon } from "lucide-react";
 
@@ -33,44 +34,46 @@ export function FormPage({
     className,
 }: FormPageProps) {
     return (
-        <div className="p-6">
-            <Card className={cn("w-full", className)}>
-                <CardHeader className="bg-muted/40 border-b">
-                    <div className="flex items-center justify-between py-4">
-                        <div className="space-y-1">
-                            <CardTitle className="text-xl">{title}</CardTitle>
-                            {description && (
-                                <CardDescription>{description}</CardDescription>
-                            )}
+        <Card className={cn("w-full h-[calc(100vh-7rem)] flex flex-col", className)}>
+            <CardHeader className="bg-muted/40 border-b flex-shrink-0">
+                <div className="flex items-center justify-between py-4">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl">{title}</CardTitle>
+                        {description && (
+                            <CardDescription>{description}</CardDescription>
+                        )}
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href={backUrl}>
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            {backLabel}
+                        </Link>
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-0">
+                <form onSubmit={onSubmit} className="flex flex-col h-full">
+                    <ScrollArea className="flex-1">
+                        <div className="space-y-6 p-6">
+                            {children}
                         </div>
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href={backUrl}>
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                {backLabel}
-                            </Link>
+                    </ScrollArea>
+                    
+                    {/* Form Actions - Fixed at bottom */}
+                    <div className="flex items-center justify-end gap-3 p-4 border-t bg-muted/20 flex-shrink-0">
+                        {actions}
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <SubmitIcon className="h-4 w-4 mr-2" />
+                            )}
+                            {isLoading ? 'Menyimpan...' : submitLabel}
                         </Button>
                     </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <form onSubmit={onSubmit} className="space-y-6">
-                        {children}
-                        
-                        {/* Form Actions */}
-                        <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                            {actions}
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <SubmitIcon className="h-4 w-4 mr-2" />
-                                )}
-                                {isLoading ? 'Menyimpan...' : submitLabel}
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                </form>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -94,31 +97,33 @@ export function DetailPage({
     className,
 }: DetailPageProps) {
     return (
-        <div className="p-6">
-            <Card className={cn("w-full", className)}>
-                <CardHeader className="bg-muted/40 border-b">
-                    <div className="flex items-center justify-between py-4">
-                        <div className="space-y-1">
-                            <CardTitle className="text-xl">{title}</CardTitle>
-                            {description && (
-                                <CardDescription>{description}</CardDescription>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {actions}
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={backUrl}>
-                                    <ArrowLeft className="h-4 w-4 mr-2" />
-                                    {backLabel}
-                                </Link>
-                            </Button>
-                        </div>
+        <Card className={cn("w-full h-[calc(100vh-7rem)] flex flex-col", className)}>
+            <CardHeader className="bg-muted/40 border-b flex-shrink-0">
+                <div className="flex items-center justify-between py-4">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl">{title}</CardTitle>
+                        {description && (
+                            <CardDescription>{description}</CardDescription>
+                        )}
                     </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    {children}
-                </CardContent>
-            </Card>
-        </div>
+                    <div className="flex items-center gap-2">
+                        {actions}
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={backUrl}>
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                {backLabel}
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-0">
+                <ScrollArea className="h-full">
+                    <div className="p-6">
+                        {children}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
     );
 }
