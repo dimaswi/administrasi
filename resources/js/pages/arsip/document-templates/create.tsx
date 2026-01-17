@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -14,7 +13,7 @@ import {
     ArrowLeft, Save, Eye,
     Loader2, ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
-import { useTemplateBuilder } from '@/hooks/use-template-builder';
+import { useTemplateBuilder, getVariablesByTemplateType } from '@/hooks/use-template-builder';
 import { PageSettingsPanel } from '@/components/document-template/page-settings-panel';
 import { HeaderSettingsPanel } from '@/components/document-template/header-settings-panel';
 import { ContentBlocksPanel } from '@/components/document-template/content-blocks-panel';
@@ -22,6 +21,7 @@ import { SignatureSettingsPanel } from '@/components/document-template/signature
 import { VariablesPanel } from '@/components/document-template/variables-panel';
 import { TemplatePreview } from '@/components/document-template/template-preview';
 import { NumberingFormatBuilder } from '@/components/document-template/numbering-format-builder';
+import { TemplateType } from '@/types/document-template';
 
 interface Props {
     categories?: string[];
@@ -254,6 +254,38 @@ export default function Create({ categories = [] }: Props) {
                                             </div>
 
                                             <div className="space-y-2">
+                                                <Label htmlFor="template_type" className="text-xs">Tipe Template</Label>
+                                                <Select
+                                                    value={template.template_type}
+                                                    onValueChange={(value: TemplateType) => {
+                                                        const presetVariables = getVariablesByTemplateType(value);
+                                                        updateTemplate({ 
+                                                            template_type: value,
+                                                            variables: presetVariables,
+                                                        });
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Pilih tipe" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="general">Umum</SelectItem>
+                                                        <SelectItem value="leave">Surat Pengajuan Cuti</SelectItem>
+                                                        <SelectItem value="early_leave">Surat Pengajuan Izin Pulang Cepat</SelectItem>
+                                                        <SelectItem value="leave_response">Surat Balasan Cuti</SelectItem>
+                                                        <SelectItem value="early_leave_response">Surat Balasan Izin Pulang Cepat</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    {template.template_type === 'leave' && 'Variabel fixed otomatis ditambahkan. Lihat di tab Variabel.'}
+                                                    {template.template_type === 'early_leave' && 'Variabel fixed otomatis ditambahkan. Lihat di tab Variabel.'}
+                                                    {template.template_type === 'leave_response' && 'Template surat balasan cuti dengan variabel otomatis.'}
+                                                    {template.template_type === 'early_leave_response' && 'Template surat balasan izin pulang cepat dengan variabel otomatis.'}
+                                                    {template.template_type === 'general' && 'Template surat umum dengan variabel manual'}
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
                                                 <Label htmlFor="description" className="text-xs">Deskripsi</Label>
                                                 <Textarea
                                                     id="description"
@@ -274,16 +306,21 @@ export default function Create({ categories = [] }: Props) {
 
                                             <Separator />
 
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <Label htmlFor="is_active" className="text-xs">Status</Label>
-                                                    <p className="text-[10px] text-muted-foreground">Template aktif dapat digunakan</p>
-                                                </div>
-                                                <Switch
-                                                    id="is_active"
-                                                    checked={template.is_active}
-                                                    onCheckedChange={(checked) => updateTemplate({ is_active: checked })}
-                                                />
+                                            <div className="space-y-2">
+                                                <Label htmlFor="is_active" className="text-xs">Status</Label>
+                                                <Select
+                                                    value={template.is_active ? 'true' : 'false'}
+                                                    onValueChange={(value) => updateTemplate({ is_active: value === 'true' })}
+                                                >
+                                                    <SelectTrigger className="h-8">
+                                                        <SelectValue placeholder="Pilih status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="true">Aktif</SelectItem>
+                                                        <SelectItem value="false">Nonaktif</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-[10px] text-muted-foreground">Template aktif dapat digunakan</p>
                                             </div>
                                         </div>
                                     </TabsContent>
@@ -340,6 +377,7 @@ export default function Create({ categories = [] }: Props) {
                                     <TabsContent value="variables" className="m-0">
                                         <VariablesPanel
                                             variables={template.variables}
+                                            templateType={template.template_type}
                                             onAdd={addVariable}
                                             onUpdate={updateVariable}
                                             onRemove={removeVariable}

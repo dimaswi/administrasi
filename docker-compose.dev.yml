@@ -17,5 +17,23 @@ services:
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
 
+  redis_administrasi_dev:
+    image: redis:7-alpine
+    container_name: redis_administrasi_dev
+    restart: always
+    ports:
+      - '6390:6379'
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - administrasi_dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_dev_data:
+  redis_dev_data:

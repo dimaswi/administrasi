@@ -207,8 +207,8 @@ export default function MeetingIndex() {
     return (
         <AppLayout>
             <Head title="Rapat" />
-            <div className="p-4 max-w-7xl">
-                <div className="mb-4 flex flex-col gap-3">
+            <div className="h-[calc(100vh-7rem)] flex flex-col overflow-hidden p-4">
+                <div className="mb-4 flex flex-col gap-3 flex-shrink-0">
                     <div className="flex items-center justify-between gap-2">
                         <h2 className="text-xl md:text-2xl font-semibold">Daftar Rapat</h2>
                         <Button 
@@ -264,8 +264,8 @@ export default function MeetingIndex() {
                 </div>
 
                 {/* View Mode Tabs */}
-                <Tabs value={viewMode} onValueChange={(value: string) => setViewMode(value as 'list' | 'calendar')} className="w-full">
-                    <TabsList className="mb-4">
+                <Tabs value={viewMode} onValueChange={(value: string) => setViewMode(value as 'list' | 'calendar')} className="flex-1 flex flex-col overflow-hidden">
+                    <TabsList className="mb-4 flex-shrink-0">
                         <TabsTrigger value="calendar" className="flex items-center gap-2">
                             <CalendarIcon className="h-4 w-4" />
                             <span className="hidden sm:inline">Calendar View</span>
@@ -276,8 +276,8 @@ export default function MeetingIndex() {
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="list" className="mt-0">{renderListView()}</TabsContent>
-                    <TabsContent value="calendar" className="mt-0">{renderCalendarView()}</TabsContent>
+                    <TabsContent value="list" className="mt-0 flex-1 overflow-auto">{renderListView()}</TabsContent>
+                    <TabsContent value="calendar" className="mt-0 flex-1 overflow-auto">{renderCalendarView()}</TabsContent>
                 </Tabs>
             </div>
 

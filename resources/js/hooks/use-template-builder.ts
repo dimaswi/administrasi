@@ -62,11 +62,96 @@ export const defaultFooterSettings: FooterSettings = {
     font_size: 10,
 };
 
+// Fixed variables for Leave template
+export const leaveVariables: TemplateVariable[] = [
+    { key: 'nomor_surat', label: 'Nomor Surat', type: 'text', source: 'auto_number', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'tanggal_surat', label: 'Tanggal Surat', type: 'date', source: 'auto_date', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'nama', label: 'Nama Karyawan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Nama lengkap' },
+    { key: 'jabatan', label: 'Jabatan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jabatan karyawan' },
+    { key: 'unit_kerja', label: 'Unit Kerja', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Unit/departemen' },
+    { key: 'jenis_cuti', label: 'Jenis Cuti', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Cuti tahunan, dll' },
+    { key: 'alasan_cuti', label: 'Alasan Cuti', type: 'textarea', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Alasan pengajuan' },
+    { key: 'cuti_selama_berapa_hari', label: 'Jumlah Hari Cuti', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jumlah hari' },
+    { key: 'terhitung_sejak_tanggal', label: 'Tanggal Mulai Cuti', type: 'date', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Tanggal mulai' },
+    { key: 'selesai_cuti', label: 'Tanggal Selesai Cuti', type: 'date', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Tanggal selesai' },
+    { key: 'mengalihkan_tugas_kepada_rekan', label: 'Delegasi Tugas Ke', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Nama rekan' },
+    { key: 'nama_penyetujui', label: 'Nama Penyetujui', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis saat approve' },
+    { key: 'jabatan_penyetujui', label: 'Jabatan Penyetujui', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+];
+
+// Fixed variables for Early Leave template
+export const earlyLeaveVariables: TemplateVariable[] = [
+    { key: 'nomor_surat', label: 'Nomor Surat', type: 'text', source: 'auto_number', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'tanggal_surat', label: 'Tanggal Surat', type: 'date', source: 'auto_date', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'nama', label: 'Nama Karyawan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Nama lengkap' },
+    { key: 'jabatan', label: 'Jabatan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jabatan karyawan' },
+    { key: 'unit_kerja', label: 'Unit Kerja', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Unit/departemen' },
+    { key: 'tanggal_pulang_cepat', label: 'Tanggal Izin', type: 'date', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Tanggal izin' },
+    { key: 'jam_pulang_cepat', label: 'Jam Pulang', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'HH:MM' },
+    { key: 'alasan_pulang_cepat', label: 'Alasan Izin', type: 'textarea', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Alasan izin pulang' },
+    { key: 'nama_rekan_yang_dilimpahkan_tugas', label: 'Delegasi Tugas Ke', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Nama rekan' },
+    { key: 'nama_penyetujui', label: 'Nama Penyetujui', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis saat approve' },
+    { key: 'jabatan_penyetujui', label: 'Jabatan Penyetujui', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+];
+
+// Fixed variables for Leave Response template (Surat Balasan Cuti)
+export const leaveResponseVariables: TemplateVariable[] = [
+    { key: 'nomor_surat', label: 'Nomor Surat', type: 'text', source: 'auto_number', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'tanggal_surat', label: 'Tanggal Surat', type: 'date', source: 'auto_date', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'tempat', label: 'Tempat', type: 'text', source: 'manual', required: false, readonly: false, default_value: 'Bojonegoro', options: [], placeholder: 'Kota/tempat' },
+    { key: 'nama', label: 'Nama Karyawan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Nama lengkap' },
+    { key: 'nik', label: 'NIK/NIP', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Nomor Induk Karyawan' },
+    { key: 'jabatan', label: 'Jabatan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jabatan karyawan' },
+    { key: 'unit_kerja', label: 'Unit Kerja', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Unit/departemen' },
+    { key: 'hari_cuti', label: 'Jumlah Hari Cuti', type: 'number', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jumlah hari' },
+    { key: 'tanggal_mulai_cuti', label: 'Tanggal Mulai Cuti', type: 'date', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Tanggal mulai' },
+    { key: 'tanggal_selesai_cuti', label: 'Tanggal Selesai Cuti', type: 'date', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Tanggal selesai' },
+    { key: 'nama_pimpinan', label: 'Nama Pimpinan', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Nama pimpinan/direktur' },
+    { key: 'nip_pimpinan', label: 'NIP Pimpinan', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'NIP pimpinan' },
+    { key: 'nama_kepala_unit', label: 'Nama Kepala Unit PSDI', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Nama kepala unit' },
+    { key: 'nip_kepala_unit', label: 'NIP Kepala Unit', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'NIP kepala unit' },
+];
+
+// Fixed variables for Early Leave Response template (Surat Balasan Izin Pulang Cepat)
+export const earlyLeaveResponseVariables: TemplateVariable[] = [
+    { key: 'nomor_surat', label: 'Nomor Surat', type: 'text', source: 'auto_number', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'tanggal_surat', label: 'Tanggal Surat', type: 'date', source: 'auto_date', required: false, readonly: true, default_value: null, options: [], placeholder: 'Otomatis' },
+    { key: 'tempat', label: 'Tempat', type: 'text', source: 'manual', required: false, readonly: false, default_value: 'Bojonegoro', options: [], placeholder: 'Kota/tempat' },
+    { key: 'nama', label: 'Nama Karyawan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Nama lengkap' },
+    { key: 'nik', label: 'NIK/NIP', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Nomor Induk Karyawan' },
+    { key: 'jabatan', label: 'Jabatan', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jabatan karyawan' },
+    { key: 'unit_kerja', label: 'Unit Kerja', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Unit/departemen' },
+    { key: 'tanggal', label: 'Tanggal Izin', type: 'date', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Tanggal izin pulang cepat' },
+    { key: 'jam', label: 'Jam Pulang', type: 'text', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Jam pulang (HH:MM)' },
+    { key: 'alasan_pulang_cepat', label: 'Alasan Pulang Cepat', type: 'textarea', source: 'manual', required: true, readonly: true, default_value: null, options: [], placeholder: 'Alasan izin pulang' },
+    { key: 'nama_pemohon', label: 'Nama Pemohon', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Sama dengan nama karyawan' },
+    { key: 'nip_pemohon', label: 'NIP Pemohon', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'NIP pemohon' },
+    { key: 'nama_penyetujui', label: 'Nama Penyetujui', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'Nama pimpinan yang menyetujui' },
+    { key: 'nip_penyetujui', label: 'NIP Penyetujui', type: 'text', source: 'manual', required: false, readonly: true, default_value: null, options: [], placeholder: 'NIP penyetujui' },
+];
+
+// Helper to get variables by template type
+export const getVariablesByTemplateType = (templateType: string): TemplateVariable[] => {
+    switch (templateType) {
+        case 'leave':
+            return [...leaveVariables];
+        case 'early_leave':
+            return [...earlyLeaveVariables];
+        case 'leave_response':
+            return [...leaveResponseVariables];
+        case 'early_leave_response':
+            return [...earlyLeaveResponseVariables];
+        default:
+            return [];
+    }
+};
+
 export function useTemplateBuilder(initialTemplate?: Partial<DocumentTemplate>) {
     const [template, setTemplate] = useState<DocumentTemplate>({
         name: '',
         code: '',
         category: null,
+        template_type: initialTemplate?.template_type || 'general',
         description: null,
         page_settings: initialTemplate?.page_settings || { ...defaultPageSettings },
         header_settings: initialTemplate?.header_settings || { ...defaultHeaderSettings },

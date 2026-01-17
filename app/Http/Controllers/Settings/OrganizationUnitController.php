@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\OrganizationUnit;
 use App\Models\User;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -99,6 +100,9 @@ class OrganizationUnitController extends Controller
 
         OrganizationUnit::create($data);
 
+        // Clear related cache
+        CacheService::clearOrganizationCache();
+
         return redirect()->route('organizations.index')->with('success', 'Unit organisasi berhasil ditambahkan');
     }
 
@@ -185,6 +189,9 @@ class OrganizationUnitController extends Controller
 
         $organization->update($data);
 
+        // Clear related cache
+        CacheService::clearOrganizationCache($organization->id);
+
         return redirect()->route('organizations.index')->with('success', 'Unit organisasi berhasil diperbarui');
     }
 
@@ -208,6 +215,9 @@ class OrganizationUnitController extends Controller
         }
 
         $organization->delete();
+
+        // Clear related cache
+        CacheService::clearOrganizationCache($organization->id);
 
         return redirect()->route('organizations.index')->with('success', 'Unit organisasi berhasil dihapus');
     }

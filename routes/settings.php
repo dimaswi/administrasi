@@ -1,9 +1,14 @@
 <?php
 
+use App\Http\Controllers\Settings\CompanySettingsController;
+<<<<<<< HEAD
+=======
 use App\Http\Controllers\Settings\OrganizationUnitController;
+>>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\RoomController;
+use App\Http\Controllers\Settings\SystemLogController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -21,6 +26,19 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('settings/appearance');
     })->name('appearance');
 
+    // Company Settings
+    Route::get('settings/company', [CompanySettingsController::class, 'index'])->name('settings.company');
+    Route::patch('settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');
+    Route::post('settings/company/logo', [CompanySettingsController::class, 'uploadLogo'])->name('settings.company.logo');
+
+    // System Logs
+    Route::get('settings/system-logs', [SystemLogController::class, 'index'])->name('settings.system-logs');
+    Route::post('settings/system-logs/clear', [SystemLogController::class, 'clear'])->name('settings.system-logs.clear');
+
+<<<<<<< HEAD
+    // Organization Unit Management moved to hr.php
+    // See routes/hr.php for Organization management
+=======
     // Organization Unit Management
     Route::get('master/organizations', [OrganizationUnitController::class, 'index'])->name('organizations.index')->middleware('permission:organization.view');
     Route::get('master/organizations/create', [OrganizationUnitController::class, 'create'])->name('organizations.create')->middleware('permission:organization.create');
@@ -29,6 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::get('master/organizations/{organization}', [OrganizationUnitController::class, 'show'])->name('organizations.show')->middleware('permission:organization.view');
     Route::put('master/organizations/{organization}', [OrganizationUnitController::class, 'update'])->name('organizations.update')->middleware('permission:organization.edit');
     Route::delete('master/organizations/{organization}', [OrganizationUnitController::class, 'destroy'])->name('organizations.destroy')->middleware('permission:organization.delete');
+>>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 
     // Room Management
     Route::get('master/rooms', [RoomController::class, 'index'])->name('rooms.index')->middleware('permission:room.view');

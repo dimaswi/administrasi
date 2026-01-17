@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\IncomingLetter;
 use App\Models\OrganizationUnit;
 use App\Models\Notification;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -142,6 +143,9 @@ class IncomingLetterController extends Controller
             }
 
             $letter = IncomingLetter::create($validated);
+
+            // Clear related cache
+            CacheService::clearLetterCache(null, 'incoming');
 
             // Create notification for organization unit head
             $orgUnit = OrganizationUnit::find($validated['organization_unit_id']);
@@ -339,6 +343,9 @@ class IncomingLetterController extends Controller
 
             $incomingLetter->update($validated);
 
+            // Clear related cache
+            CacheService::clearLetterCache($incomingLetter->id, 'incoming');
+
             DB::commit();
 
             return redirect()->route('arsip.incoming-letters.show', $incomingLetter->id)
@@ -375,6 +382,9 @@ class IncomingLetterController extends Controller
             }
 
             $incomingLetter->delete();
+
+            // Clear related cache
+            CacheService::clearLetterCache($incomingLetter->id, 'incoming');
 
             DB::commit();
 

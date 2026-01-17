@@ -4,12 +4,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { TemplateVariable } from '@/types/document-template';
-import { Plus, Trash2, GripVertical, Zap } from 'lucide-react';
+import { TemplateVariable, TemplateType } from '@/types/document-template';
+import { Plus, Trash2, GripVertical, Zap, Lock, Copy } from 'lucide-react';
 import { useState } from 'react';
 
 interface VariablesPanelProps {
     variables: TemplateVariable[];
+    templateType?: TemplateType;
     onAdd: () => void;
     onUpdate: (index: number, updates: Partial<TemplateVariable>) => void;
     onRemove: (index: number) => void;
@@ -33,10 +34,27 @@ const variableSourceOptions = [
 
 export function VariablesPanel({
     variables,
+    templateType = 'general',
     onAdd,
     onUpdate,
     onRemove,
 }: VariablesPanelProps) {
+    const isFixedTemplate = ['leave', 'early_leave', 'leave_response', 'early_leave_response'].includes(templateType);
+    
+    const getTemplateTypeName = () => {
+        switch (templateType) {
+            case 'leave': return 'Variabel Surat Pengajuan Cuti';
+            case 'early_leave': return 'Variabel Surat Pengajuan Izin Pulang Cepat';
+            case 'leave_response': return 'Variabel Surat Balasan Cuti';
+            case 'early_leave_response': return 'Variabel Surat Balasan Izin Pulang Cepat';
+            default: return 'Variabel Template';
+        }
+    };
+    
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+    };
+    
     const generateKeyFromLabel = (label: string): string => {
         return label
             .toLowerCase()
@@ -51,16 +69,62 @@ export function VariablesPanel({
                 <div>
                     <h3 className="text-sm font-medium">Variabel Template</h3>
                     <p className="text-[10px] text-muted-foreground">
-                        Gunakan: {'{{'}<code>key</code>{'}}'}
+                        {isFixedTemplate ? 'Klik variabel untuk copy' : <>Gunakan: {'{{'}<code>key</code>{'}}'}</>}
                     </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={onAdd} className="h-7">
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Tambah
-                </Button>
+                {!isFixedTemplate && (
+                    <Button type="button" variant="outline" size="sm" onClick={onAdd} className="h-7">
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Tambah
+                    </Button>
+                )}
             </div>
 
-            <div className="space-y-2">
+            {isFixedTemplate && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-800">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">
+                            {getTemplateTypeName()}
+                        </span>
+                    </div>
+                    <p className="text-[10px] text-amber-700">
+                        Variabel ini sudah fixed dan akan otomatis diisi dari data pengajuan. Klik untuk copy ke clipboard.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                        {variables.map((variable, index) => (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={() => copyToClipboard(`{{${variable.key}}}`)}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-amber-300 rounded text-[10px] font-mono hover:bg-amber-100 transition-colors cursor-pointer"
+                                title={`${variable.label} - Klik untuk copy`}
+                            >
+                                <Copy className="h-2.5 w-2.5 text-amber-600" />
+                                {`{{${variable.key}}}`}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {isFixedTemplate && (
+                <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Deskripsi Variabel:</Label>
+                    <div className="border rounded divide-y text-xs">
+                        {variables.map((variable, index) => (
+                            <div key={index} className="flex items-center px-2 py-1.5 hover:bg-muted/50">
+                                <span className="font-mono text-[10px] w-48 shrink-0 text-primary">{`{{${variable.key}}}`}</span>
+                                <span className="text-muted-foreground">{variable.label}</span>
+                                {variable.required && <Badge variant="destructive" className="ml-auto text-[8px] h-4">Wajib</Badge>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {!isFixedTemplate && (
+                <div className="space-y-2">
                 {variables.map((variable, index) => (
                     <div key={index} className="border rounded p-2 space-y-2 bg-muted/30">
                         <div className="flex items-start gap-1.5">
@@ -232,6 +296,7 @@ export function VariablesPanel({
                     </div>
                 )}
             </div>
+            )}
         </div>
     );
 }

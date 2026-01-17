@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -62,6 +63,9 @@ class RoomController extends Controller
 
         Room::create($request->all());
 
+        // Clear related cache
+        CacheService::clearRoomCache();
+
         return redirect()->route('rooms.index')->with('success', 'Ruangan berhasil ditambahkan');
     }
 
@@ -109,6 +113,9 @@ class RoomController extends Controller
 
         $room->update($request->all());
 
+        // Clear related cache
+        CacheService::clearRoomCache($room->id);
+
         return redirect()->route('rooms.index')->with('success', 'Ruangan berhasil diperbarui');
     }
 
@@ -119,6 +126,9 @@ class RoomController extends Controller
         }
 
         $room->delete();
+
+        // Clear related cache
+        CacheService::clearRoomCache($room->id);
 
         return redirect()->route('rooms.index')->with('success', 'Ruangan berhasil dihapus');
     }

@@ -11,10 +11,18 @@ class DocumentTemplate extends Model
 {
     use SoftDeletes;
 
+    // Template types
+    public const TYPE_GENERAL = 'general';
+    public const TYPE_LEAVE = 'leave';
+    public const TYPE_EARLY_LEAVE = 'early_leave';
+    public const TYPE_LEAVE_RESPONSE = 'leave_response';
+    public const TYPE_EARLY_LEAVE_RESPONSE = 'early_leave_response';
+
     protected $fillable = [
         'name',
         'code',
         'category',
+        'template_type',
         'organization_unit_id',
         'numbering_group_id',
         'description',
@@ -167,6 +175,31 @@ class DocumentTemplate extends Model
     public function scopeForOrganization($query, $organizationUnitId)
     {
         return $query->where('organization_unit_id', $organizationUnitId);
+    }
+
+    public function scopeOfType($query, $type)
+    {
+        return $query->where('template_type', $type);
+    }
+
+    public function scopeLeaveTemplate($query)
+    {
+        return $query->where('template_type', self::TYPE_LEAVE);
+    }
+
+    public function scopeEarlyLeaveTemplate($query)
+    {
+        return $query->where('template_type', self::TYPE_EARLY_LEAVE);
+    }
+
+    public function scopeLeaveResponseTemplate($query)
+    {
+        return $query->where('template_type', self::TYPE_LEAVE_RESPONSE);
+    }
+
+    public function scopeEarlyLeaveResponseTemplate($query)
+    {
+        return $query->where('template_type', self::TYPE_EARLY_LEAVE_RESPONSE);
     }
 
     /**

@@ -25,6 +25,15 @@ export interface NavItem {
     permission?: string;
 }
 
+export interface NavItemWithSub {
+    title: string;
+    icon?: LucideIcon | null;
+    items: Array<{
+        title: string;
+        href: string;
+    }>;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };

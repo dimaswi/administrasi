@@ -13,6 +13,7 @@ services:
     depends_on:
       - administrasi
       - administrasi_db
+      - redis_administrasi
     networks:
       - administrasi
 
@@ -27,6 +28,25 @@ services:
       - '5445:5432'
     networks:
       - administrasi
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+
+  redis_administrasi:
+    image: redis:7-alpine
+    container_name: redis_administrasi
+    restart: always
+    ports:
+      - '6389:6379'
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - administrasi
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   administrasi:
     container_name: administrasi
@@ -36,6 +56,15 @@ services:
     volumes:
       - ./:/var/www/html
     working_dir: /var/www/html
+    depends_on:
+      redis_administrasi:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis_administrasi
+      - REDIS_PORT=6379
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
     networks:
       - administrasi
 
@@ -48,3 +77,7 @@ services:
       - nginx_administrasi
     networks:
       - administrasi
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:

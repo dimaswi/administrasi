@@ -9,6 +9,7 @@ use App\Models\IncomingLetter;
 use App\Models\User;
 use App\Models\Meeting;
 use App\Models\Notification;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +185,10 @@ class DispositionController extends Controller
             ]);
 
             DB::commit();
+
+            // Clear related cache
+            CacheService::clearDispositionCache();
+            CacheService::clearNotificationCache($validated['to_user_id']);
 
             return redirect()->route('arsip.incoming-letters.show', $validated['incoming_letter_id'])
                 ->with('success', 'Disposisi berhasil dibuat');

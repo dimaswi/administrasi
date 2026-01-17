@@ -68,7 +68,7 @@ function LetterOpeningEditor({ block, variables = [], onUpdate }: LetterOpeningE
     const dateConfig = config.date || defaultLetterDateConfig;
     
     // Get variable options for dropdown
-    const dateVariables = variables.filter(v => v.type === 'date' || v.key.toLowerCase().includes('tanggal'));
+    const dateVariables = variables.filter(v => v.type === 'date' || (v.key && v.key.toLowerCase().includes('tanggal')));
     const textVariables = variables.filter(v => v.type === 'text' || v.type === 'textarea');
     
     // Helper functions

@@ -97,18 +97,40 @@
             height: 25mm;
         }
         
+        /* Letter opening styles */
+        .letter-opening {
+            margin-bottom: 0;
+        }
+        
+        .letter-date {
+            margin-bottom: 10mm;
+        }
+        
+        /* Field group styles */
         .field-group {
-            margin-bottom: 2mm;
+            margin-bottom: 0;
+            display: block;
+        }
+        
+        .field-group-row {
+            display: block;
+            margin-bottom: 0;
+            page-break-inside: avoid;
         }
         
         .field-label {
             display: inline-block;
-            width: 25mm;
+            vertical-align: top;
         }
         
         .field-separator {
             display: inline-block;
             width: 5mm;
+            text-align: center;
+        }
+        
+        .field-value {
+            display: inline-block;
         }
         
         .letter-opening {
@@ -208,8 +230,9 @@
             @php
                 $config = $block['letter_opening'] ?? [];
                 $dateConfig = $config['date'] ?? [];
+                $spacingAfterRecipient = $config['spacing_after_recipient'] ?? 10;
             @endphp
-            <div class="letter-opening" style="{{ $marginStyle }}">
+            <div class="letter-opening" style="{{ $marginStyle }} {{ $fontStyle }}">
                 @if($dateConfig['enabled'] ?? false)
                 <div class="letter-date" style="text-align: {{ $dateConfig['position'] ?? 'right' }}; margin-bottom: {{ $dateConfig['spacing_bottom'] ?? 10 }}mm;">
                     @if($dateConfig['show_place'] ?? false)
@@ -219,18 +242,18 @@
                 </div>
                 @endif
                 
+                <div style="margin-bottom: {{ $spacingAfterRecipient }}mm;">
                 @foreach(($config['recipient_slots'] ?? []) as $slot)
                 @php
                     $slotText = $slot['text'] ?? '';
-                    if ($slot['source'] === 'variable') {
+                    if (($slot['source'] ?? 'manual') === 'variable') {
                         $varName = str_replace(['{{', '}}'], '', $slotText);
                         $slotText = replaceVars('{{' . $varName . '}}', $variableValues, $letter);
                     }
                 @endphp
-                <div style="text-align: {{ $slot['text_align'] ?? 'left' }};">
-                    {{ $slot['prefix'] ?? '' }}{{ $slotText }}
-                </div>
+                <div style="text-align: {{ $slot['text_align'] ?? 'left' }};">{{ $slot['prefix'] ?? '' }}{{ $slotText }}</div>
                 @endforeach
+                </div>
             </div>
         @elseif($block['type'] === 'text' || $block['type'] === 'paragraph')
             <div class="content-block" style="{{ $marginStyle }} {{ $fontStyle }}">
@@ -242,12 +265,12 @@
                 $labelWidth = $fieldGroup['label_width'] ?? 25;
                 $separator = $fieldGroup['separator'] ?? ':';
             @endphp
-            <div style="{{ $marginStyle }}">
+            <div class="field-group" style="{{ $marginStyle }} {{ $fontStyle }}">
                 @foreach(($fieldGroup['items'] ?? []) as $item)
-                <div class="field-group">
+                <div class="field-group-row">
                     <span class="field-label" style="width: {{ $labelWidth }}mm;">{{ $item['label'] ?? '' }}</span>
                     <span class="field-separator">{{ $separator }}</span>
-                    <span>{{ replaceVars($item['value'] ?? '', $variableValues, $letter) }}</span>
+                    <span class="field-value">{{ replaceVars($item['value'] ?? '', $variableValues, $letter) }}</span>
                 </div>
                 @endforeach
             </div>
