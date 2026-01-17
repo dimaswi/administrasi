@@ -25,6 +25,10 @@ import {
     Edit,
     Ban,
     AlertCircle,
+    PenLine,
+    Users,
+    Building,
+    UserCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -39,6 +43,12 @@ interface LeaveType {
     id: number;
     name: string;
     color: string;
+}
+
+interface ApprovalInfo {
+    name: string | null;
+    approved_at: string | null;
+    notes: string | null;
 }
 
 interface LeaveData {
@@ -58,6 +68,10 @@ interface LeaveData {
     emergency_contact: string | null;
     emergency_phone: string | null;
     delegation_to: string | null;
+    delegation_employee: ApprovalInfo | null;
+    supervisor: ApprovalInfo | null;
+    director: ApprovalInfo | null;
+    response_letter_number: string | null;
     attachment: string | null;
     approved_by: string | null;
     approved_at: string | null;
@@ -66,6 +80,7 @@ interface LeaveData {
     created_at: string;
     submitted_at: string | null;
     can_approve: boolean;
+    can_sign_director: boolean;
     can_cancel: boolean;
     can_edit: boolean;
 }
@@ -94,6 +109,10 @@ interface Props {
 const statusColors: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+    pending_delegation: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    pending_supervisor: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+    pending_hr: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+    pending_director_sign: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
     approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
     rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
     cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
@@ -115,10 +134,14 @@ export default function Show({ leave, balances }: Props) {
     const [showApproveDialog, setShowApproveDialog] = useState(false);
     const [showRejectDialog, setShowRejectDialog] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [showSignDialog, setShowSignDialog] = useState(false);
+    const [showSignRejectDialog, setShowSignRejectDialog] = useState(false);
     
     const approveForm = useForm({ notes: '' });
     const rejectForm = useForm({ notes: '' });
     const cancelForm = useForm({ reason: '' });
+    const signForm = useForm({ notes: '' });
+    const signRejectForm = useForm({ notes: '' });
 
     const breadcrumbs = [
         { title: 'HR', href: '/hr' },
@@ -142,6 +165,47 @@ export default function Show({ leave, balances }: Props) {
         cancelForm.post(`/hr/leaves/${leave.id}/cancel`, {
             onSuccess: () => setShowCancelDialog(false),
         });
+    };
+
+    const handleDirectorSign = () => {
+        signForm.post(`/hr/leaves/${leave.id}/director-sign`, {
+            onSuccess: () => setShowSignDialog(false),
+        });
+    };
+
+    const handleDirectorReject = () => {
+        signRejectForm.post(`/hr/leaves/${leave.id}/director-reject`, {
+            onSuccess: () => setShowSignRejectDialog(false),
+        });
+    };
+
+    // Determine status icon color for new statuses
+    const getStatusIconBg = (status: string) => {
+        switch (status) {
+            case 'approved': return 'bg-green-100';
+            case 'rejected': return 'bg-red-100';
+            case 'pending': 
+            case 'pending_delegation':
+            case 'pending_supervisor':
+            case 'pending_hr':
+            case 'pending_director_sign':
+                return 'bg-yellow-100';
+            default: return 'bg-gray-100';
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'approved': return <CheckCircle className="h-6 w-6 text-green-600" />;
+            case 'rejected': return <XCircle className="h-6 w-6 text-red-600" />;
+            case 'pending':
+            case 'pending_delegation':
+            case 'pending_supervisor':
+            case 'pending_hr':
+            case 'pending_director_sign':
+                return <Clock className="h-6 w-6 text-yellow-600" />;
+            default: return <AlertCircle className="h-6 w-6 text-gray-600" />;
+        }
     };
 
     const actions = (
@@ -273,6 +337,91 @@ export default function Show({ leave, balances }: Props) {
                     </DialogContent>
                 </Dialog>
             )}
+            {leave.can_sign_director && (
+                <>
+                    <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700">
+                                <PenLine className="h-4 w-4 mr-2" />
+                                Tanda Tangani
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Tanda Tangani Surat Cuti</DialogTitle>
+                                <DialogDescription>
+                                    Anda akan menandatangani surat balasan cuti ini. Setelah ditandatangani, cuti akan disetujui.
+                                </DialogDescription>
+                            </DialogHeader>
+                            {leave.response_letter_number && (
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <Label className="text-muted-foreground text-xs">Nomor Surat</Label>
+                                    <p className="font-medium">{leave.response_letter_number}</p>
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <Label>Catatan (Opsional)</Label>
+                                <Textarea
+                                    value={signForm.data.notes}
+                                    onChange={(e) => signForm.setData('notes', e.target.value)}
+                                    placeholder="Tambahkan catatan..."
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowSignDialog(false)}>
+                                    Batal
+                                </Button>
+                                <Button 
+                                    onClick={handleDirectorSign} 
+                                    disabled={signForm.processing}
+                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                >
+                                    <PenLine className="h-4 w-4 mr-2" />
+                                    Tanda Tangani
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={showSignRejectDialog} onOpenChange={setShowSignRejectDialog}>
+                        <DialogTrigger asChild>
+                            <Button variant="destructive">
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Tolak
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Tolak Pengajuan Cuti</DialogTitle>
+                                <DialogDescription>
+                                    Apakah Anda yakin ingin menolak pengajuan cuti ini?
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-2">
+                                <Label>Alasan Penolakan *</Label>
+                                <Textarea
+                                    value={signRejectForm.data.notes}
+                                    onChange={(e) => signRejectForm.setData('notes', e.target.value)}
+                                    placeholder="Jelaskan alasan penolakan..."
+                                    required
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowSignRejectDialog(false)}>
+                                    Batal
+                                </Button>
+                                <Button 
+                                    variant="destructive" 
+                                    onClick={handleDirectorReject} 
+                                    disabled={signRejectForm.processing || !signRejectForm.data.notes}
+                                >
+                                    Tolak
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </>
+            )}
         </div>
     );
 
@@ -293,21 +442,8 @@ export default function Show({ leave, balances }: Props) {
                             <CardContent className="pt-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-full ${
-                                            leave.status === 'approved' ? 'bg-green-100' :
-                                            leave.status === 'rejected' ? 'bg-red-100' :
-                                            leave.status === 'pending' ? 'bg-yellow-100' :
-                                            'bg-gray-100'
-                                        }`}>
-                                            {leave.status === 'approved' ? (
-                                                <CheckCircle className="h-6 w-6 text-green-600" />
-                                            ) : leave.status === 'rejected' ? (
-                                                <XCircle className="h-6 w-6 text-red-600" />
-                                            ) : leave.status === 'pending' ? (
-                                                <Clock className="h-6 w-6 text-yellow-600" />
-                                            ) : (
-                                                <AlertCircle className="h-6 w-6 text-gray-600" />
-                                            )}
+                                        <div className={`p-3 rounded-full ${getStatusIconBg(leave.status)}`}>
+                                            {getStatusIcon(leave.status)}
                                         </div>
                                         <div>
                                             <Badge className={`${statusColors[leave.status]} text-sm`}>
@@ -331,6 +467,126 @@ export default function Show({ leave, balances }: Props) {
                                         <p className="text-sm text-muted-foreground">{leave.approval_notes}</p>
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Approval Timeline */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    Alur Persetujuan
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="relative">
+                                    {/* Timeline line */}
+                                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                                    
+                                    <div className="space-y-4">
+                                        {/* Step 1: Pengajuan */}
+                                        <div className="flex items-start gap-4 relative">
+                                            <div className="z-10 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                                                <CheckCircle className="h-4 w-4 text-white" />
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <p className="font-medium text-sm">Pengajuan Disubmit</p>
+                                                <p className="text-xs text-muted-foreground">{leave.submitted_at || leave.created_at}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Step 2: Delegasi */}
+                                        <div className="flex items-start gap-4 relative">
+                                            <div className={`z-10 w-8 h-8 rounded-full flex items-center justify-center ${
+                                                leave.delegation_employee?.approved_at ? 'bg-green-500' :
+                                                leave.status === 'pending_delegation' ? 'bg-yellow-500' :
+                                                leave.status === 'rejected' ? 'bg-red-500' : 'bg-gray-300'
+                                            }`}>
+                                                <UserCheck className="h-4 w-4 text-white" />
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <p className="font-medium text-sm">Konfirmasi Delegasi</p>
+                                                {leave.delegation_employee?.name ? (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {leave.delegation_employee.name}
+                                                        {leave.delegation_employee.approved_at && ` • ${leave.delegation_employee.approved_at}`}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground">{leave.delegation_to || 'Belum ditentukan'}</p>
+                                                )}
+                                                {leave.delegation_employee?.notes && (
+                                                    <p className="text-xs text-muted-foreground italic mt-1">"{leave.delegation_employee.notes}"</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 3: Supervisor */}
+                                        <div className="flex items-start gap-4 relative">
+                                            <div className={`z-10 w-8 h-8 rounded-full flex items-center justify-center ${
+                                                leave.supervisor?.approved_at ? 'bg-green-500' :
+                                                leave.status === 'pending_supervisor' ? 'bg-yellow-500' :
+                                                ['pending_hr', 'pending_director_sign', 'approved'].includes(leave.status) ? 'bg-green-500' :
+                                                leave.status === 'rejected' ? 'bg-red-500' : 'bg-gray-300'
+                                            }`}>
+                                                <Building className="h-4 w-4 text-white" />
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <p className="font-medium text-sm">Persetujuan Atasan</p>
+                                                {leave.supervisor?.name ? (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {leave.supervisor.name}
+                                                        {leave.supervisor.approved_at && ` • ${leave.supervisor.approved_at}`}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground">Kepala Unit</p>
+                                                )}
+                                                {leave.supervisor?.notes && (
+                                                    <p className="text-xs text-muted-foreground italic mt-1">"{leave.supervisor.notes}"</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 4: HR */}
+                                        <div className="flex items-start gap-4 relative">
+                                            <div className={`z-10 w-8 h-8 rounded-full flex items-center justify-center ${
+                                                ['pending_director_sign', 'approved'].includes(leave.status) ? 'bg-green-500' :
+                                                leave.status === 'pending_hr' ? 'bg-yellow-500' :
+                                                leave.status === 'rejected' ? 'bg-red-500' : 'bg-gray-300'
+                                            }`}>
+                                                <FileText className="h-4 w-4 text-white" />
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <p className="font-medium text-sm">Proses Admin HR</p>
+                                                <p className="text-xs text-muted-foreground">Membuat surat balasan</p>
+                                                {leave.response_letter_number && (
+                                                    <p className="text-xs font-medium text-primary mt-1">No: {leave.response_letter_number}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 5: Director Sign */}
+                                        <div className="flex items-start gap-4 relative">
+                                            <div className={`z-10 w-8 h-8 rounded-full flex items-center justify-center ${
+                                                leave.status === 'approved' ? 'bg-green-500' :
+                                                leave.status === 'pending_director_sign' ? 'bg-yellow-500' :
+                                                leave.status === 'rejected' ? 'bg-red-500' : 'bg-gray-300'
+                                            }`}>
+                                                <PenLine className="h-4 w-4 text-white" />
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <p className="font-medium text-sm">Tanda Tangan Direktur</p>
+                                                {leave.director?.name ? (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {leave.director.name}
+                                                        {leave.director.approved_at && ` • ${leave.director.approved_at}`}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground">Direktur</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -373,8 +629,8 @@ export default function Show({ leave, balances }: Props) {
                                     <div>
                                         <Label className="text-muted-foreground">Jenis Cuti</Label>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <div className={`w-3 h-3 rounded-full ${leaveTypeColors[leave.leave_type.color]}`}></div>
-                                            <span className="font-medium">{leave.leave_type.name}</span>
+                                            <div className={`w-3 h-3 rounded-full ${leaveTypeColors[leave.leave_type?.color ?? 'gray'] ?? 'bg-gray-500'}`}></div>
+                                            <span className="font-medium">{leave.leave_type?.name ?? 'Unknown'}</span>
                                         </div>
                                     </div>
                                     <div>
@@ -447,20 +703,22 @@ export default function Show({ leave, balances }: Props) {
                                 {balances.map((balance) => {
                                     const total = Number(balance.initial_balance) + Number(balance.carry_over) + Number(balance.adjustment);
                                     const available = total - Number(balance.used) - Number(balance.pending);
+                                    const leaveTypeName = balance.leaveType?.name ?? 'Unknown';
+                                    const leaveTypeColor = balance.leaveType?.color ?? 'gray';
                                     
                                     return (
                                         <div 
                                             key={balance.id}
                                             className={`p-3 rounded-lg ${
-                                                balance.leave_type_id === leave.leave_type.id
+                                                balance.leave_type_id === leave.leave_type?.id
                                                     ? 'border-2 border-primary bg-primary/5'
                                                     : 'bg-muted/50'
                                             }`}
                                         >
                                             <div className="flex justify-between items-center mb-2">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-3 h-3 rounded-full ${leaveTypeColors[balance.leaveType.color]}`}></div>
-                                                    <span className="font-medium text-sm">{balance.leaveType.name}</span>
+                                                    <div className={`w-3 h-3 rounded-full ${leaveTypeColors[leaveTypeColor] ?? 'bg-gray-500'}`}></div>
+                                                    <span className="font-medium text-sm">{leaveTypeName}</span>
                                                 </div>
                                                 <Badge variant="outline">{available} hari</Badge>
                                             </div>

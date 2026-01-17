@@ -25,6 +25,16 @@ class Leave extends Model
         'emergency_contact',
         'emergency_phone',
         'delegation_to',
+        'delegation_employee_id',
+        'delegation_approved_at',
+        'delegation_notes',
+        'supervisor_id',
+        'supervisor_approved_at',
+        'supervisor_notes',
+        'director_id',
+        'director_signed_at',
+        'response_letter_number',
+        'response_letter_generated_at',
         'status',
         'approved_by',
         'approved_at',
@@ -46,6 +56,10 @@ class Leave extends Model
         'is_half_day' => 'boolean',
         'approved_at' => 'datetime',
         'approved_at_level_2' => 'datetime',
+        'delegation_approved_at' => 'datetime',
+        'supervisor_approved_at' => 'datetime',
+        'director_signed_at' => 'datetime',
+        'response_letter_generated_at' => 'datetime',
         'submitted_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
@@ -56,6 +70,10 @@ class Leave extends Model
     public const STATUS_LABELS = [
         'draft' => 'Draft',
         'pending' => 'Menunggu Persetujuan',
+        'pending_delegation' => 'Menunggu Konfirmasi Delegasi',
+        'pending_supervisor' => 'Menunggu Persetujuan Atasan',
+        'pending_hr' => 'Menunggu Proses HR',
+        'pending_director_sign' => 'Menunggu Tanda Tangan Direktur',
         'approved' => 'Disetujui',
         'rejected' => 'Ditolak',
         'cancelled' => 'Dibatalkan',
@@ -92,6 +110,21 @@ class Leave extends Model
         return $this->belongsTo(User::class, 'approved_by_level_2');
     }
 
+    public function delegationEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'delegation_employee_id');
+    }
+
+    public function supervisor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    public function director(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'director_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -108,6 +141,26 @@ class Leave extends Model
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+    }
+
+    public function scopePendingDelegation($query)
+    {
+        return $query->where('status', 'pending_delegation');
+    }
+
+    public function scopePendingSupervisor($query)
+    {
+        return $query->where('status', 'pending_supervisor');
+    }
+
+    public function scopePendingHr($query)
+    {
+        return $query->where('status', 'pending_hr');
+    }
+
+    public function scopePendingDirectorSign($query)
+    {
+        return $query->where('status', 'pending_director_sign');
     }
 
     public function scopeApproved($query)
@@ -192,10 +245,10 @@ class Leave extends Model
         return $this->status === 'rejected';
     }
 
-    public function getCanCancelAttribute(): bool
-    {
-        return in_array($this->status, ['draft', 'pending']);
-    }
+    // public function getCanCancelAttribute(): bool
+    // {
+    //     return in_array($this->status, ['draft', 'pending']);
+    // }
 
     public function getCanEditAttribute(): bool
     {
@@ -230,7 +283,7 @@ class Leave extends Model
     }
 
     /**
-     * Submit leave request
+     * Submit leave request with hierarchical workflow
      */
     public function submit(): bool
     {
@@ -238,13 +291,94 @@ class Leave extends Model
             return false;
         }
 
-        $this->status = 'pending';
+        // Start with delegation approval if delegation is set
+        if ($this->delegation_employee_id) {
+            $this->status = 'pending_delegation';
+        } else {
+            $this->status = 'pending_supervisor';
+        }
+        
         $this->submitted_at = now();
         return $this->save();
     }
 
     /**
-     * Approve leave request
+     * Approve by delegation (rekan kerja)
+     */
+    public function approveDelegation(int $employeeId, ?string $notes = null): bool
+    {
+        if ($this->status !== 'pending_delegation') {
+            return false;
+        }
+
+        $this->delegation_approved_at = now();
+        $this->delegation_notes = $notes;
+        $this->status = 'pending_supervisor';
+        
+        return $this->save();
+    }
+
+    /**
+     * Approve by supervisor (kepala unit)
+     */
+    public function approveSupervisor(int $userId, ?string $notes = null): bool
+    {
+        if ($this->status !== 'pending_supervisor') {
+            return false;
+        }
+
+        $this->supervisor_id = $userId;
+        $this->supervisor_approved_at = now();
+        $this->supervisor_notes = $notes;
+        $this->status = 'pending_hr';
+        
+        return $this->save();
+    }
+
+    /**
+     * Approve by HR - Final approval, generates Surat Cuti
+     * Director signing is just for notification/report, not blocking
+     */
+    public function approveHr(int $approverId, ?string $notes = null): bool
+    {
+        if ($this->status !== 'pending_hr') {
+            return false;
+        }
+
+        $this->approved_by = $approverId;
+        $this->approved_at = now();
+        $this->approval_notes = $notes;
+        $this->status = 'approved'; // Directly approved, director sign is just notification
+        
+        return $this->save();
+    }
+
+    /**
+     * Sign by director (notification/report - adds signature to Surat Balasan)
+     * This doesn't change approval status, just records director signature
+     */
+    public function signDirector(int $directorId, ?string $letterNumber = null): bool
+    {
+        // Director can sign approved leaves (not just pending_director_sign)
+        if (!in_array($this->status, ['approved', 'pending_director_sign'])) {
+            return false;
+        }
+
+        $this->director_id = $directorId;
+        $this->director_signed_at = now();
+        $this->response_letter_number = $letterNumber;
+        $this->response_letter_generated_at = now();
+        
+        // If it was pending_director_sign, also mark as approved
+        if ($this->status === 'pending_director_sign') {
+            $this->status = 'approved';
+        }
+        
+        return $this->save();
+    }
+
+    /**
+     * Approve leave request (legacy method for backward compatibility)
      */
     public function approve(int $approverId, ?string $notes = null): bool
     {
@@ -261,11 +395,12 @@ class Leave extends Model
     }
 
     /**
-     * Reject leave request
+     * Reject leave request (can be done at any pending stage)
      */
     public function reject(int $approverId, ?string $notes = null): bool
     {
-        if ($this->status !== 'pending') {
+        $allowedStatuses = ['pending', 'pending_delegation', 'pending_supervisor', 'pending_hr', 'pending_director_sign'];
+        if (!in_array($this->status, $allowedStatuses)) {
             return false;
         }
 
@@ -291,5 +426,91 @@ class Leave extends Model
         $this->cancellation_reason = $reason;
         
         return $this->save();
+    }
+
+    /**
+     * Get the supervisor for this leave request based on organization hierarchy
+     */
+    public function getSupervisorUser(): ?User
+    {
+        $employee = $this->employee;
+        if (!$employee || !$employee->organizationUnit) {
+            return null;
+        }
+
+        $orgUnit = $employee->organizationUnit;
+        
+        // Check if employee is the head of their unit (use int cast for comparison)
+        if ($orgUnit->head_id && (int) $employee->user_id === (int) $orgUnit->head_id) {
+            // Employee is head, get parent unit's head
+            $parentUnit = $orgUnit->parent;
+            return $parentUnit?->head;
+        }
+
+        // Regular employee, get their unit's head
+        return $orgUnit->head;
+    }
+
+    /**
+     * Get the director (level 1 head) for final signature
+     */
+    public function getDirectorUser(): ?User
+    {
+        $employee = $this->employee;
+        if (!$employee || !$employee->organizationUnit) {
+            return null;
+        }
+
+        $orgUnit = $employee->organizationUnit;
+        
+        // Traverse up to find level 1 organization
+        while ($orgUnit && $orgUnit->level > 1) {
+            $orgUnit = $orgUnit->parent;
+        }
+
+        return $orgUnit?->head;
+    }
+
+    /**
+     * Check if user can approve as delegation
+     */
+    public function canApproveAsDelegation(int $employeeId): bool
+    {
+        return $this->status === 'pending_delegation' 
+            && (int) $this->delegation_employee_id === $employeeId;
+    }
+
+    /**
+     * Check if user can approve as supervisor
+     */
+    public function canApproveAsSupervisor(int $userId): bool
+    {
+        if ($this->status !== 'pending_supervisor') {
+            return false;
+        }
+
+        $supervisor = $this->getSupervisorUser();
+        return $supervisor && $supervisor->id === $userId;
+    }
+
+    /**
+     * Check if user can sign as director
+     */
+    public function canSignAsDirector(int $userId): bool
+    {
+        if ($this->status !== 'pending_director_sign') {
+            return false;
+        }
+
+        $director = $this->getDirectorUser();
+        return $director && $director->id === $userId;
+    }
+
+    /**
+     * Get can cancel attribute - updated for new statuses
+     */
+    public function getCanCancelAttribute(): bool
+    {
+        return in_array($this->status, ['draft', 'pending', 'pending_delegation', 'pending_supervisor']);
     }
 }

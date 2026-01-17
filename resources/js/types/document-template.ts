@@ -192,11 +192,14 @@ export interface TemplateVariable {
     placeholder: string;
 }
 
+export type TemplateType = 'general' | 'leave' | 'early_leave' | 'leave_response' | 'early_leave_response';
+
 export interface DocumentTemplate {
     id?: number;
     name: string;
     code: string;
     category: string | null;
+    template_type: TemplateType;
     organization_unit_id: number | null;
     numbering_group_id: number | null;
     description: string | null;

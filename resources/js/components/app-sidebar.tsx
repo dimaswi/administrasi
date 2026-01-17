@@ -69,48 +69,11 @@ const arsipNavItems: NavItem[] = [
     },
 ];
 
-const settingsNavItems: NavItem[] = [
-    {
-        title: 'Daftar User',
-        href: '/master/users',
-        icon: Users,
-        permission: 'user.view',
-    },
-    {
-        title: 'Daftar Role',
-        href: '/master/roles',
-        icon: Shield,
-        permission: 'role.view',
-    },
-    {
-        title: 'Daftar Permission',
-        href: '/master/permissions',
-        icon: Key,
-        permission: 'permission.view',
-    },
-    {
-        title: 'Daftar Ruangan',
-        href: '/master/rooms',
-        icon: LayoutGrid,
-        permission: 'room.view',
-    },
-    {
-        title: 'Unit Organisasi',
-        href: '/master/organizations',
-        icon: BookOpen,
-        permission: 'organization.view',
-    },
-];
-
 export function AppSidebar() {
     const { hasPermission } = usePermission();
 
     // Filter navigation items based on permissions
     const filteredArsipItems = arsipNavItems.filter(item => 
-        !item.permission || hasPermission(item.permission)
-    );
-
-    const filteredSettingsItems = settingsNavItems.filter(item => 
         !item.permission || hasPermission(item.permission)
     );
 
@@ -124,9 +87,6 @@ export function AppSidebar() {
                 <NavMain items={mainNavItems} label="Menu" />
                 {filteredArsipItems.length > 0 && (
                     <NavMain items={filteredArsipItems} label="Arsip" />
-                )}
-                {filteredSettingsItems.length > 0 && (
-                    <NavMain items={filteredSettingsItems} label="Pengaturan" />
                 )}
             </SidebarContent>
 

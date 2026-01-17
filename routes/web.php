@@ -35,3 +35,4 @@ require __DIR__.'/master.php';
 require __DIR__.'/meeting.php';
 require __DIR__.'/arsip.php';
 require __DIR__.'/hr.php';
+require __DIR__.'/announcements.php';

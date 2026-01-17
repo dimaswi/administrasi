@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Settings\CompanySettingsController;
-use App\Http\Controllers\Settings\OrganizationUnitController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\RoomController;
@@ -32,14 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/system-logs', [SystemLogController::class, 'index'])->name('settings.system-logs');
     Route::post('settings/system-logs/clear', [SystemLogController::class, 'clear'])->name('settings.system-logs.clear');
 
-    // Organization Unit Management
-    Route::get('master/organizations', [OrganizationUnitController::class, 'index'])->name('organizations.index')->middleware('permission:organization.view');
-    Route::get('master/organizations/create', [OrganizationUnitController::class, 'create'])->name('organizations.create')->middleware('permission:organization.create');
-    Route::post('master/organizations', [OrganizationUnitController::class, 'store'])->name('organizations.store')->middleware('permission:organization.create');
-    Route::get('master/organizations/{organization}/edit', [OrganizationUnitController::class, 'edit'])->name('organizations.edit')->middleware('permission:organization.edit');
-    Route::get('master/organizations/{organization}', [OrganizationUnitController::class, 'show'])->name('organizations.show')->middleware('permission:organization.view');
-    Route::put('master/organizations/{organization}', [OrganizationUnitController::class, 'update'])->name('organizations.update')->middleware('permission:organization.edit');
-    Route::delete('master/organizations/{organization}', [OrganizationUnitController::class, 'destroy'])->name('organizations.destroy')->middleware('permission:organization.delete');
+    // Organization Unit Management moved to hr.php
+    // See routes/hr.php for Organization management
 
     // Room Management
     Route::get('master/rooms', [RoomController::class, 'index'])->name('rooms.index')->middleware('permission:room.view');

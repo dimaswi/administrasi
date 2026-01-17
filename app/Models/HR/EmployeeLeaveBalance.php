@@ -37,7 +37,7 @@ class EmployeeLeaveBalance extends Model
 
     public function leaveType(): BelongsTo
     {
-        return $this->belongsTo(LeaveType::class);
+        return $this->belongsTo(LeaveType::class)->withTrashed();
     }
 
     /**

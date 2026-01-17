@@ -29,6 +29,7 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const SIDEBAR_SCROLL_STORAGE_KEY = "sidebar_scroll_position"
 
 type SidebarContext = {
   state: "expanded" | "collapsed"
@@ -38,6 +39,8 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  scrollPosition: number
+  setScrollPosition: (position: number) => void
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -66,6 +69,15 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+
+  // Get initial scroll position from sessionStorage
+  const [scrollPosition, setScrollPosition] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(SIDEBAR_SCROLL_STORAGE_KEY)
+      return saved ? parseInt(saved, 10) : 0
+    }
+    return 0
+  })
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -120,8 +132,10 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      scrollPosition,
+      setScrollPosition,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, scrollPosition, setScrollPosition]
   )
 
   return (
@@ -364,10 +378,43 @@ function SidebarSeparator({
 }
 
 function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
+  const { scrollPosition, setScrollPosition } = useSidebar()
+  const contentRef = React.useRef<HTMLDivElement>(null)
+  const scrollTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Restore scroll position immediately on mount using useLayoutEffect
+  React.useLayoutEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = scrollPosition
+    }
+  }, [])
+
+  // Save scroll position on scroll with debouncing
+  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement
+    
+    // Clear previous timer
+    if (scrollTimerRef.current) {
+      clearTimeout(scrollTimerRef.current)
+    }
+    
+    // Debounce the scroll position update
+    scrollTimerRef.current = setTimeout(() => {
+      const newScrollPos = target.scrollTop
+      setScrollPosition(newScrollPos)
+      // Save to sessionStorage for persistence across navigation
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(SIDEBAR_SCROLL_STORAGE_KEY, newScrollPos.toString())
+      }
+    }, 50)
+  }, [setScrollPosition])
+
   return (
     <div
+      ref={contentRef}
       data-slot="sidebar-content"
       data-sidebar="content"
+      onScroll={handleScroll}
       className={cn(
         "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:overflow-hidden",
         // Hide scrollbar by default, show on hover

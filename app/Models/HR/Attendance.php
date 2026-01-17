@@ -237,10 +237,11 @@ class Attendance extends Model
         
         // Get tolerance from work schedule
         $tolerance = $this->workSchedule?->late_tolerance ?? 0;
-        $scheduledWithTolerance = $scheduledIn->addMinutes($tolerance);
+        $scheduledWithTolerance = $scheduledIn->copy()->addMinutes($tolerance);
         
         if ($clockIn->greaterThan($scheduledWithTolerance)) {
-            return $clockIn->diffInMinutes($scheduledIn);
+            // Use absolute value to ensure positive result
+            return (int) abs($clockIn->diffInMinutes($scheduledIn));
         }
         
         return 0;
@@ -258,10 +259,11 @@ class Attendance extends Model
         
         // Get tolerance from work schedule
         $tolerance = $this->workSchedule?->early_leave_tolerance ?? 0;
-        $scheduledWithTolerance = $scheduledOut->subMinutes($tolerance);
+        $scheduledWithTolerance = $scheduledOut->copy()->subMinutes($tolerance);
         
         if ($clockOut->lessThan($scheduledWithTolerance)) {
-            return $scheduledOut->diffInMinutes($clockOut);
+            // Use absolute value to ensure positive result
+            return (int) abs($scheduledOut->diffInMinutes($clockOut));
         }
         
         return 0;

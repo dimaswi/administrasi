@@ -14,6 +14,7 @@ use App\Http\Controllers\HR\AttendanceController;
 use App\Http\Controllers\HR\LeaveTypeController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LeaveBalanceController;
+use App\Http\Controllers\HR\EarlyLeaveRequestController;
 use App\Http\Controllers\HR\EmployeeCredentialController;
 use App\Http\Controllers\HR\TrainingController;
 use App\Http\Controllers\HR\EmployeeTrainingController;
@@ -23,12 +24,54 @@ use App\Http\Controllers\HR\PerformanceReviewController;
 use App\Http\Controllers\HR\ReportController;
 use App\Http\Controllers\HR\Feedback360Controller;
 use App\Http\Controllers\HR\CalibrationController;
+use App\Http\Controllers\HR\UserController;
+use App\Http\Controllers\HR\RoleController;
+use App\Http\Controllers\HR\PermissionController;
+use App\Http\Controllers\HR\OrganizationUnitController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     // HR Dashboard
     Route::get('/', [HRDashboardController::class, 'index'])->name('dashboard');
-    
+
+    // Access Management (Users, Roles, Permissions)
+    Route::prefix('access')->name('access.')->group(function () {
+        // User Management
+        Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('permission:user.view');
+        Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:user.create');
+        Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('permission:user.create');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->middleware('permission:user.view');
+        Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:user.edit');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:user.edit');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:user.delete');
+
+        // Role Management
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:role.view');
+        Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:role.create');
+        Route::post('roles', [RoleController::class, 'store'])->name('roles.store')->middleware('permission:role.create');
+        Route::get('roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit')->middleware('permission:role.edit');
+        Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update')->middleware('permission:role.edit');
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy')->middleware('permission:role.delete');
+
+        // Permission Management
+        Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index')->middleware('permission:permission.view');
+        Route::get('permissions/create', [PermissionController::class, 'create'])->name('permissions.create')->middleware('permission:permission.create');
+        Route::post('permissions', [PermissionController::class, 'store'])->name('permissions.store')->middleware('permission:permission.create');
+        Route::get('permissions/{permission}', [PermissionController::class, 'show'])->name('permissions.show')->middleware('permission:permission.view');
+        Route::get('permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit')->middleware('permission:permission.edit');
+        Route::put('permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update')->middleware('permission:permission.edit');
+        Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permission.delete');
+    });
+
+    // Organization Unit Management
+    Route::get('organizations', [OrganizationUnitController::class, 'index'])->name('organizations.index')->middleware('permission:organization.view');
+    Route::get('organizations/create', [OrganizationUnitController::class, 'create'])->name('organizations.create')->middleware('permission:organization.create');
+    Route::post('organizations', [OrganizationUnitController::class, 'store'])->name('organizations.store')->middleware('permission:organization.create');
+    Route::get('organizations/{organization}', [OrganizationUnitController::class, 'show'])->name('organizations.show')->middleware('permission:organization.view');
+    Route::get('organizations/{organization}/edit', [OrganizationUnitController::class, 'edit'])->name('organizations.edit')->middleware('permission:organization.edit');
+    Route::put('organizations/{organization}', [OrganizationUnitController::class, 'update'])->name('organizations.update')->middleware('permission:organization.edit');
+    Route::delete('organizations/{organization}', [OrganizationUnitController::class, 'destroy'])->name('organizations.destroy')->middleware('permission:organization.delete');
+
     // Reports Hub
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
@@ -73,6 +116,19 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::post('leaves/{leave}/approve', [LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('leaves/{leave}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
     Route::post('leaves/{leave}/cancel', [LeaveController::class, 'cancel'])->name('leaves.cancel');
+    Route::post('leaves/{leave}/director-sign', [LeaveController::class, 'directorSign'])->name('leaves.director-sign');
+    Route::post('leaves/{leave}/director-reject', [LeaveController::class, 'directorReject'])->name('leaves.director-reject');
+    Route::get('leaves/{leave}/download-pdf', [LeaveController::class, 'downloadPdf'])->name('leaves.download-pdf');
+    Route::get('leaves/{leave}/download-response-pdf', [LeaveController::class, 'downloadResponsePdf'])->name('leaves.download-response-pdf');
+    
+    // Early Leave Requests (Izin Pulang Cepat)
+    Route::get('early-leave-requests', [EarlyLeaveRequestController::class, 'index'])->name('early-leave-requests.index');
+    Route::get('early-leave-requests/{earlyLeaveRequest}', [EarlyLeaveRequestController::class, 'show'])->name('early-leave-requests.show');
+    Route::post('early-leave-requests/{earlyLeaveRequest}/approve', [EarlyLeaveRequestController::class, 'approve'])->name('early-leave-requests.approve');
+    Route::post('early-leave-requests/{earlyLeaveRequest}/reject', [EarlyLeaveRequestController::class, 'reject'])->name('early-leave-requests.reject');
+    Route::post('early-leave-requests/{earlyLeaveRequest}/director-sign', [EarlyLeaveRequestController::class, 'directorSign'])->name('early-leave-requests.director-sign');
+    Route::post('early-leave-requests/{earlyLeaveRequest}/director-reject', [EarlyLeaveRequestController::class, 'directorReject'])->name('early-leave-requests.director-reject');
+    Route::get('early-leave-requests/{earlyLeaveRequest}/download-pdf', [EarlyLeaveRequestController::class, 'downloadPdf'])->name('early-leave-requests.download-pdf');
     
     // Leave Types
     Route::get('leave-types', [LeaveTypeController::class, 'index'])->name('leave-types.index');

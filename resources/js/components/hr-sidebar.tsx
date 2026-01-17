@@ -1,31 +1,30 @@
 import { NavMain, NavMainWithSub } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { WorkspaceSwitcherHR } from '@/components/workspace-switcher-hr';
-import { 
-    Sidebar, 
-    SidebarContent, 
-    SidebarFooter, 
-    SidebarHeader,
-} from '@/components/ui/sidebar';
 import { type NavItem, type NavItemWithSub } from '@/types';
-import { 
-    LayoutDashboard, 
-    Users, 
-    CalendarCheck, 
-    CalendarOff, 
-    Wallet, 
-    Clock, 
-    FileText, 
-    GraduationCap,
-    Target,
+import {
     BarChart3,
-    Calendar,
+    BookOpen,
     Briefcase,
+    Calendar,
+    CalendarCheck,
+    CalendarOff,
     ClipboardList,
+    Clock,
     FileBarChart,
-    UserCheck,
+    FileText,
+    GraduationCap,
+    Key,
+    LayoutDashboard,
+    LayoutGrid,
+    Megaphone,
     Scale,
-    TrendingDown,
+    Shield,
+    Target,
+    UserCheck,
+    Users,
+    Wallet,
 } from 'lucide-react';
 
 const mainNavItems: NavItem[] = [
@@ -33,6 +32,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: '/hr',
         icon: LayoutDashboard,
+    },
+    {
+        title: 'Pengumuman',
+        href: '/hr/announcements',
+        icon: Megaphone,
     },
 ];
 
@@ -64,6 +68,11 @@ const employeeNavItems: NavItem[] = [
         title: 'Cuti & Izin',
         href: '/hr/leaves',
         icon: CalendarOff,
+    },
+    {
+        title: 'Izin Pulang Cepat',
+        href: '/hr/early-leave-requests',
+        icon: Clock,
     },
     {
         title: 'Saldo Cuti',
@@ -124,6 +133,26 @@ const performanceNavItems: NavItem[] = [
 ];
 
 const masterNavItems: NavItem[] = [
+    {
+        title: 'Daftar User',
+        href: '/hr/access/users',
+        icon: Users,
+    },
+    {
+        title: 'Daftar Role',
+        href: '/hr/access/roles',
+        icon: Shield,
+    },
+    {
+        title: 'Daftar Permission',
+        href: '/hr/access/permissions',
+        icon: Key,
+    },
+    {
+        title: 'Unit Organisasi',
+        href: '/hr/organizations',
+        icon: BookOpen,
+    },
     {
         title: 'Template Jadwal',
         href: '/hr/work-schedules',
