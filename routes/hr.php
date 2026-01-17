@@ -14,10 +14,7 @@ use App\Http\Controllers\HR\AttendanceController;
 use App\Http\Controllers\HR\LeaveTypeController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LeaveBalanceController;
-<<<<<<< HEAD
 use App\Http\Controllers\HR\EarlyLeaveRequestController;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 use App\Http\Controllers\HR\EmployeeCredentialController;
 use App\Http\Controllers\HR\TrainingController;
 use App\Http\Controllers\HR\EmployeeTrainingController;
@@ -27,19 +24,15 @@ use App\Http\Controllers\HR\PerformanceReviewController;
 use App\Http\Controllers\HR\ReportController;
 use App\Http\Controllers\HR\Feedback360Controller;
 use App\Http\Controllers\HR\CalibrationController;
-<<<<<<< HEAD
 use App\Http\Controllers\HR\UserController;
 use App\Http\Controllers\HR\RoleController;
 use App\Http\Controllers\HR\PermissionController;
 use App\Http\Controllers\HR\OrganizationUnitController;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     // HR Dashboard
     Route::get('/', [HRDashboardController::class, 'index'])->name('dashboard');
-<<<<<<< HEAD
 
     // Access Management (Users, Roles, Permissions)
     Route::prefix('access')->name('access.')->group(function () {
@@ -79,9 +72,6 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::put('organizations/{organization}', [OrganizationUnitController::class, 'update'])->name('organizations.update')->middleware('permission:organization.edit');
     Route::delete('organizations/{organization}', [OrganizationUnitController::class, 'destroy'])->name('organizations.destroy')->middleware('permission:organization.delete');
 
-=======
-    
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     // Reports Hub
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
@@ -126,7 +116,6 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::post('leaves/{leave}/approve', [LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('leaves/{leave}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
     Route::post('leaves/{leave}/cancel', [LeaveController::class, 'cancel'])->name('leaves.cancel');
-<<<<<<< HEAD
     Route::post('leaves/{leave}/director-sign', [LeaveController::class, 'directorSign'])->name('leaves.director-sign');
     Route::post('leaves/{leave}/director-reject', [LeaveController::class, 'directorReject'])->name('leaves.director-reject');
     Route::get('leaves/{leave}/download-pdf', [LeaveController::class, 'downloadPdf'])->name('leaves.download-pdf');
@@ -140,8 +129,6 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::post('early-leave-requests/{earlyLeaveRequest}/director-sign', [EarlyLeaveRequestController::class, 'directorSign'])->name('early-leave-requests.director-sign');
     Route::post('early-leave-requests/{earlyLeaveRequest}/director-reject', [EarlyLeaveRequestController::class, 'directorReject'])->name('early-leave-requests.director-reject');
     Route::get('early-leave-requests/{earlyLeaveRequest}/download-pdf', [EarlyLeaveRequestController::class, 'downloadPdf'])->name('early-leave-requests.download-pdf');
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     
     // Leave Types
     Route::get('leave-types', [LeaveTypeController::class, 'index'])->name('leave-types.index');

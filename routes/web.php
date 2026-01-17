@@ -35,7 +35,4 @@ require __DIR__.'/master.php';
 require __DIR__.'/meeting.php';
 require __DIR__.'/arsip.php';
 require __DIR__.'/hr.php';
-<<<<<<< HEAD
 require __DIR__.'/announcements.php';
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce

@@ -5,10 +5,7 @@ namespace App\Http\Controllers\HR;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
-<<<<<<< HEAD:app/Http/Controllers/HR/UserController.php
 use App\Models\OrganizationUnit;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/UserController.php
 use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -98,7 +95,6 @@ class UserController extends Controller
         // Clear related cache
         CacheService::clearUserCache();
 
-<<<<<<< HEAD:app/Http/Controllers/HR/UserController.php
         return redirect()->route('hr.access.users.index')->with('success', 'User berhasil ditambahkan');
     }
 
@@ -109,9 +105,6 @@ class UserController extends Controller
         return Inertia::render('HR/access/user/show', [
             'user' => $user,
         ]);
-=======
-        return redirect()->route('users.index');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/UserController.php
     }
 
     public function edit(User $user)
@@ -166,7 +159,6 @@ class UserController extends Controller
             'is_active' => $request->is_active ?? true,
         ];
 
-<<<<<<< HEAD:app/Http/Controllers/HR/UserController.php
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -177,12 +169,6 @@ class UserController extends Controller
         CacheService::clearUserCache($user->id);
 
         return redirect()->route('hr.access.users.index')->with('success', 'User berhasil diperbarui');
-=======
-        // Clear related cache
-        CacheService::clearUserCache($user->id);
-
-        return redirect()->route('users.index');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/UserController.php
     }
 
     public function destroy(User $user)
@@ -193,10 +179,6 @@ class UserController extends Controller
         // Clear related cache
         CacheService::clearUserCache($userId);
 
-<<<<<<< HEAD:app/Http/Controllers/HR/UserController.php
         return redirect()->route('hr.access.users.index')->with('success', 'User berhasil dihapus');
-=======
-        return redirect()->route('users.index');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/UserController.php
     }
 }

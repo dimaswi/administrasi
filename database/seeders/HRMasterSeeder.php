@@ -5,10 +5,7 @@ namespace Database\Seeders;
 use App\Models\HR\JobCategory;
 use App\Models\HR\EmploymentStatus;
 use App\Models\HR\EducationLevel;
-<<<<<<< HEAD
 use App\Models\HR\LeaveType;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 use Illuminate\Database\Seeder;
 
 class HRMasterSeeder extends Seeder
@@ -84,7 +81,6 @@ class HRMasterSeeder extends Seeder
                 $level
             );
         }
-<<<<<<< HEAD
 
         // Leave Types
         $leaveTypes = [
@@ -261,7 +257,5 @@ class HRMasterSeeder extends Seeder
                 $type
             );
         }
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     }
 }

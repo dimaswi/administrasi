@@ -25,13 +25,10 @@ import {
     Edit,
     Ban,
     AlertCircle,
-<<<<<<< HEAD
     PenLine,
     Users,
     Building,
     UserCheck,
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -48,15 +45,12 @@ interface LeaveType {
     color: string;
 }
 
-<<<<<<< HEAD
 interface ApprovalInfo {
     name: string | null;
     approved_at: string | null;
     notes: string | null;
 }
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 interface LeaveData {
     id: number;
     employee: Employee;
@@ -74,13 +68,10 @@ interface LeaveData {
     emergency_contact: string | null;
     emergency_phone: string | null;
     delegation_to: string | null;
-<<<<<<< HEAD
     delegation_employee: ApprovalInfo | null;
     supervisor: ApprovalInfo | null;
     director: ApprovalInfo | null;
     response_letter_number: string | null;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     attachment: string | null;
     approved_by: string | null;
     approved_at: string | null;
@@ -89,10 +80,7 @@ interface LeaveData {
     created_at: string;
     submitted_at: string | null;
     can_approve: boolean;
-<<<<<<< HEAD
     can_sign_director: boolean;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     can_cancel: boolean;
     can_edit: boolean;
 }
@@ -121,13 +109,10 @@ interface Props {
 const statusColors: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-<<<<<<< HEAD
     pending_delegation: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
     pending_supervisor: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
     pending_hr: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
     pending_director_sign: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
     rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
     cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
@@ -149,20 +134,14 @@ export default function Show({ leave, balances }: Props) {
     const [showApproveDialog, setShowApproveDialog] = useState(false);
     const [showRejectDialog, setShowRejectDialog] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
-<<<<<<< HEAD
     const [showSignDialog, setShowSignDialog] = useState(false);
     const [showSignRejectDialog, setShowSignRejectDialog] = useState(false);
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     
     const approveForm = useForm({ notes: '' });
     const rejectForm = useForm({ notes: '' });
     const cancelForm = useForm({ reason: '' });
-<<<<<<< HEAD
     const signForm = useForm({ notes: '' });
     const signRejectForm = useForm({ notes: '' });
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 
     const breadcrumbs = [
         { title: 'HR', href: '/hr' },
@@ -188,7 +167,6 @@ export default function Show({ leave, balances }: Props) {
         });
     };
 
-<<<<<<< HEAD
     const handleDirectorSign = () => {
         signForm.post(`/hr/leaves/${leave.id}/director-sign`, {
             onSuccess: () => setShowSignDialog(false),
@@ -230,8 +208,6 @@ export default function Show({ leave, balances }: Props) {
         }
     };
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     const actions = (
         <div className="flex gap-2">
             {leave.can_edit && (
@@ -361,7 +337,6 @@ export default function Show({ leave, balances }: Props) {
                     </DialogContent>
                 </Dialog>
             )}
-<<<<<<< HEAD
             {leave.can_sign_director && (
                 <>
                     <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
@@ -447,8 +422,6 @@ export default function Show({ leave, balances }: Props) {
                     </Dialog>
                 </>
             )}
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         </div>
     );
 
@@ -469,26 +442,8 @@ export default function Show({ leave, balances }: Props) {
                             <CardContent className="pt-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-<<<<<<< HEAD
                                         <div className={`p-3 rounded-full ${getStatusIconBg(leave.status)}`}>
                                             {getStatusIcon(leave.status)}
-=======
-                                        <div className={`p-3 rounded-full ${
-                                            leave.status === 'approved' ? 'bg-green-100' :
-                                            leave.status === 'rejected' ? 'bg-red-100' :
-                                            leave.status === 'pending' ? 'bg-yellow-100' :
-                                            'bg-gray-100'
-                                        }`}>
-                                            {leave.status === 'approved' ? (
-                                                <CheckCircle className="h-6 w-6 text-green-600" />
-                                            ) : leave.status === 'rejected' ? (
-                                                <XCircle className="h-6 w-6 text-red-600" />
-                                            ) : leave.status === 'pending' ? (
-                                                <Clock className="h-6 w-6 text-yellow-600" />
-                                            ) : (
-                                                <AlertCircle className="h-6 w-6 text-gray-600" />
-                                            )}
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                                         </div>
                                         <div>
                                             <Badge className={`${statusColors[leave.status]} text-sm`}>
@@ -515,7 +470,6 @@ export default function Show({ leave, balances }: Props) {
                             </CardContent>
                         </Card>
 
-<<<<<<< HEAD
                         {/* Approval Timeline */}
                         <Card>
                             <CardHeader>
@@ -636,8 +590,6 @@ export default function Show({ leave, balances }: Props) {
                             </CardContent>
                         </Card>
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                         {/* Employee Info */}
                         <Card>
                             <CardHeader>
@@ -677,13 +629,8 @@ export default function Show({ leave, balances }: Props) {
                                     <div>
                                         <Label className="text-muted-foreground">Jenis Cuti</Label>
                                         <div className="flex items-center gap-2 mt-1">
-<<<<<<< HEAD
                                             <div className={`w-3 h-3 rounded-full ${leaveTypeColors[leave.leave_type?.color ?? 'gray'] ?? 'bg-gray-500'}`}></div>
                                             <span className="font-medium">{leave.leave_type?.name ?? 'Unknown'}</span>
-=======
-                                            <div className={`w-3 h-3 rounded-full ${leaveTypeColors[leave.leave_type.color]}`}></div>
-                                            <span className="font-medium">{leave.leave_type.name}</span>
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                                         </div>
                                     </div>
                                     <div>
@@ -756,34 +703,22 @@ export default function Show({ leave, balances }: Props) {
                                 {balances.map((balance) => {
                                     const total = Number(balance.initial_balance) + Number(balance.carry_over) + Number(balance.adjustment);
                                     const available = total - Number(balance.used) - Number(balance.pending);
-<<<<<<< HEAD
                                     const leaveTypeName = balance.leaveType?.name ?? 'Unknown';
                                     const leaveTypeColor = balance.leaveType?.color ?? 'gray';
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                                     
                                     return (
                                         <div 
                                             key={balance.id}
                                             className={`p-3 rounded-lg ${
-<<<<<<< HEAD
                                                 balance.leave_type_id === leave.leave_type?.id
-=======
-                                                balance.leave_type_id === leave.leave_type.id
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                                                     ? 'border-2 border-primary bg-primary/5'
                                                     : 'bg-muted/50'
                                             }`}
                                         >
                                             <div className="flex justify-between items-center mb-2">
                                                 <div className="flex items-center gap-2">
-<<<<<<< HEAD
                                                     <div className={`w-3 h-3 rounded-full ${leaveTypeColors[leaveTypeColor] ?? 'bg-gray-500'}`}></div>
                                                     <span className="font-medium text-sm">{leaveTypeName}</span>
-=======
-                                                    <div className={`w-3 h-3 rounded-full ${leaveTypeColors[balance.leaveType.color]}`}></div>
-                                                    <span className="font-medium text-sm">{balance.leaveType.name}</span>
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                                                 </div>
                                                 <Badge variant="outline">{available} hari</Badge>
                                             </div>

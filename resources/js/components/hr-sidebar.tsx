@@ -1,6 +1,5 @@
 import { NavMain, NavMainWithSub } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-<<<<<<< HEAD
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { WorkspaceSwitcherHR } from '@/components/workspace-switcher-hr';
 import { type NavItem, type NavItemWithSub } from '@/types';
@@ -26,34 +25,6 @@ import {
     UserCheck,
     Users,
     Wallet,
-=======
-import { WorkspaceSwitcherHR } from '@/components/workspace-switcher-hr';
-import { 
-    Sidebar, 
-    SidebarContent, 
-    SidebarFooter, 
-    SidebarHeader,
-} from '@/components/ui/sidebar';
-import { type NavItem, type NavItemWithSub } from '@/types';
-import { 
-    LayoutDashboard, 
-    Users, 
-    CalendarCheck, 
-    CalendarOff, 
-    Wallet, 
-    Clock, 
-    FileText, 
-    GraduationCap,
-    Target,
-    BarChart3,
-    Calendar,
-    Briefcase,
-    ClipboardList,
-    FileBarChart,
-    UserCheck,
-    Scale,
-    TrendingDown,
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 } from 'lucide-react';
 
 const mainNavItems: NavItem[] = [
@@ -62,14 +33,11 @@ const mainNavItems: NavItem[] = [
         href: '/hr',
         icon: LayoutDashboard,
     },
-<<<<<<< HEAD
     {
         title: 'Pengumuman',
         href: '/hr/announcements',
         icon: Megaphone,
     },
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 ];
 
 const reportNavItem: NavItemWithSub = {
@@ -102,14 +70,11 @@ const employeeNavItems: NavItem[] = [
         icon: CalendarOff,
     },
     {
-<<<<<<< HEAD
         title: 'Izin Pulang Cepat',
         href: '/hr/early-leave-requests',
         icon: Clock,
     },
     {
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         title: 'Saldo Cuti',
         href: '/hr/leave-balances',
         icon: Wallet,
@@ -169,7 +134,6 @@ const performanceNavItems: NavItem[] = [
 
 const masterNavItems: NavItem[] = [
     {
-<<<<<<< HEAD
         title: 'Daftar User',
         href: '/hr/access/users',
         icon: Users,
@@ -190,8 +154,6 @@ const masterNavItems: NavItem[] = [
         icon: BookOpen,
     },
     {
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         title: 'Template Jadwal',
         href: '/hr/work-schedules',
         icon: Clock,

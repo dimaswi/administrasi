@@ -60,7 +60,6 @@ class LeaveBalanceController extends Controller
                     ->where('year', $year)
                     ->first();
 
-<<<<<<< HEAD
                 // Only show if has balance record (is assigned)
                 if ($balance) {
                     $balances[] = [
@@ -85,24 +84,6 @@ class LeaveBalanceController extends Controller
                 ->where('year', $year)
                 ->count();
 
-=======
-                $balances[] = [
-                    'leave_type_id' => $leaveType->id,
-                    'leave_type_name' => $leaveType->name,
-                    'leave_type_code' => $leaveType->code,
-                    'leave_type_color' => $leaveType->color,
-                    'initial_balance' => $balance?->initial_balance ?? $leaveType->default_quota,
-                    'carry_over' => $balance?->carry_over ?? 0,
-                    'adjustment' => $balance?->adjustment ?? 0,
-                    'used' => $balance?->used ?? 0,
-                    'pending' => $balance?->pending ?? 0,
-                    'total_balance' => $balance?->total_balance ?? $leaveType->default_quota,
-                    'available_balance' => $balance?->available_balance ?? $leaveType->default_quota,
-                    'has_balance_record' => $balance !== null,
-                ];
-            }
-
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             return [
                 'id' => $employee->id,
                 'employee_id' => $employee->employee_id,
@@ -110,10 +91,7 @@ class LeaveBalanceController extends Controller
                 'organization_unit' => $employee->organizationUnit?->name,
                 'job_category' => $employee->jobCategory?->name,
                 'balances' => $balances,
-<<<<<<< HEAD
                 'assigned_count' => $assignedCount,
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             ];
         });
 
@@ -172,10 +150,7 @@ class LeaveBalanceController extends Controller
                 'pending' => $balance?->pending ?? 0,
                 'total_balance' => $balance?->total_balance ?? $leaveType->default_quota,
                 'available_balance' => $balance?->available_balance ?? $leaveType->default_quota,
-<<<<<<< HEAD
                 'is_assigned' => $balance !== null,
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             ];
         });
 
@@ -207,7 +182,6 @@ class LeaveBalanceController extends Controller
             'balances.*.initial_balance' => 'required|numeric|min:0',
             'balances.*.carry_over' => 'required|numeric|min:0',
             'balances.*.adjustment' => 'required|numeric',
-<<<<<<< HEAD
             'balances.*.is_assigned' => 'required|boolean',
         ]);
 
@@ -237,23 +211,6 @@ class LeaveBalanceController extends Controller
                     $existing->delete();
                 }
             }
-=======
-        ]);
-
-        foreach ($validated['balances'] as $balanceData) {
-            EmployeeLeaveBalance::updateOrCreate(
-                [
-                    'employee_id' => $employee->id,
-                    'leave_type_id' => $balanceData['leave_type_id'],
-                    'year' => $validated['year'],
-                ],
-                [
-                    'initial_balance' => $balanceData['initial_balance'],
-                    'carry_over' => $balanceData['carry_over'],
-                    'adjustment' => $balanceData['adjustment'],
-                ]
-            );
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         }
 
         return redirect()->route('hr.leave-balances.index', ['year' => $validated['year']])
@@ -261,12 +218,8 @@ class LeaveBalanceController extends Controller
     }
 
     /**
-<<<<<<< HEAD
      * Initialize/carry over balances from previous year.
      * Only carries over for leave types that were already assigned in previous year.
-=======
-     * Initialize balances for all employees for a specific year.
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
      */
     public function initializeYear(Request $request)
     {
@@ -277,7 +230,6 @@ class LeaveBalanceController extends Controller
 
         $year = $validated['year'];
         $carryOverPrevious = $validated['carry_over_previous'] ?? false;
-<<<<<<< HEAD
         $previousYear = $year - 1;
 
         $employees = Employee::where('status', 'active')->get();
@@ -298,15 +250,6 @@ class LeaveBalanceController extends Controller
                 }
 
                 // Check if already exists for this year
-=======
-
-        $employees = Employee::where('status', 'active')->get();
-        $leaveTypes = LeaveType::active()->get();
-
-        $count = 0;
-        foreach ($employees as $employee) {
-            foreach ($leaveTypes as $leaveType) {
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                 $existing = EmployeeLeaveBalance::where('employee_id', $employee->id)
                     ->where('leave_type_id', $leaveType->id)
                     ->where('year', $year)
@@ -316,22 +259,9 @@ class LeaveBalanceController extends Controller
                     $carryOver = 0;
                     
                     if ($carryOverPrevious && $leaveType->allow_carry_over) {
-<<<<<<< HEAD
                         $remaining = $previousBalance->remaining_balance;
                         $maxCarryOver = $leaveType->max_carry_over_days ?? $remaining;
                         $carryOver = min($remaining, $maxCarryOver);
-=======
-                        $previousBalance = EmployeeLeaveBalance::where('employee_id', $employee->id)
-                            ->where('leave_type_id', $leaveType->id)
-                            ->where('year', $year - 1)
-                            ->first();
-                        
-                        if ($previousBalance) {
-                            $remaining = $previousBalance->remaining_balance;
-                            $maxCarryOver = $leaveType->max_carry_over_days ?? $remaining;
-                            $carryOver = min($remaining, $maxCarryOver);
-                        }
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                     }
 
                     EmployeeLeaveBalance::create([
@@ -349,10 +279,6 @@ class LeaveBalanceController extends Controller
             }
         }
 
-<<<<<<< HEAD
         return back()->with('success', "Berhasil menginisialisasi {$count} saldo cuti untuk tahun {$year} (berdasarkan assignment tahun sebelumnya)");
-=======
-        return back()->with('success', "Berhasil menginisialisasi {$count} saldo cuti untuk tahun {$year}");
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     }
 }

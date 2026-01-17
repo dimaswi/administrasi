@@ -78,11 +78,7 @@ class RoleController extends Controller
         CacheService::clearRoleCache();
         CacheService::clearPermissionCache();
 
-<<<<<<< HEAD:app/Http/Controllers/HR/RoleController.php
         return redirect()->route('hr.access.roles.index')->with('success', 'Role berhasil ditambahkan');
-=======
-        return redirect()->route('roles.index')->with('success', 'Role berhasil ditambahkan');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/RoleController.php
     }
 
     public function edit(Role $role)
@@ -126,11 +122,7 @@ class RoleController extends Controller
         CacheService::clearRoleCache($role->id);
         CacheService::clearPermissionCache();
 
-<<<<<<< HEAD:app/Http/Controllers/HR/RoleController.php
         return redirect()->route('hr.access.roles.index')->with('success', 'Role berhasil diperbarui');
-=======
-        return redirect()->route('roles.index')->with('success', 'Role berhasil diperbarui');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/RoleController.php
     }
 
     public function destroy(Role $role)
@@ -146,10 +138,6 @@ class RoleController extends Controller
         CacheService::clearRoleCache($role->id);
         CacheService::clearPermissionCache();
 
-<<<<<<< HEAD:app/Http/Controllers/HR/RoleController.php
         return redirect()->route('hr.access.roles.index')->with('success', 'Role berhasil dihapus');
-=======
-        return redirect()->route('roles.index')->with('success', 'Role berhasil dihapus');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce:app/Http/Controllers/Master/RoleController.php
     }
 }

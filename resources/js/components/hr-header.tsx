@@ -59,14 +59,11 @@ const hrNavItems: NavItem[] = [
                 icon: CalendarOff,
             },
             {
-<<<<<<< HEAD
                 title: 'Izin Pulang Cepat',
                 href: '/hr/early-leave-requests',
                 icon: Clock,
             },
             {
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                 title: 'Saldo Cuti',
                 href: '/hr/leave-balances',
                 icon: Wallet,

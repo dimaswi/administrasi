@@ -25,7 +25,6 @@ class Leave extends Model
         'emergency_contact',
         'emergency_phone',
         'delegation_to',
-<<<<<<< HEAD
         'delegation_employee_id',
         'delegation_approved_at',
         'delegation_notes',
@@ -36,8 +35,6 @@ class Leave extends Model
         'director_signed_at',
         'response_letter_number',
         'response_letter_generated_at',
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         'status',
         'approved_by',
         'approved_at',
@@ -59,13 +56,10 @@ class Leave extends Model
         'is_half_day' => 'boolean',
         'approved_at' => 'datetime',
         'approved_at_level_2' => 'datetime',
-<<<<<<< HEAD
         'delegation_approved_at' => 'datetime',
         'supervisor_approved_at' => 'datetime',
         'director_signed_at' => 'datetime',
         'response_letter_generated_at' => 'datetime',
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         'submitted_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
@@ -76,13 +70,10 @@ class Leave extends Model
     public const STATUS_LABELS = [
         'draft' => 'Draft',
         'pending' => 'Menunggu Persetujuan',
-<<<<<<< HEAD
         'pending_delegation' => 'Menunggu Konfirmasi Delegasi',
         'pending_supervisor' => 'Menunggu Persetujuan Atasan',
         'pending_hr' => 'Menunggu Proses HR',
         'pending_director_sign' => 'Menunggu Tanda Tangan Direktur',
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         'approved' => 'Disetujui',
         'rejected' => 'Ditolak',
         'cancelled' => 'Dibatalkan',
@@ -119,7 +110,6 @@ class Leave extends Model
         return $this->belongsTo(User::class, 'approved_by_level_2');
     }
 
-<<<<<<< HEAD
     public function delegationEmployee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'delegation_employee_id');
@@ -135,8 +125,6 @@ class Leave extends Model
         return $this->belongsTo(User::class, 'director_id');
     }
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -155,7 +143,6 @@ class Leave extends Model
         return $query->where('status', 'pending');
     }
 
-<<<<<<< HEAD
     public function scopePendingDelegation($query)
     {
         return $query->where('status', 'pending_delegation');
@@ -176,8 +163,6 @@ class Leave extends Model
         return $query->where('status', 'pending_director_sign');
     }
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');
@@ -260,17 +245,10 @@ class Leave extends Model
         return $this->status === 'rejected';
     }
 
-<<<<<<< HEAD
     // public function getCanCancelAttribute(): bool
     // {
     //     return in_array($this->status, ['draft', 'pending']);
     // }
-=======
-    public function getCanCancelAttribute(): bool
-    {
-        return in_array($this->status, ['draft', 'pending']);
-    }
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 
     public function getCanEditAttribute(): bool
     {
@@ -305,11 +283,7 @@ class Leave extends Model
     }
 
     /**
-<<<<<<< HEAD
      * Submit leave request with hierarchical workflow
-=======
-     * Submit leave request
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
      */
     public function submit(): bool
     {
@@ -317,7 +291,6 @@ class Leave extends Model
             return false;
         }
 
-<<<<<<< HEAD
         // Start with delegation approval if delegation is set
         if ($this->delegation_employee_id) {
             $this->status = 'pending_delegation';
@@ -325,15 +298,11 @@ class Leave extends Model
             $this->status = 'pending_supervisor';
         }
         
-=======
-        $this->status = 'pending';
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         $this->submitted_at = now();
         return $this->save();
     }
 
     /**
-<<<<<<< HEAD
      * Approve by delegation (rekan kerja)
      */
     public function approveDelegation(int $employeeId, ?string $notes = null): bool
@@ -410,9 +379,6 @@ class Leave extends Model
 
     /**
      * Approve leave request (legacy method for backward compatibility)
-=======
-     * Approve leave request
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
      */
     public function approve(int $approverId, ?string $notes = null): bool
     {
@@ -429,20 +395,12 @@ class Leave extends Model
     }
 
     /**
-<<<<<<< HEAD
      * Reject leave request (can be done at any pending stage)
      */
     public function reject(int $approverId, ?string $notes = null): bool
     {
         $allowedStatuses = ['pending', 'pending_delegation', 'pending_supervisor', 'pending_hr', 'pending_director_sign'];
         if (!in_array($this->status, $allowedStatuses)) {
-=======
-     * Reject leave request
-     */
-    public function reject(int $approverId, ?string $notes = null): bool
-    {
-        if ($this->status !== 'pending') {
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             return false;
         }
 
@@ -469,7 +427,6 @@ class Leave extends Model
         
         return $this->save();
     }
-<<<<<<< HEAD
 
     /**
      * Get the supervisor for this leave request based on organization hierarchy
@@ -556,6 +513,4 @@ class Leave extends Model
     {
         return in_array($this->status, ['draft', 'pending', 'pending_delegation', 'pending_supervisor']);
     }
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 }

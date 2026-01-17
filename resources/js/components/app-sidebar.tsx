@@ -60,54 +60,12 @@ const arsipNavItems: NavItem[] = [
         href: '/arsip/dispositions',
         icon: FileSignature,
         permission: 'disposition.view',
-<<<<<<< HEAD
     },
     {
         title: 'Arsip Dokumen',
         href: '/arsip/archives',
         icon: Archive,
         permission: 'archive.view',
-=======
-    },
-    {
-        title: 'Arsip Dokumen',
-        href: '/arsip/archives',
-        icon: Archive,
-        permission: 'archive.view',
-    },
-];
-
-const settingsNavItems: NavItem[] = [
-    {
-        title: 'Daftar User',
-        href: '/master/users',
-        icon: Users,
-        permission: 'user.view',
-    },
-    {
-        title: 'Daftar Role',
-        href: '/master/roles',
-        icon: Shield,
-        permission: 'role.view',
-    },
-    {
-        title: 'Daftar Permission',
-        href: '/master/permissions',
-        icon: Key,
-        permission: 'permission.view',
-    },
-    {
-        title: 'Daftar Ruangan',
-        href: '/master/rooms',
-        icon: LayoutGrid,
-        permission: 'room.view',
-    },
-    {
-        title: 'Unit Organisasi',
-        href: '/master/organizations',
-        icon: BookOpen,
-        permission: 'organization.view',
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     },
 ];
 
@@ -119,13 +77,6 @@ export function AppSidebar() {
         !item.permission || hasPermission(item.permission)
     );
 
-<<<<<<< HEAD
-=======
-    const filteredSettingsItems = settingsNavItems.filter(item => 
-        !item.permission || hasPermission(item.permission)
-    );
-
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -137,12 +88,6 @@ export function AppSidebar() {
                 {filteredArsipItems.length > 0 && (
                     <NavMain items={filteredArsipItems} label="Arsip" />
                 )}
-<<<<<<< HEAD
-=======
-                {filteredSettingsItems.length > 0 && (
-                    <NavMain items={filteredSettingsItems} label="Pengaturan" />
-                )}
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             </SidebarContent>
 
             <SidebarFooter>

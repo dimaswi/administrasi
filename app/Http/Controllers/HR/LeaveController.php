@@ -9,10 +9,7 @@ use App\Models\HR\Leave;
 use App\Models\HR\LeaveType;
 use App\Models\OrganizationUnit;
 use App\Services\ExportService;
-<<<<<<< HEAD
 use App\Services\FCMService;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +18,6 @@ use Carbon\Carbon;
 
 class LeaveController extends Controller
 {
-<<<<<<< HEAD
     protected $fcmService;
 
     public function __construct(FCMService $fcmService)
@@ -29,8 +25,6 @@ class LeaveController extends Controller
         $this->fcmService = $fcmService;
     }
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     /**
      * Display a listing of the resource.
      */
@@ -261,18 +255,13 @@ class LeaveController extends Controller
      */
     public function show(Leave $leave)
     {
-<<<<<<< HEAD
         $leave->load(['employee.organizationUnit', 'leaveType', 'approver', 'creator', 'delegationEmployee.user', 'supervisor', 'director']);
-=======
-        $leave->load(['employee.organizationUnit', 'leaveType', 'approver', 'creator']);
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 
         // Get employee balances
         $year = $leave->start_date->year;
         $balances = EmployeeLeaveBalance::where('employee_id', $leave->employee_id)
             ->where('year', $year)
             ->with('leaveType')
-<<<<<<< HEAD
             ->get()
             ->filter(function ($balance) {
                 return $balance->leaveType !== null;
@@ -295,9 +284,6 @@ class LeaveController extends Controller
                 ];
             })
             ->values();
-=======
-            ->get();
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 
         return Inertia::render('HR/leave/show', [
             'leave' => [
@@ -326,7 +312,6 @@ class LeaveController extends Controller
                 'emergency_contact' => $leave->emergency_contact,
                 'emergency_phone' => $leave->emergency_phone,
                 'delegation_to' => $leave->delegation_to,
-<<<<<<< HEAD
                 'delegation_employee' => $leave->delegationEmployee ? [
                     'name' => $leave->delegationEmployee->user?->name ?? $leave->delegationEmployee->first_name,
                     'approved_at' => $leave->delegation_approved_at?->format('Y-m-d H:i'),
@@ -343,8 +328,6 @@ class LeaveController extends Controller
                     'notes' => null,
                 ] : null,
                 'response_letter_number' => $leave->response_letter_number,
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                 'attachment' => $leave->attachment,
                 'approved_by' => $leave->approver?->name,
                 'approved_at' => $leave->approved_at?->format('Y-m-d H:i'),
@@ -352,12 +335,8 @@ class LeaveController extends Controller
                 'created_by' => $leave->creator?->name,
                 'created_at' => $leave->created_at->format('Y-m-d H:i'),
                 'submitted_at' => $leave->submitted_at?->format('Y-m-d H:i'),
-<<<<<<< HEAD
                 'can_approve' => $leave->status === 'pending_hr', // HR can approve when status is pending_hr
                 'can_sign_director' => $leave->status === 'pending_director_sign', // For director signing
-=======
-                'can_approve' => $leave->status === 'pending',
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
                 'can_cancel' => $leave->can_cancel,
                 'can_edit' => $leave->can_edit,
             ],
@@ -489,7 +468,6 @@ class LeaveController extends Controller
     }
 
     /**
-<<<<<<< HEAD
      * Approve leave request (by HR Admin)
      * HR Admin reviews pending_hr leaves and sends to Director for signature
      */
@@ -498,22 +476,12 @@ class LeaveController extends Controller
         if ($leave->status !== 'pending_hr') {
             return redirect()->route('hr.leaves.show', $leave)
                 ->with('error', 'Pengajuan cuti tidak dapat diproses. Status saat ini: ' . ($leave->status_label ?? $leave->status));
-=======
-     * Approve leave request
-     */
-    public function approve(Request $request, Leave $leave)
-    {
-        if ($leave->status !== 'pending') {
-            return redirect()->route('hr.leaves.show', $leave)
-                ->with('error', 'Pengajuan cuti tidak dapat disetujui');
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         }
 
         $validated = $request->validate([
             'notes' => 'nullable|string|max:500',
         ]);
 
-<<<<<<< HEAD
         // Get director (Level 1 organization head)
         $directorUser = $leave->getDirectorUser();
         
@@ -544,12 +512,6 @@ class LeaveController extends Controller
             $leave->save();
             
             // Move from pending to used in balance (since leave is now approved)
-=======
-        DB::transaction(function () use ($leave, $validated) {
-            $leave->approve(Auth::id(), $validated['notes'] ?? null);
-
-            // Move from pending to used in balance
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             $year = $leave->start_date->year;
             $balance = EmployeeLeaveBalance::getOrCreate(
                 $leave->employee_id,
@@ -559,7 +521,6 @@ class LeaveController extends Controller
             $balance->useDays($leave->total_days);
         });
 
-<<<<<<< HEAD
         // Send FCM notification to the Director (just notification, not blocking)
         $this->fcmService->sendToUsers(
             [$directorUser->id],
@@ -672,31 +633,16 @@ class LeaveController extends Controller
     public function directorReject(Request $request, Leave $leave)
     {
         if ($leave->status !== 'pending_director_sign') {
-=======
-        return redirect()->route('hr.leaves.index')
-            ->with('success', 'Pengajuan cuti berhasil disetujui');
-    }
-
-    /**
-     * Reject leave request
-     */
-    public function reject(Request $request, Leave $leave)
-    {
-        if ($leave->status !== 'pending') {
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
             return redirect()->route('hr.leaves.show', $leave)
                 ->with('error', 'Pengajuan cuti tidak dapat ditolak');
         }
 
-<<<<<<< HEAD
         // Verify current user is the director
         if ($leave->director_id !== Auth::id()) {
             return redirect()->route('hr.leaves.show', $leave)
                 ->with('error', 'Anda tidak berwenang menolak surat ini');
         }
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         $validated = $request->validate([
             'notes' => 'required|string|max:500',
         ]);
@@ -714,7 +660,6 @@ class LeaveController extends Controller
             $balance->removePending($leave->total_days);
         });
 
-<<<<<<< HEAD
         // Notify employee
         $employee = $leave->employee;
         if ($employee && $employee->user_id) {
@@ -783,8 +728,6 @@ class LeaveController extends Controller
             );
         }
 
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
         return redirect()->route('hr.leaves.index')
             ->with('success', 'Pengajuan cuti berhasil ditolak');
     }
@@ -938,7 +881,6 @@ class LeaveController extends Controller
 
         return $exportService->exportToCsv($data, $headers, $filename);
     }
-<<<<<<< HEAD
 
     /**
      * Download leave letter as PDF
@@ -1066,6 +1008,4 @@ class LeaveController extends Controller
         
         return $letterNumber;
     }
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 }

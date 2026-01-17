@@ -41,10 +41,7 @@ interface EmployeeWithBalance {
     organization_unit: string | null;
     job_category: string | null;
     balances: Balance[];
-<<<<<<< HEAD
     assigned_count: number;
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
 }
 
 interface Unit {
@@ -175,7 +172,6 @@ export default function Index({ employees, leaveTypes, units, years, filters }: 
                 </div>
             ),
         },
-<<<<<<< HEAD
         {
             key: 'assigned',
             label: 'Cuti Aktif',
@@ -186,8 +182,6 @@ export default function Index({ employees, leaveTypes, units, years, filters }: 
                 </Badge>
             ),
         },
-=======
->>>>>>> 6f4b8d9e7ea73f29498b874347d8be79e963a0ce
     ];
 
     // If specific leave type is selected, show detailed columns
