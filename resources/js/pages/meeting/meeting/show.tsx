@@ -334,8 +334,9 @@ export default function MeetingShow({ meeting: initialMeeting, users }: Props) {
     return (
         <AppLayout>
             <Head title={`Detail Rapat - ${meeting.title}`} />
-            <div className="container mx-auto p-4 md:p-6">
-                <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="h-full overflow-y-auto">
+                <div className="container mx-auto p-4 md:p-6 max-w-7xl">
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <h2 className="text-xl md:text-2xl font-semibold">{meeting.title}</h2>
                         <p className="text-xs md:text-sm text-muted-foreground font-mono">{meeting.meeting_number}</p>
@@ -708,6 +709,7 @@ export default function MeetingShow({ meeting: initialMeeting, users }: Props) {
                         />
                     )}
                 </div>
+            </div>
             </div>
 
             {/* Mark Attendance Dialog */}
