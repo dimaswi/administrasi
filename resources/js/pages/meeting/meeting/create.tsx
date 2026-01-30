@@ -222,7 +222,8 @@ export default function MeetingCreate({ rooms, organizationUnits, users }: Props
         <AppLayout>
             <Head title="Tambah Rapat" />
 
-            <div className="p-4 max-w-7xl">
+        <div className="h-full overflow-y-auto">
+            <div className="container mx-auto p-4 md:p-6 max-w-7xl">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold">Tambah Rapat</h2>
                     <p className="text-sm text-muted-foreground">Buat jadwal rapat baru</p>
@@ -554,6 +555,7 @@ export default function MeetingCreate({ rooms, organizationUnits, users }: Props
                     </div>
                 </form>
             </div>
+        </div>
         </AppLayout>
     );
 }
