@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { 
     ArrowLeft, Save, Eye,
@@ -199,7 +198,7 @@ export default function Create({ categories = [] }: Props) {
                                 </TabsTrigger>
                             </TabsList>
 
-                            <ScrollArea className="flex-1">
+                            <div className="flex-1 overflow-y-auto">
                                 <div className="p-4">
                                     <TabsContent value="general" className="m-0 space-y-4">
                                         <div className="space-y-4">
@@ -384,7 +383,7 @@ export default function Create({ categories = [] }: Props) {
                                         />
                                     </TabsContent>
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </div>
 

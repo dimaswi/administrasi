@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Command,
     CommandEmpty,
@@ -139,7 +138,7 @@ export default function Duplicate({ template, organizationUnits, currentLetterCo
                 <div className="flex-1 grid grid-cols-2 overflow-hidden">
                     {/* Left Panel - Form */}
                     <div className="border-r flex flex-col bg-background overflow-hidden">
-                        <ScrollArea className="flex-1">
+                        <div className="flex-1 overflow-y-auto">
                             <form onSubmit={handleSubmit} className="p-4 space-y-4">
 
                                 {/* Linked Templates Info */}
@@ -361,7 +360,7 @@ export default function Duplicate({ template, organizationUnits, currentLetterCo
                                     </CardContent>
                                 </Card>
                             </form>
-                        </ScrollArea>
+                        </div>
                     </div>
 
                     {/* Right Panel - Preview */}

@@ -76,20 +76,20 @@ export default function CompanySettings({ settings }: Props) {
                     
                     <form onSubmit={submit}>
                         <Tabs defaultValue="company" className="space-y-6">
-                            <TabsList className="grid w-full grid-cols-4">
-                                <TabsTrigger value="company" className="gap-2">
+                            <TabsList className="h-auto p-0 bg-transparent justify-start gap-0 rounded-none border-b w-full">
+                                <TabsTrigger value="company" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                                     <Building2 className="h-4 w-4" />
                                     <span className="hidden sm:inline">Perusahaan</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="location" className="gap-2">
+                                <TabsTrigger value="location" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                                     <MapPin className="h-4 w-4" />
                                     <span className="hidden sm:inline">Lokasi</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="schedule" className="gap-2">
+                                <TabsTrigger value="schedule" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                                     <Clock className="h-4 w-4" />
                                     <span className="hidden sm:inline">Jadwal</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="workflow" className="gap-2">
+                                <TabsTrigger value="workflow" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                                     <Shield className="h-4 w-4" />
                                     <span className="hidden sm:inline">Workflow</span>
                                 </TabsTrigger>

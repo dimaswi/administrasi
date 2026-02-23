@@ -136,10 +136,13 @@ export default function Index({ letters, filters, templates }: Props) {
             key: 'letter_number',
             label: 'Nomor Surat',
             render: (letter: OutgoingLetter) => (
-                <div className="font-mono text-sm">
-                    {letter.letter_number || (
-                        <span className="text-muted-foreground italic">Belum dinomori</span>
-                    )}
+                <div>
+                    <div className="font-mono text-sm font-medium">
+                        {letter.letter_number || (
+                            <span className="text-muted-foreground italic">Belum dinomori</span>
+                        )}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[160px]" title={letter.subject}>{letter.subject}</div>
                 </div>
             ),
         },
@@ -176,7 +179,7 @@ export default function Index({ letters, filters, templates }: Props) {
             render: (letter: OutgoingLetter) => {
                 const config = statusConfig[letter.status] || statusConfig.pending_approval;
                 return (
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-row flex-wrap items-center gap-1">
                         <Badge variant={config.variant}>
                             {config.label}
                         </Badge>
@@ -291,7 +294,6 @@ export default function Index({ letters, filters, templates }: Props) {
         <AppLayout>
             <Head title="Surat Keluar" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Surat Keluar"
                     description="Kelola surat keluar dan pengajuan tanda tangan digital"
@@ -325,7 +327,6 @@ export default function Index({ letters, filters, templates }: Props) {
                     emptyMessage="Belum ada surat keluar"
                     emptyIcon={Mail}
                 />
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

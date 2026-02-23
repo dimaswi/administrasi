@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -263,7 +262,7 @@ export default function CreateIncomingLetter({ organizationUnits, categories, cl
                             </div>
                         )}
                         
-                        <ScrollArea className="flex-1">
+                        <div className="flex-1 overflow-y-auto">
                             <div className="p-4 space-y-6">
                                 {/* Upload File Section */}
                                 <div className="space-y-3">
@@ -516,7 +515,7 @@ export default function CreateIncomingLetter({ organizationUnits, categories, cl
                                     />
                                 </div>
                             </div>
-                        </ScrollArea>
+                        </div>
                     </div>
 
                     {/* Right Panel - Preview */}

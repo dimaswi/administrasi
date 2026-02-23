@@ -112,9 +112,12 @@ export default function Index({ organizationUnits, levels, filters }: Props) {
             key: 'name',
             label: 'Nama Unit',
             render: (unit: OrganizationUnit) => (
-                <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{unit.name}</span>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{unit.name}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground pl-6">Level {unit.level}{unit.parent ? ` • ${unit.parent.name}` : ''}</div>
                 </div>
             ),
         },
@@ -215,7 +218,6 @@ export default function Index({ organizationUnits, levels, filters }: Props) {
         <HrLayout>
             <Head title="Unit Organisasi" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Unit Organisasi"
                     description="Kelola struktur organisasi"
@@ -249,7 +251,6 @@ export default function Index({ organizationUnits, levels, filters }: Props) {
                     emptyMessage="Belum ada unit organisasi"
                     emptyIcon={Building2}
                 />
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

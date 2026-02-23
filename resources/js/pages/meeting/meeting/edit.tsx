@@ -238,7 +238,7 @@ export default function MeetingEdit({ meeting, rooms, organizationUnits, users }
         <AppLayout>
             <Head title={`Edit - ${meeting.title}`} />
 
-            <div className="p-4 max-w-7xl">
+            <div className="mx-auto p-4">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold">Edit Rapat</h2>
                     <p className="text-xs md:text-sm text-muted-foreground">

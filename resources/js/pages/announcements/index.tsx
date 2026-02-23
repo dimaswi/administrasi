@@ -53,12 +53,15 @@ export default function Index({ announcements }: Props) {
             label: 'Judul',
             sortable: true,
             render: (announcement: Announcement) => (
-                <Link 
-                    href={route('hr.announcements.show', announcement.id)} 
-                    className="font-medium text-blue-600 hover:underline"
-                >
-                    {announcement.title}
-                </Link>
+                <div>
+                    <Link
+                        href={route('hr.announcements.show', announcement.id)}
+                        className="font-medium text-blue-600 hover:underline"
+                    >
+                        {announcement.title}
+                    </Link>
+                    <div className="text-xs text-muted-foreground">{typeLabels[announcement.type]} • {announcement.creator?.name || '-'}</div>
+                </div>
             ),
         },
         {

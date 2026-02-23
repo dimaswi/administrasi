@@ -106,11 +106,14 @@ export default function Index({ dispositions, filters }: Props) {
             key: 'incoming_number',
             label: 'Nomor Surat',
             render: (disposition: Disposition) => (
-                <div className="flex items-center gap-2">
-                    {!disposition.read_at && (
-                        <Mail className="h-4 w-4 text-blue-500" />
-                    )}
-                    <span className="font-mono text-sm">{disposition.incoming_letter.incoming_number}</span>
+                <div>
+                    <div className="flex items-center gap-2">
+                        {!disposition.read_at && (
+                            <Mail className="h-4 w-4 text-blue-500" />
+                        )}
+                        <span className="font-mono text-sm font-medium">{disposition.incoming_letter.incoming_number}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{disposition.incoming_letter.sender}</div>
                 </div>
             ),
         },
@@ -245,7 +248,6 @@ export default function Index({ dispositions, filters }: Props) {
         <AppLayout>
             <Head title="Disposisi" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Disposisi"
                     description="Kelola disposisi surat yang ditujukan kepada Anda"
@@ -272,7 +274,6 @@ export default function Index({ dispositions, filters }: Props) {
                     emptyMessage="Tidak ada disposisi"
                     emptyIcon={FileSignature}
                 />
-            </div>
         </AppLayout>
     );
 }

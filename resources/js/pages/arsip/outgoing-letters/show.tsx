@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -378,7 +377,7 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                                 </TabsTrigger>
                             </TabsList>
 
-                            <ScrollArea className="flex-1">
+                            <div className="flex-1 overflow-y-auto">
                                 <div className="p-4">
                                     <TabsContent value="info" className="m-0 space-y-4">
                                         {/* Status Card */}
@@ -730,7 +729,7 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                                         </div>
                                     </TabsContent>
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </div>
 
