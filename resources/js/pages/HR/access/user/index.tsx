@@ -211,7 +211,6 @@ export default function Index({ users, filters }: Props) {
         <HRLayout>
             <Head title="User" />
 
-            <div className="p-6">
                 <IndexPage
                     title="User"
                     description="Kelola data pengguna sistem"
@@ -244,7 +243,6 @@ export default function Index({ users, filters }: Props) {
                     emptyMessage="Belum ada user"
                     emptyIcon={Users}
                 />
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

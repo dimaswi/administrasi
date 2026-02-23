@@ -83,16 +83,19 @@ export default function Index({ periods, types, statuses, filters }: Props) {
             key: 'name',
             label: 'Nama Periode',
             render: (item: PeriodItem) => (
-                <div className="flex items-center gap-2">
-                    <Link href={route('hr.performance-periods.show', item.id)} className="font-medium text-blue-600 hover:underline">
-                        {item.name}
-                    </Link>
-                    {item.is_current && (
-                        <Badge className="border-yellow-300 bg-yellow-100 text-yellow-800">
-                            <Star className="mr-1 h-3 w-3" />
-                            Aktif
-                        </Badge>
-                    )}
+                <div>
+                    <div className="flex items-center gap-2">
+                        <Link href={route('hr.performance-periods.show', item.id)} className="font-medium text-blue-600 hover:underline">
+                            {item.name}
+                        </Link>
+                        {item.is_current && (
+                            <Badge className="border-yellow-300 bg-yellow-100 text-yellow-800">
+                                <Star className="mr-1 h-3 w-3" />
+                                Aktif
+                            </Badge>
+                        )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{item.type_label}</div>
                 </div>
             ),
         },

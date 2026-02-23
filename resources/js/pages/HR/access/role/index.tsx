@@ -180,7 +180,6 @@ export default function Index({ roles, filters }: Props) {
         <HrLayout>
             <Head title="Role" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Role"
                     description="Kelola role dan hak akses pengguna"
@@ -213,7 +212,6 @@ export default function Index({ roles, filters }: Props) {
                     emptyMessage="Belum ada role"
                     emptyIcon={Shield}
                 />
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

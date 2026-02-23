@@ -245,7 +245,6 @@ export default function Index({ templates, categories, filters }: Props) {
         <AppLayout>
             <Head title="Template Surat" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Template Surat"
                     description="Kelola template untuk surat keluar"
@@ -279,7 +278,6 @@ export default function Index({ templates, categories, filters }: Props) {
                     emptyMessage="Belum ada template"
                     emptyIcon={FileText}
                 />
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>

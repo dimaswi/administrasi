@@ -240,31 +240,13 @@ export default function Report({ report, month, startDate, endDate, units, emplo
                     </div>
 
                     {/* Stats Overview */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-3">
-                            <div className="text-xs text-green-700 dark:text-green-400 font-medium">Hadir</div>
-                            <div className="text-2xl font-bold text-green-600 dark:text-green-500">{totalStats.present}</div>
-                        </div>
-                        <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 rounded-lg p-3">
-                            <div className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">Terlambat</div>
-                            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">{totalStats.late}</div>
-                        </div>
-                        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-3">
-                            <div className="text-xs text-red-700 dark:text-red-400 font-medium">Tidak Hadir</div>
-                            <div className="text-2xl font-bold text-red-600 dark:text-red-500">{totalStats.absent}</div>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-3">
-                            <div className="text-xs text-blue-700 dark:text-blue-400 font-medium">Cuti</div>
-                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-500">{totalStats.leave}</div>
-                        </div>
-                        <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-lg p-3">
-                            <div className="text-xs text-purple-700 dark:text-purple-400 font-medium">Sakit</div>
-                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-500">{totalStats.sick}</div>
-                        </div>
-                        <div className="bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-900 rounded-lg p-3">
-                            <div className="text-xs text-cyan-700 dark:text-cyan-400 font-medium">Izin</div>
-                            <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-500">{totalStats.permit}</div>
-                        </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-px bg-border border rounded-lg overflow-hidden">
+                        <div className="bg-card p-3"><div className="text-xs text-muted-foreground">Hadir</div><div className="text-2xl font-bold tabular-nums mt-0.5">{totalStats.present}</div></div>
+                        <div className="bg-card p-3"><div className="text-xs text-muted-foreground">Terlambat</div><div className="text-2xl font-bold tabular-nums mt-0.5">{totalStats.late}</div></div>
+                        <div className="bg-card p-3"><div className="text-xs text-muted-foreground">Tidak Hadir</div><div className="text-2xl font-bold tabular-nums mt-0.5">{totalStats.absent}</div></div>
+                        <div className="bg-card p-3"><div className="text-xs text-muted-foreground">Cuti</div><div className="text-2xl font-bold tabular-nums mt-0.5">{totalStats.leave}</div></div>
+                        <div className="bg-card p-3"><div className="text-xs text-muted-foreground">Sakit</div><div className="text-2xl font-bold tabular-nums mt-0.5">{totalStats.sick}</div></div>
+                        <div className="bg-card p-3"><div className="text-xs text-muted-foreground">Izin</div><div className="text-2xl font-bold tabular-nums mt-0.5">{totalStats.permit}</div></div>
                     </div>
 
                     {/* Filters & Actions */}

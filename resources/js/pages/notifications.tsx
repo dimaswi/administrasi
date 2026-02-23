@@ -228,20 +228,20 @@ export default function NotificationsPage({ notifications: initialNotifications 
 
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full sm:w-auto grid-cols-3 sm:inline-grid">
-                        <TabsTrigger value="all" className="gap-2">
+                    <TabsList className="h-auto p-0 bg-transparent justify-start gap-0 rounded-none border-b w-full">
+                        <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                             <Inbox className="h-4 w-4" />
                             <span className="hidden sm:inline">Semua</span>
                             <Badge variant="secondary" className="ml-1">{notifications.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="unread" className="gap-2">
+                        <TabsTrigger value="unread" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                             <Bell className="h-4 w-4" />
                             <span className="hidden sm:inline">Belum Dibaca</span>
                             {unreadCount > 0 && (
                                 <Badge variant="destructive" className="ml-1">{unreadCount}</Badge>
                             )}
                         </TabsTrigger>
-                        <TabsTrigger value="read" className="gap-2">
+                        <TabsTrigger value="read" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                             <CheckCircle2 className="h-4 w-4" />
                             <span className="hidden sm:inline">Dibaca</span>
                             <Badge variant="secondary" className="ml-1">{readCount}</Badge>

@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Megaphone, Users, Search, X } from 'lucide-react';
 import { useState, useMemo, useCallback } from 'react';
 
@@ -241,7 +240,7 @@ export default function Form({ announcement, userCount, users }: Props) {
                                         </div>
 
                                         {/* User list */}
-                                        <ScrollArea className="h-64 border rounded-md">
+                                        <div className="h-64 border rounded-md overflow-y-auto">
                                             <div className="p-2 space-y-1">
                                                 {filteredUsers.map((user) => {
                                                     const isSelected = selectedUserIds.includes(user.id);
@@ -275,7 +274,7 @@ export default function Form({ announcement, userCount, users }: Props) {
                                                     </p>
                                                 )}
                                             </div>
-                                        </ScrollArea>
+                                        </div>
 
                                         {errors.user_ids && (
                                             <p className="text-sm text-destructive">{errors.user_ids}</p>

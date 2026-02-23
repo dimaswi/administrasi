@@ -1,17 +1,10 @@
-import { Head, Link, router } from '@inertiajs/react';
-import HRLayout from '@/layouts/hr-layout';
-import { IndexPage } from '@/components/ui/index-page';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { IndexPage } from '@/components/ui/index-page';
 import { Progress } from '@/components/ui/progress';
-import { 
-    Plus,
-    MessageSquareShare,
-    Clock,
-    CheckCircle,
-    FileText,
-} from 'lucide-react';
+import HRLayout from '@/layouts/hr-layout';
+import { Head, Link, router } from '@inertiajs/react';
+import { MessageSquareShare, Plus } from 'lucide-react';
 
 interface Session {
     id: number;
@@ -66,10 +59,10 @@ interface Props {
 export default function Index({ sessions, periods, statuses, stats, filters }: Props) {
     const getStatusBadge = (status: string, label: string) => {
         const variants: Record<string, string> = {
-            'draft': 'bg-gray-100 text-gray-700 border-gray-200',
-            'in_progress': 'bg-blue-100 text-blue-700 border-blue-200',
-            'completed': 'bg-green-100 text-green-700 border-green-200',
-            'cancelled': 'bg-red-100 text-red-700 border-red-200',
+            draft: 'bg-gray-100 text-gray-700 border-gray-200',
+            in_progress: 'bg-blue-100 text-blue-700 border-blue-200',
+            completed: 'bg-green-100 text-green-700 border-green-200',
+            cancelled: 'bg-red-100 text-red-700 border-red-200',
         };
         return (
             <Badge variant="outline" className={variants[status] || ''}>
@@ -84,15 +77,10 @@ export default function Index({ sessions, periods, statuses, stats, filters }: P
             label: 'Nama Sesi',
             render: (item: Session) => (
                 <div>
-                    <Link
-                        href={route('hr.feedback360.show', item.id)}
-                        className="font-medium text-blue-600 hover:underline"
-                    >
+                    <Link href={route('hr.feedback360.show', item.id)} className="font-medium text-blue-600 hover:underline">
                         {item.name}
                     </Link>
-                    <p className="text-sm text-muted-foreground">
-                        {item.period?.name || 'Tidak ada periode'}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{item.period?.name || 'Tidak ada periode'}</p>
                 </div>
             ),
         },
@@ -113,7 +101,9 @@ export default function Index({ sessions, periods, statuses, stats, filters }: P
                 <div className="space-y-1">
                     {getStatusBadge(item.status, item.status_label)}
                     {item.is_anonymous && (
-                        <Badge variant="secondary" className="text-xs">Anonim</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                            Anonim
+                        </Badge>
                     )}
                 </div>
             ),
@@ -132,8 +122,10 @@ export default function Index({ sessions, periods, statuses, stats, filters }: P
             label: 'Progress',
             render: (item: Session) => (
                 <div className="min-w-[120px]">
-                    <div className="flex justify-between text-sm mb-1">
-                        <span>{item.progress.completed}/{item.progress.total}</span>
+                    <div className="mb-1 flex justify-between text-sm">
+                        <span>
+                            {item.progress.completed}/{item.progress.total}
+                        </span>
                         <span className="font-medium">{item.progress.percentage}%</span>
                     </div>
                     <Progress value={item.progress.percentage} className="h-2" />
@@ -160,20 +152,14 @@ export default function Index({ sessions, periods, statuses, stats, filters }: P
             type: 'select' as const,
             label: 'Status',
             placeholder: 'Semua Status',
-            options: [
-                { value: '_all', label: 'Semua Status' },
-                ...Object.entries(statuses).map(([value, label]) => ({ value, label })),
-            ],
+            options: [{ value: '_all', label: 'Semua Status' }, ...Object.entries(statuses).map(([value, label]) => ({ value, label }))],
         },
         {
             key: 'period_id',
             type: 'select' as const,
             label: 'Periode',
             placeholder: 'Semua Periode',
-            options: [
-                { value: '_all', label: 'Semua Periode' },
-                ...periods.map((p) => ({ value: String(p.id), label: p.name })),
-            ],
+            options: [{ value: '_all', label: 'Semua Periode' }, ...periods.map((p) => ({ value: String(p.id), label: p.name }))],
         },
     ];
 
@@ -187,105 +173,61 @@ export default function Index({ sessions, periods, statuses, stats, filters }: P
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('hr.feedback360.index'), {
-            ...filters,
-            page,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+        router.get(
+            route('hr.feedback360.index'),
+            {
+                ...filters,
+                page,
+            },
+            {
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
 
     const handleFilterChange = (key: string, value: string) => {
-        router.get(route('hr.feedback360.index'), {
-            ...filters,
-            [key]: value === '_all' ? '' : value,
-            page: 1,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
+        router.get(
+            route('hr.feedback360.index'),
+            {
+                ...filters,
+                [key]: value === '_all' ? '' : value,
+                page: 1,
+            },
+            {
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
-
-    const statsCards = [
-        {
-            title: 'Total Sesi',
-            value: stats.total,
-            icon: FileText,
-            color: 'from-slate-500 to-slate-600',
-        },
-        {
-            title: 'Sedang Berjalan',
-            value: stats.active,
-            icon: Clock,
-            color: 'from-blue-500 to-blue-600',
-        },
-        {
-            title: 'Selesai',
-            value: stats.completed,
-            icon: CheckCircle,
-            color: 'from-green-500 to-green-600',
-        },
-        {
-            title: 'Draft',
-            value: stats.draft,
-            icon: MessageSquareShare,
-            color: 'from-gray-500 to-gray-600',
-        },
-    ];
 
     return (
         <HRLayout>
             <Head title="360 Feedback" />
-
-            <div className="pt-6 space-y-6">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {statsCards.map((stat, index) => {
-                        const Icon = stat.icon;
-                        return (
-                            <Card key={index} className="overflow-hidden">
-                                <div className={`bg-gradient-to-br ${stat.color} p-4`}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="bg-white/20 rounded-lg p-2">
-                                            <Icon className="h-6 w-6 text-white" />
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm text-white/80">{stat.title}</p>
-                                            <p className="text-2xl font-bold text-white">{stat.value}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        );
-                    })}
-                </div>
-
-                {/* Index Page with consistent layout */}
-                <IndexPage
-                    title="Daftar Sesi 360 Feedback"
-                    description="Kelola sesi penilaian 360 Feedback"
-                    columns={columns}
-                    data={sessions.data}
-                    pagination={pagination}
-                    filterFields={filterFields}
-                    filterValues={{
-                        status: filters.status || '_all',
-                        period_id: filters.period_id || '_all',
-                    }}
-                    onPageChange={handlePageChange}
-                    onFilterChange={handleFilterChange}
-                    actions={[
-                        {
-                            label: 'Buat Sesi',
-                            href: route('hr.feedback360.create'),
-                            icon: Plus,
-                        },
-                    ]}
-                    emptyMessage="Belum ada sesi 360 Feedback"
-                    emptyIcon={MessageSquareShare}
-                />
-            </div>
+            <IndexPage
+                title="Daftar Sesi 360 Feedback"
+                description="Kelola sesi penilaian 360 Feedback"
+                columns={columns}
+                data={sessions.data}
+                pagination={pagination}
+                filterFields={filterFields}
+                filterValues={{
+                    status: filters.status || '_all',
+                    period_id: filters.period_id || '_all',
+                }}
+                onPageChange={handlePageChange}
+                onFilterChange={handleFilterChange}
+                actions={[
+                    {
+                        label: 'Buat Sesi',
+                        href: route('hr.feedback360.create'),
+                        icon: Plus,
+                    },
+                ]}
+                emptyMessage="Belum ada sesi 360 Feedback"
+                emptyIcon={MessageSquareShare}
+            />
+            ={' '}
         </HRLayout>
     );
 }
