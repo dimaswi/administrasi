@@ -359,7 +359,7 @@ export default function Revision({ letter, paper_sizes }: Props) {
                         </Tabs>
                     </div>
 
-                    {/* Right Panel - Preview */
+                    {/* Right Panel - Preview */}
                     <div 
                         ref={previewContainerRef}
                         className="flex-1 flex flex-col bg-zinc-100 dark:bg-zinc-900 overflow-hidden"
