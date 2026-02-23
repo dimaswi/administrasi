@@ -152,7 +152,7 @@ export default function Index({ letters, filters, templates }: Props) {
             render: (letter: OutgoingLetter) => (
                 <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="truncate max-w-[150px]">{letter.template.name}</span>
+                    <span className="truncate max-w-[150px]">{letter.template?.name ?? '-'}</span>
                 </div>
             ),
         },
