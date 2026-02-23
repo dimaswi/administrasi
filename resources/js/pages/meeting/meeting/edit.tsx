@@ -238,7 +238,8 @@ export default function MeetingEdit({ meeting, rooms, organizationUnits, users }
         <AppLayout>
             <Head title={`Edit - ${meeting.title}`} />
 
-            <div className="mx-auto p-4">
+            <div className="h-full overflow-y-auto">
+                <div className="container mx-auto p-4 md:p-6 max-w-7xl">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold">Edit Rapat</h2>
                     <p className="text-xs md:text-sm text-muted-foreground">
@@ -600,6 +601,7 @@ export default function MeetingEdit({ meeting, rooms, organizationUnits, users }
                     </div>
                 </form>
                 )}
+            </div>
             </div>
         </AppLayout>
     );
