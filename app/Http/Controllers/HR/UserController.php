@@ -23,8 +23,7 @@ class UserController extends Controller
             ->with(['role', 'organizationUnit'])
             ->when($search, function ($query, $search) {
                 return $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('nip', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('nip', 'like', "%{$search}%");
             })
             ->orderBy('created_at', 'asc')
             ->paginate($perPage)

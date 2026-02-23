@@ -33,6 +33,9 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'permission.edit', 'display_name' => 'Edit Permission', 'description' => 'Dapat mengedit permission', 'module' => 'Permission Management'],
             ['name' => 'permission.delete', 'display_name' => 'Hapus Permission', 'description' => 'Dapat menghapus permission', 'module' => 'Permission Management'],
             
+            // HR Module Access
+            ['name' => 'hr.access', 'display_name' => 'Akses Modul HR', 'description' => 'Dapat mengakses modul Human Resources', 'module' => 'HR'],
+
             // Dashboard
             ['name' => 'dashboard.view', 'display_name' => 'Lihat Dashboard', 'description' => 'Dapat mengakses dashboard', 'module' => 'Dashboard'],
             

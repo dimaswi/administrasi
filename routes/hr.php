@@ -30,7 +30,7 @@ use App\Http\Controllers\HR\PermissionController;
 use App\Http\Controllers\HR\OrganizationUnitController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
+Route::middleware(['auth', 'permission:hr.access'])->prefix('hr')->name('hr.')->group(function () {
     // HR Dashboard
     Route::get('/', [HRDashboardController::class, 'index'])->name('dashboard');
 

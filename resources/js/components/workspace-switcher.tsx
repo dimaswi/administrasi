@@ -3,6 +3,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/c
 import { cn } from '@/lib/utils';
 import { Building, Check, ChevronsUpDown, Users } from 'lucide-react';
 import AppLogoIcon from './app-logo-icon';
+import { usePermission } from '@/hooks/use-permission';
 
 interface Workspace {
     id: string;
@@ -10,9 +11,10 @@ interface Workspace {
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     href: string;
+    permission?: string;
 }
 
-const workspaces: Workspace[] = [
+const allWorkspaces: Workspace[] = [
     {
         id: 'administrasi',
         name: 'Administrasi',
@@ -26,11 +28,18 @@ const workspaces: Workspace[] = [
         label: 'Human Resources',
         icon: Users,
         href: '/hr',
+        permission: 'hr.access',
     },
 ];
 
 export function WorkspaceSwitcher() {
     const { state } = useSidebar();
+    const { hasPermission, isAdmin } = usePermission();
+
+    const workspaces = allWorkspaces.filter(w =>
+        !w.permission || isAdmin() || hasPermission(w.permission)
+    );
+
     const currentWorkspace = workspaces.find(w => w.id === 'administrasi') || workspaces[0];
     const isCollapsed = state === 'collapsed';
 

@@ -23,7 +23,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import {
     ChevronLeft,
     ChevronRight,
@@ -34,6 +34,7 @@ import {
     ChevronDown,
     RotateCcw,
     Search,
+    X,
     LucideIcon,
     ArrowUpDown,
     ArrowUp,
@@ -226,8 +227,23 @@ export function IndexPage<T extends { id: number | string }>({
                                 onChange={(e) => onSearchChange(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
                                 placeholder={searchPlaceholder}
-                                className="h-8 pl-8 text-sm"
+                                className={cn("h-8 pl-8 text-sm", searchValue && "pr-8")}
                             />
+                            {searchValue && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onSearchChange("");
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.delete('search');
+                                        router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label="Hapus pencarian"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            )}
                         </div>
                     )}
                     {filterFields && filterFields.length > 0 && (

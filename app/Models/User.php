@@ -59,6 +59,7 @@ class User extends Authenticatable
 
     public function hasPermission($permission): bool
     {
+        if ($this->isAdmin()) return true;
         return $this->role?->hasPermission($permission) ?? false;
     }
 
