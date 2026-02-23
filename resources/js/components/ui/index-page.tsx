@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
     Select,
     SelectContent,
@@ -14,8 +15,6 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Table,
     TableBody,
@@ -25,16 +24,20 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Link } from "@inertiajs/react";
-import { 
-    ChevronLeft, 
-    ChevronRight, 
-    ChevronsLeft, 
+import {
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
     ChevronsRight,
     Plus,
     Filter,
     ChevronDown,
     RotateCcw,
-    LucideIcon
+    Search,
+    LucideIcon,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
 } from "lucide-react";
 
 // ============ Types ============
@@ -43,6 +46,7 @@ interface Column<T> {
     key: string;
     label: string;
     className?: string;
+    sortable?: boolean;
     render?: (item: T) => React.ReactNode;
 }
 
@@ -63,7 +67,7 @@ interface FilterOption {
 interface FilterField {
     key: string;
     label?: string;
-    type: "text" | "select";
+    type: "text" | "select" | "date";
     placeholder?: string;
     options?: FilterOption[];
     className?: string;
@@ -82,35 +86,38 @@ interface IndexPageProps<T> {
     title: string;
     description?: string;
     actions?: PageAction[];
-    
+
     // Data
     data: T[];
     columns: Column<T>[];
-    
+
     // Pagination
     pagination?: Pagination;
     onPageChange?: (page: number) => void;
     onPerPageChange?: (perPage: number) => void;
-    
+
     // Filter
     filterFields?: FilterField[];
     filterValues?: Record<string, string>;
     onFilterChange?: (key: string, value: string) => void;
     onFilterSubmit?: () => void;
     onFilterReset?: () => void;
-    
-    // Search (separate from filter)
+
+    // Search
     searchValue?: string;
     searchPlaceholder?: string;
     onSearchChange?: (value: string) => void;
-    
+
     // States
     emptyMessage?: string;
     emptyIcon?: LucideIcon;
     isLoading?: boolean;
-    
+
     // Extra content in header
     headerExtra?: React.ReactNode;
+
+    // Override table area (e.g. grid view)
+    tableContent?: React.ReactNode;
 }
 
 // ============ Component ============
@@ -136,9 +143,36 @@ export function IndexPage<T extends { id: number | string }>({
     emptyIcon: EmptyIcon,
     isLoading = false,
     headerExtra,
+    tableContent,
 }: IndexPageProps<T>) {
     const [filterOpen, setFilterOpen] = React.useState(false);
-    
+    const [sortKey, setSortKey] = React.useState<string | null>(null);
+    const [sortDir, setSortDir] = React.useState<"asc" | "desc" | null>(null);
+
+    const handleSort = (key: string) => {
+        if (sortKey !== key) {
+            setSortKey(key);
+            setSortDir("asc");
+        } else if (sortDir === "asc") {
+            setSortDir("desc");
+        } else if (sortDir === "desc") {
+            setSortKey(null);
+            setSortDir(null);
+        }
+    };
+
+    const sortedData = React.useMemo(() => {
+        if (!sortKey || !sortDir) return data;
+        return [...data].sort((a, b) => {
+            const aVal = (a as any)[sortKey];
+            const bVal = (b as any)[sortKey];
+            if (aVal == null) return 1;
+            if (bVal == null) return -1;
+            const cmp = String(aVal).localeCompare(String(bVal), undefined, { numeric: true });
+            return sortDir === "asc" ? cmp : -cmp;
+        });
+    }, [data, sortKey, sortDir]);
+
     const hasActiveFilters = Object.entries(filterValues).some(
         ([key, v]) => key !== 'search' && v && v !== "" && v !== "all"
     );
@@ -148,218 +182,233 @@ export function IndexPage<T extends { id: number | string }>({
     ).length;
 
     return (
-        <Card className="h-[calc(100vh-7rem)] flex flex-col">
-            {/* Card Header */}
-            <CardHeader className="bg-muted/40 border-b py-4 flex-shrink-0">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl">{title}</CardTitle>
-                        {description && (
-                            <CardDescription>{description}</CardDescription>
-                        )}
-                    </div>
-                    
-                    {/* Header Extra Content (e.g., date navigation) */}
-                    {headerExtra && (
-                        <div className="flex items-center">
-                            {headerExtra}
-                        </div>
+        <div className="w-full space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                    <h2 className="text-lg font-semibold leading-tight">{title}</h2>
+                    {description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
                     )}
-                    
-                    {/* Actions + Filter Button */}
-                    <div className="flex items-center gap-2">
-                        {filterFields && filterFields.length > 0 && (
-                            <Collapsible open={filterOpen} onOpenChange={setFilterOpen}>
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="outline" size="sm" className="gap-2">
-                                        <Filter className="h-4 w-4" />
-                                        Filter
-                                        {activeFilterCount > 0 && (
-                                            <span className="rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-                                                {activeFilterCount}
-                                            </span>
-                                        )}
-                                        <ChevronDown className={cn(
-                                            "h-4 w-4 transition-transform",
-                                            filterOpen && "rotate-180"
-                                        )} />
-                                    </Button>
-                                </CollapsibleTrigger>
-                            </Collapsible>
-                        )}
-                        {actions && actions.map((action, index) => {
-                            const Icon = action.icon || Plus;
-                            if (action.href) {
-                                return (
-                                    <Button key={index} variant={action.variant || "default"} size="sm" asChild>
-                                        <Link href={action.href}>
-                                            <Icon className="h-4 w-4 mr-2" />
-                                            {action.label}
-                                        </Link>
-                                    </Button>
-                                );
-                            }
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    {headerExtra}
+                    {actions && actions.map((action, index) => {
+                        const Icon = action.icon || Plus;
+                        if (action.href) {
                             return (
-                                <Button 
-                                    key={index} 
-                                    variant={action.variant || "default"}
-                                    size="sm"
-                                    onClick={action.onClick}
-                                >
-                                    <Icon className="h-4 w-4 mr-2" />
-                                    {action.label}
+                                <Button key={index} variant={action.variant || "default"} size="sm" asChild>
+                                    <Link href={action.href}>
+                                        <Icon className="h-3.5 w-3.5 mr-1.5" />
+                                        {action.label}
+                                    </Link>
                                 </Button>
                             );
-                        })}
-                    </div>
+                        }
+                        return (
+                            <Button key={index} variant={action.variant || "default"} size="sm" onClick={action.onClick}>
+                                <Icon className="h-3.5 w-3.5 mr-1.5" />
+                                {action.label}
+                            </Button>
+                        );
+                    })}
                 </div>
-            </CardHeader>
+            </div>
 
-            <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
-                <div className="p-4 flex-shrink-0">
-                    {/* Search Bar */}
+            {/* Toolbar: Search + Filter */}
+            {(onSearchChange || (filterFields && filterFields.length > 0)) && (
+                <div className="flex items-center gap-2">
                     {onSearchChange && (
-                        <div className="mb-4">
+                        <div className="relative flex-1 max-w-xs">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                             <Input
                                 value={searchValue || ""}
                                 onChange={(e) => onSearchChange(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
                                 placeholder={searchPlaceholder}
-                                className="h-9 max-w-sm"
+                                className="h-8 pl-8 text-sm"
                             />
                         </div>
                     )}
-
-                    {/* Collapsible Filter */}
                     {filterFields && filterFields.length > 0 && (
                         <Collapsible open={filterOpen} onOpenChange={setFilterOpen}>
-                            <CollapsibleContent>
-                                <div className="mb-4 p-4 rounded-lg border bg-muted/20">
-                                    <div className="flex flex-wrap items-end gap-3">
-                                            {filterFields.map((field) => (
-                                                <div key={field.key} className="space-y-1.5">
-                                                    {field.label && (
-                                                        <label className="text-xs font-medium text-muted-foreground">
-                                                            {field.label}
-                                                        </label>
-                                                    )}
-                                                    {field.type === "select" && field.options && (
-                                                        <Select 
-                                                            value={filterValues[field.key] || "all"} 
-                                                            onValueChange={(val) => onFilterChange?.(field.key, val === "all" ? "" : val)}
-                                                        >
-                                                            <SelectTrigger className={cn("h-9 w-[180px]", field.className)}>
-                                                                <SelectValue placeholder={field.placeholder || "Pilih..."} />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="all">{field.placeholder || "Semua"}</SelectItem>
-                                                                {field.options.map((option) => (
-                                                                    <SelectItem key={option.value} value={option.value}>
-                                                                        {option.label}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
-                                                    {field.type === "text" && (
-                                                        <Input
-                                                            value={filterValues[field.key] || ""}
-                                                            onChange={(e) => onFilterChange?.(field.key, e.target.value)}
-                                                            onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
-                                                            placeholder={field.placeholder}
-                                                            className={cn("h-9 w-[180px]", field.className)}
-                                                        />
-                                                    )}
-                                                </div>
-                                            ))}
-                                            <div className="flex gap-2">
-                                                <Button onClick={onFilterSubmit} size="sm" className="h-9">
-                                                    Terapkan
-                                                </Button>
-                                                {hasActiveFilters && (
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        onClick={onFilterReset}
-                                                        className="h-9"
-                                                    >
-                                                        <RotateCcw className="h-4 w-4 mr-1.5" />
-                                                        Reset
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        )}
-                </div>
-
-                {/* Scrollable Table */}
-                <div className="flex-1 overflow-hidden px-4">
-                    <ScrollArea className="h-full">
-                        <div className="rounded-lg border overflow-hidden">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                        {columns.map((column) => (
-                                            <TableHead key={column.key} className={cn("font-medium text-muted-foreground", column.className)}>
-                                                {column.label}
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={columns.length} className="h-32 text-center">
-                                                <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                                    Memuat data...
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : data.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={columns.length} className="h-32 text-center">
-                                                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                                    {EmptyIcon && <EmptyIcon className="h-10 w-10 opacity-40" />}
-                                                    <span>{emptyMessage}</span>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        data.map((item) => (
-                                            <TableRow key={item.id} className="hover:bg-muted/50">
-                                                {columns.map((column) => (
-                                                    <TableCell key={column.key} className={column.className}>
-                                                        {column.render 
-                                                            ? column.render(item) 
-                                                            : (item as any)[column.key]}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))
+                            <CollapsibleTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                                    <Filter className="h-3.5 w-3.5" />
+                                    Filter
+                                    {activeFilterCount > 0 && (
+                                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-medium">
+                                            {activeFilterCount}
+                                        </span>
                                     )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </ScrollArea>
-                </div>
-
-                {/* Pagination - Fixed at bottom */}
-                {pagination && pagination.total > 0 && (
-                    <div className="flex items-center justify-between p-4 border-t text-sm text-muted-foreground flex-shrink-0">
-                        <span>
-                            Menampilkan {pagination.from || 1} - {pagination.to || data.length} dari {pagination.total}
+                                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", filterOpen && "rotate-180")} />
+                                </Button>
+                            </CollapsibleTrigger>
+                        </Collapsible>
+                    )}
+                    {/* total count */}
+                    {pagination && (
+                        <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
+                            {pagination.total} total data
                         </span>
-                        <div className="flex items-center gap-2">
-                            {onPerPageChange && (
-                                <Select 
-                                    value={pagination.per_page.toString()} 
+                    )}
+                </div>
+            )}
+
+            {/* Collapsible Filter Panel */}
+            {filterFields && filterFields.length > 0 && (
+                <Collapsible open={filterOpen} onOpenChange={setFilterOpen}>
+                    <CollapsibleContent>
+                        <div className="rounded-md border bg-muted/20 px-4 py-3">
+                            <div className="flex flex-wrap items-end gap-3">
+                                {filterFields.map((field) => (
+                                    <div key={field.key} className="space-y-1">
+                                        {field.label && (
+                                            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                                                {field.label}
+                                            </label>
+                                        )}
+                                        {field.type === "select" && field.options && (
+                                            <Select
+                                                value={filterValues[field.key] || "all"}
+                                                onValueChange={(val) => onFilterChange?.(field.key, val === "all" ? "" : val)}
+                                            >
+                                                <SelectTrigger className={cn("h-8 w-[160px] text-xs", field.className)}>
+                                                    <SelectValue placeholder={field.placeholder || "Pilih..."} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">{field.placeholder || "Semua"}</SelectItem>
+                                                    {field.options.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                        {field.type === "text" && (
+                                            <Input
+                                                value={filterValues[field.key] || ""}
+                                                onChange={(e) => onFilterChange?.(field.key, e.target.value)}
+                                                onKeyDown={(e) => e.key === "Enter" && onFilterSubmit?.()}
+                                                placeholder={field.placeholder}
+                                                className={cn("h-8 w-[160px] text-xs", field.className)}
+                                            />
+                                        )}
+                                        {field.type === "date" && (
+                                            <Input
+                                                type="date"
+                                                value={filterValues[field.key] || ""}
+                                                onChange={(e) => onFilterChange?.(field.key, e.target.value)}
+                                                className={cn("h-8 w-[160px] text-xs", field.className)}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex gap-2 ml-auto">
+                                    <Button onClick={onFilterSubmit} size="sm" className="h-8 text-xs">
+                                        Terapkan
+                                    </Button>
+                                    {hasActiveFilters && (
+                                        <Button variant="outline" size="sm" onClick={onFilterReset} className="h-8 text-xs gap-1.5">
+                                            <RotateCcw className="h-3 w-3" />
+                                            Reset
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
+            )}
+
+            {/* Table or custom content */}
+            {tableContent ?? (
+            <div className="overflow-x-auto rounded-md border border-border">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="border-b border-border hover:bg-transparent bg-muted/40">
+                            {columns.map((column) => (
+                                <TableHead
+                                    key={column.key}
+                                    className={cn(
+                                        "h-9 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-0 select-none",
+                                        column.sortable !== false && column.label && "cursor-pointer hover:text-foreground transition-colors",
+                                        column.className
+                                    )}
+                                    onClick={() => column.sortable !== false && column.label ? handleSort(column.key) : undefined}
+                                >
+                                    {column.label ? (
+                                        <span className="inline-flex items-center gap-1">
+                                            {column.label}
+                                            {column.sortable !== false && (
+                                                sortKey === column.key ? (
+                                                    sortDir === "asc"
+                                                        ? <ArrowUp className="h-3 w-3 text-primary" />
+                                                        : <ArrowDown className="h-3 w-3 text-primary" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-3 w-3 opacity-30" />
+                                                )
+                                            )}
+                                        </span>
+                                    ) : null}
+                                </TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            <TableRow className="border-0">
+                                <TableCell colSpan={columns.length} className="h-32 text-center">
+                                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                        Memuat data...
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : sortedData.length === 0 ? (
+                            <TableRow className="border-0">
+                                <TableCell colSpan={columns.length} className="h-36 text-center">
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                        {EmptyIcon && <EmptyIcon className="h-8 w-8 opacity-30" />}
+                                        <span className="text-sm">{emptyMessage}</span>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            sortedData.map((item) => (
+                                <TableRow
+                                    key={item.id}
+                                    className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors h-[46px]"
+                                >
+                                    {columns.map((column) => (
+                                        <TableCell key={column.key} className={cn("py-2 text-sm", column.className)}>
+                                            {column.render
+                                                ? column.render(item)
+                                                : (item as any)[column.key]}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+            )}
+
+            {/* Pagination */}
+            {pagination && pagination.total > 0 && (
+                <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+                    {/* Left: rows per page + range info */}
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                            <span>Baris:</span>
+                            {onPerPageChange ? (
+                                <Select
+                                    value={pagination.per_page.toString()}
                                     onValueChange={(val) => onPerPageChange(parseInt(val))}
                                 >
-                                    <SelectTrigger className="w-[70px] h-8">
+                                    <SelectTrigger className="w-[56px] h-7 text-xs">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -369,54 +418,64 @@ export function IndexPage<T extends { id: number | string }>({
                                         <SelectItem value="100">100</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            )}
-                            {pagination.last_page > 1 && (
-                                <div className="flex items-center gap-1">
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => onPageChange?.(1)}
-                                        disabled={pagination.current_page === 1}
-                                    >
-                                        <ChevronsLeft className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => onPageChange?.(pagination.current_page - 1)}
-                                        disabled={pagination.current_page === 1}
-                                    >
-                                        <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                                    <span className="px-3 text-sm">
-                                        Halaman {pagination.current_page} dari {pagination.last_page}
-                                    </span>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => onPageChange?.(pagination.current_page + 1)}
-                                        disabled={pagination.current_page === pagination.last_page}
-                                    >
-                                        <ChevronRight className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => onPageChange?.(pagination.last_page)}
-                                        disabled={pagination.current_page === pagination.last_page}
-                                    >
-                                        <ChevronsRight className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                            ) : (
+                                <span className="font-medium">{pagination.per_page}</span>
                             )}
                         </div>
+                        <Separator orientation="vertical" className="h-4" />
+                        <span>
+                            {pagination.from ?? 1}–{pagination.to ?? sortedData.length}
+                            {" "}dari{" "}
+                            <span className="font-medium text-foreground">{pagination.total}</span>
+                        </span>
                     </div>
-                )}
-            </CardContent>
-        </Card>
+
+                    {/* Right: page nav */}
+                    <div className="flex items-center gap-2">
+                        <span>
+                            Hal. <span className="font-medium text-foreground">{pagination.current_page}</span> / {pagination.last_page}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => onPageChange?.(1)}
+                                disabled={pagination.current_page === 1}
+                            >
+                                <ChevronsLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => onPageChange?.(pagination.current_page - 1)}
+                                disabled={pagination.current_page === 1}
+                            >
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => onPageChange?.(pagination.current_page + 1)}
+                                disabled={pagination.current_page === pagination.last_page}
+                            >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => onPageChange?.(pagination.last_page)}
+                                disabled={pagination.current_page === pagination.last_page}
+                            >
+                                <ChevronsRight className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

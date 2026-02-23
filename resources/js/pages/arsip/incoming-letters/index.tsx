@@ -138,11 +138,12 @@ export default function IncomingLettersIndex({ letters, filters, statuses, categ
             key: 'incoming_number',
             label: 'No. Agenda',
             render: (letter: IncomingLetter) => (
-                <div 
-                    className="font-medium cursor-pointer hover:text-primary flex items-center gap-2"
+                <div
+                    className="cursor-pointer"
                     onClick={() => handleRowClick(letter)}
                 >
-                    {letter.incoming_number}
+                    <div className="font-medium hover:text-primary">{letter.incoming_number}</div>
+                    <div className="text-xs text-muted-foreground">{letter.category || letter.classification}</div>
                 </div>
             ),
         },
@@ -236,7 +237,6 @@ export default function IncomingLettersIndex({ letters, filters, statuses, categ
         <AppLayout>
             <Head title="Surat Masuk" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Surat Masuk"
                     description="Kelola dan registrasi surat masuk"
@@ -270,7 +270,6 @@ export default function IncomingLettersIndex({ letters, filters, statuses, categ
                     emptyMessage="Belum ada surat masuk"
                     emptyIcon={Mail}
                 />
-            </div>
         </AppLayout>
     );
 }

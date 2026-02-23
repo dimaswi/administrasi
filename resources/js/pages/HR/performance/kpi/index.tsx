@@ -315,18 +315,16 @@ export default function Index({ categories, templates, measurementTypes }: Props
 
             <div>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <TabsList>
-                            <TabsTrigger value="categories" className="gap-2">
-                                <Layers className="w-4 h-4" />
-                                Kategori ({categories.length})
-                            </TabsTrigger>
-                            <TabsTrigger value="templates" className="gap-2">
-                                <Target className="w-4 h-4" />
-                                Template ({templates.length})
-                            </TabsTrigger>
-                        </TabsList>
-                    </div>
+                    <TabsList className="h-auto p-0 bg-transparent justify-start gap-0 rounded-none border-b border-border w-full">
+                        <TabsTrigger value="categories" className="rounded-none border-b-2 border-transparent -mb-px px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all gap-1.5 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                            <Layers className="h-3.5 w-3.5" />
+                            Kategori ({categories.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="templates" className="rounded-none border-b-2 border-transparent -mb-px px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all gap-1.5 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                            <Target className="h-3.5 w-3.5" />
+                            Template ({templates.length})
+                        </TabsTrigger>
+                    </TabsList>
 
                     <TabsContent value="categories" className="mt-0">
                         <IndexPage

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
     Table,
@@ -192,7 +191,7 @@ export default function SystemLogs({ logs, availableDates, filters }: Props) {
                             </div>
 
                             {/* Logs Table */}
-                            <ScrollArea className="h-[500px] border rounded-lg">
+                            <div className="h-[500px] border rounded-lg overflow-y-auto">
                                 <Table>
                                     <TableHeader className="sticky top-0 bg-background">
                                         <TableRow>
@@ -236,7 +235,7 @@ export default function SystemLogs({ logs, availableDates, filters }: Props) {
                                         )}
                                     </TableBody>
                                 </Table>
-                            </ScrollArea>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -258,11 +257,11 @@ export default function SystemLogs({ logs, availableDates, filters }: Props) {
                         </DialogTitle>
                         <DialogDescription>Detail log entry</DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="max-h-[60vh]">
+                    <div className="max-h-[60vh] overflow-y-auto">
                         <pre className="text-xs font-mono whitespace-pre-wrap bg-muted p-4 rounded-lg">
                             {selectedLog?.full_message}
                         </pre>
-                    </ScrollArea>
+                    </div>
                 </DialogContent>
             </Dialog>
         </AppLayout>

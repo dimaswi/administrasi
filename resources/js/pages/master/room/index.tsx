@@ -102,7 +102,10 @@ export default function Index({ rooms, filters }: Props) {
             key: 'name',
             label: 'Nama Ruangan',
             render: (room: Room) => (
-                <div className="font-medium">{room.name}</div>
+                <div>
+                    <div className="font-medium">{room.name}</div>
+                    <div className="font-mono text-xs text-muted-foreground">{room.code}</div>
+                </div>
             ),
         },
         {
@@ -180,7 +183,6 @@ export default function Index({ rooms, filters }: Props) {
         <AppLayout>
             <Head title="Ruangan" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Ruangan"
                     description="Kelola data ruangan untuk rapat"
@@ -213,7 +215,6 @@ export default function Index({ rooms, filters }: Props) {
                     emptyMessage="Belum ada ruangan"
                     emptyIcon={DoorOpen}
                 />
-            </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

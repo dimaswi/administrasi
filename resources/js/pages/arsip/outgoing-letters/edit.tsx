@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -300,7 +299,7 @@ export default function Edit({ letter, users }: Props) {
                                 </TabsTrigger>
                             </TabsList>
 
-                            <ScrollArea className="flex-1">
+                            <div className="flex-1 overflow-auto">
                                 <div className="p-4">
                                     <TabsContent value="info" className="m-0 space-y-4">
                                         {/* Template Info */}
@@ -527,11 +526,11 @@ export default function Edit({ letter, users }: Props) {
                                         </div>
                                     </TabsContent>
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </div>
 
-                    {/* Right Panel - Preview */}
+                    {/* Right Panel - Preview */
                     <div 
                         ref={previewContainerRef}
                         className="flex-1 flex flex-col bg-zinc-100 dark:bg-zinc-900 overflow-hidden"

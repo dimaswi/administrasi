@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -264,7 +263,7 @@ export default function Revision({ letter, paper_sizes }: Props) {
                                 </TabsTrigger>
                             </TabsList>
 
-                            <ScrollArea className="flex-1">
+                            <div className="flex-1 overflow-auto">
                                 <div className="p-4">
                                     <TabsContent value="revision" className="m-0 space-y-4">
                                         {/* Revision Request Info */}
@@ -356,11 +355,11 @@ export default function Revision({ letter, paper_sizes }: Props) {
                                         </div>
                                     </TabsContent>
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </div>
 
-                    {/* Right Panel - Preview */}
+                    {/* Right Panel - Preview */
                     <div 
                         ref={previewContainerRef}
                         className="flex-1 flex flex-col bg-zinc-100 dark:bg-zinc-900 overflow-hidden"
@@ -402,7 +401,7 @@ export default function Revision({ letter, paper_sizes }: Props) {
                         </div>
 
                         {/* Preview Content */}
-                        <ScrollArea className="flex-1">
+                        <div className="flex-1 overflow-auto">
                             <div className="p-6 flex justify-center">
                                 {template && (
                                     <TemplatePreview
@@ -417,7 +416,7 @@ export default function Revision({ letter, paper_sizes }: Props) {
                                     />
                                 )}
                             </div>
-                        </ScrollArea>
+                        </div>
                     </div>
                 </div>
             </form>

@@ -110,7 +110,6 @@ export default function Index({ permissions, modules, filters }: Props) {
         <HrLayout>
             <Head title="Permission" />
 
-            <div className="p-6">
                 <IndexPage
                     title="Permission"
                     description="Daftar hak akses yang tersedia dalam sistem"
@@ -137,7 +136,6 @@ export default function Index({ permissions, modules, filters }: Props) {
                     emptyMessage="Belum ada permission"
                     emptyIcon={Key}
                 />
-            </div>
         </HrLayout>
     );
 }

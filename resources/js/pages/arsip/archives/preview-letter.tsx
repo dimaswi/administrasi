@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
@@ -368,7 +367,7 @@ export default function PreviewLetter({ archive, letter, paper_sizes }: Props) {
                                 </TabsTrigger>
                             </TabsList>
 
-                            <ScrollArea className="flex-1">
+                            <div className="flex-1 overflow-auto">
                                 <div className="p-4">
                                     {/* Archive Info Tab */}
                                     <TabsContent value="archive" className="m-0 space-y-4">
@@ -707,11 +706,11 @@ export default function PreviewLetter({ archive, letter, paper_sizes }: Props) {
                                         </div>
                                     </TabsContent>
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </div>
 
-                    {/* Right Panel - Preview */}
+                    {/* Right Panel - Preview */
                     <div 
                         ref={previewContainerRef}
                         className="flex-1 flex flex-col bg-zinc-100 dark:bg-zinc-900 overflow-hidden"

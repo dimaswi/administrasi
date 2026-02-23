@@ -83,14 +83,17 @@ export default function Index({ trainings, types, categories, filters }: Props) 
             sortable: true,
             render: (training: TrainingItem) => (
                 <div>
-                    <Link href={route('hr.trainings.show', training.id)} className="font-medium text-blue-600 hover:underline">
-                        {training.name}
-                    </Link>
-                    {training.is_mandatory && (
-                        <Badge variant="destructive" className="ml-2 text-xs">
-                            Wajib
-                        </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <Link href={route('hr.trainings.show', training.id)} className="font-medium text-blue-600 hover:underline">
+                            {training.name}
+                        </Link>
+                        {training.is_mandatory && (
+                            <Badge variant="destructive" className="ml-2 text-xs">
+                                Wajib
+                            </Badge>
+                        )}
+                    </div>
+                    <div className="font-mono text-xs text-muted-foreground">{training.code}</div>
                 </div>
             ),
         },

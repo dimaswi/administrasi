@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar, Clock, Users, Filter, Search, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
@@ -215,7 +214,7 @@ export default function Bulk({ employees, units, workSchedules, date, statusOpti
                                 </Label>
                             </div>
 
-                            <ScrollArea className="h-[250px]">
+                            <div className="h-[250px] overflow-y-auto">
                                 {filteredEmployees.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground text-sm">
                                         Tidak ada karyawan ditemukan
@@ -246,7 +245,7 @@ export default function Bulk({ employees, units, workSchedules, date, statusOpti
                                         ))}
                                     </div>
                                 )}
-                            </ScrollArea>
+                            </div>
                         </div>
 
                         {errors.employee_ids && (

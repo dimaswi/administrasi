@@ -331,12 +331,12 @@ export default function Show({ session, participants, questionGroups, categories
 
                     {/* Tabs */}
                     <Tabs defaultValue="participants" className="space-y-4">
-                        <TabsList>
-                            <TabsTrigger value="participants" className="gap-2">
+                        <TabsList className="h-auto p-0 bg-transparent justify-start gap-0 rounded-none border-b w-full">
+                            <TabsTrigger value="participants" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                                 <Users className="h-4 w-4" />
                                 Partisipan ({participants.length})
                             </TabsTrigger>
-                            <TabsTrigger value="questions" className="gap-2">
+                            <TabsTrigger value="questions" className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none gap-2">
                                 <HelpCircle className="h-4 w-4" />
                                 Pertanyaan ({questionGroups.reduce((acc, g) => acc + g.questions.length, 0)})
                             </TabsTrigger>
