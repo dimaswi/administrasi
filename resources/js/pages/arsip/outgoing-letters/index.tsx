@@ -25,7 +25,7 @@ interface OutgoingLetter {
         id: number;
         name: string;
         code: string;
-    };
+    } | null;
     subject: string;
     letter_date: string;
     status: 'pending_approval' | 'partially_signed' | 'fully_signed' | 'rejected' | 'revision_requested';
