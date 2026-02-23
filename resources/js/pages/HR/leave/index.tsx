@@ -103,7 +103,7 @@ export default function Index({ leaves, leaveTypes, units, filters, statusOption
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/leaves', filterValues, { preserveState: true });
+        router.get('/hr/leaves', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

@@ -67,7 +67,7 @@ export default function Index({ sessions, periods, statuses, stats, filters }: P
     };
 
     const handleFilterSubmit = () => {
-        router.get(route('hr.calibration.index'), filterValues, { preserveState: true });
+        router.get(route('hr.calibration.index'), Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

@@ -95,7 +95,7 @@ export default function IncomingLettersIndex({ letters, filters, statuses, categ
     };
 
     const handleFilterSubmit = () => {
-        router.get('/arsip/incoming-letters', filterValues, { preserveState: true });
+        router.get('/arsip/incoming-letters', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

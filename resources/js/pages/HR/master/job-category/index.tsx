@@ -54,7 +54,7 @@ export default function Index({ categories, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/job-categories', filterValues, { preserveState: true });
+        router.get('/hr/job-categories', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

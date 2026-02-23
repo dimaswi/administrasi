@@ -52,7 +52,7 @@ export default function Index({ statuses, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/employment-statuses', filterValues, { preserveState: true });
+        router.get('/hr/employment-statuses', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

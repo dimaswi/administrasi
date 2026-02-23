@@ -75,7 +75,7 @@ export default function Index({ leaveTypes, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/leave-types', filterValues, { preserveState: true });
+        router.get('/hr/leave-types', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

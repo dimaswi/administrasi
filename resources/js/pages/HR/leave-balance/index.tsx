@@ -105,7 +105,7 @@ export default function Index({ employees, leaveTypes, units, years, filters }: 
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/leave-balances', filterValues, { preserveState: true });
+        router.get('/hr/leave-balances', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

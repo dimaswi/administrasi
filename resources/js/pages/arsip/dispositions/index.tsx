@@ -80,7 +80,7 @@ export default function Index({ dispositions, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/arsip/dispositions', filterValues, { preserveState: true });
+        router.get('/arsip/dispositions', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

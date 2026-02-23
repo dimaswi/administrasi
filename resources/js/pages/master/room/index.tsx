@@ -56,7 +56,7 @@ export default function Index({ rooms, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/master/rooms', filterValues, { preserveState: true });
+        router.get('/master/rooms', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

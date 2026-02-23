@@ -63,7 +63,7 @@ export default function Index({ roles, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/access/roles', filterValues, { preserveState: true });
+        router.get('/hr/access/roles', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

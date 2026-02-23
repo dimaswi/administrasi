@@ -80,7 +80,7 @@ export default function Index({ requests, units, filters, statusOptions }: Props
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/early-leave-requests', filterValues, { preserveState: true });
+        router.get('/hr/early-leave-requests', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

@@ -68,7 +68,7 @@ export default function Index({ templates, categories, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/arsip/document-templates', filterValues, { preserveState: true });
+        router.get('/arsip/document-templates', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

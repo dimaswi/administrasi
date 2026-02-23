@@ -72,7 +72,7 @@ export default function Index({ schedules, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/work-schedules', filterValues, { preserveState: true });
+        router.get('/hr/work-schedules', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

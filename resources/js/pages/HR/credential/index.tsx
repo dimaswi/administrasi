@@ -74,7 +74,7 @@ export default function Index({ credentials, types, units, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/credentials', filterValues, { preserveState: true });
+        router.get('/hr/credentials', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

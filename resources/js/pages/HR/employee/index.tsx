@@ -86,7 +86,7 @@ export default function Index({ employees, filters, jobCategories, organizationU
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/employees', filterValues, { preserveState: true });
+        router.get('/hr/employees', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

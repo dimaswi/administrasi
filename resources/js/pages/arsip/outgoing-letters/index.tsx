@@ -91,7 +91,7 @@ export default function Index({ letters, filters, templates }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/arsip/outgoing-letters', filterValues, { preserveState: true });
+        router.get('/arsip/outgoing-letters', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

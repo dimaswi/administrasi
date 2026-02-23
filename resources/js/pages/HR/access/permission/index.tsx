@@ -43,7 +43,7 @@ export default function Index({ permissions, modules, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/access/permissions', filterValues, { preserveState: true });
+        router.get('/hr/access/permissions', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

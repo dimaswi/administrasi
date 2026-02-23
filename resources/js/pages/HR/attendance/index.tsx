@@ -119,7 +119,7 @@ export default function Index({ employees, date, units, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/attendances', filterValues, { preserveState: true });
+        router.get('/hr/attendances', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {

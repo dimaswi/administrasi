@@ -66,7 +66,7 @@ export default function Index({ organizationUnits, levels, filters }: Props) {
     };
 
     const handleFilterSubmit = () => {
-        router.get('/hr/organizations', filterValues, { preserveState: true });
+        router.get('/hr/organizations', Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), { preserveState: true });
     };
 
     const handleFilterReset = () => {
