@@ -17,6 +17,7 @@ import {
     FileText,
     FileSignature,
     FolderArchive,
+    LetterText,
 } from 'lucide-react';
 
 export function AppSidebar() {
@@ -63,9 +64,9 @@ export function AppSidebar() {
         },
         ...(arsipChildren.length > 0
             ? [{
-                title: 'Arsip',
+                title: 'Surat',
                 href: '/arsip',
-                icon: FolderArchive,
+                icon: MailIcon,
                 children: arsipChildren,
             }]
             : []),

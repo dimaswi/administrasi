@@ -45,7 +45,6 @@ const navItems: NavItem[] = [
         href: '/hr/reports',
         icon: FileBarChart,
         children: [
-            { title: 'Semua Laporan', href: '/hr/reports' },
             { title: 'Laporan Karyawan', href: '/hr/reports/employee' },
             { title: 'Laporan Cuti', href: '/hr/reports/leave' },
             { title: 'Laporan Training', href: '/hr/reports/training' },

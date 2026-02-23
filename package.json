@@ -68,6 +68,7 @@
         "cmdk": "^1.1.1",
         "concurrently": "^9.0.1",
         "date-fns": "^4.1.0",
+        "framer-motion": "^12.34.3",
         "globals": "^15.14.0",
         "html2pdf.js": "^0.12.1",
         "laravel-vite-plugin": "^1.0",

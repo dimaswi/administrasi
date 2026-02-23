@@ -11,7 +11,7 @@ export default function HRSidebarLayout({ children, breadcrumbs = [] }: PropsWit
             <HRSidebar />
             <AppContent variant="sidebar">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
                     {children}
                 </div>
             </AppContent>
