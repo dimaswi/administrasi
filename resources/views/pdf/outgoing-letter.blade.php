@@ -81,12 +81,14 @@
         .signature-grid {
             display: table;
             width: 100%;
+            table-layout: fixed;
         }
         
         .signature-column {
             display: table-cell;
             vertical-align: top;
-            padding: 0 10px;
+            padding: 0 6px;
+            word-wrap: break-word;
         }
         
         .signature-slot {

@@ -45,7 +45,7 @@ class LetterSignatory extends Model
      */
     public function approve(?string $signatureImage = null): void
     {
-        $certificateId = 'LTR-' . strtoupper(substr(md5($this->letter_id . $this->user_id . time()), 0, 12));
+        $certificateId = 'LTR-' . strtoupper(substr(md5($this->letter_id . $this->user_id . $this->slot_id . microtime(true)), 0, 12));
         
         $documentHash = hash('sha256', json_encode([
             'letter_id' => $this->letter_id,

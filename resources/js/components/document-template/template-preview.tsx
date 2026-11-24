@@ -641,7 +641,7 @@ export function TemplatePreview({
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="text-gray-500 border-b-2 border-dashed border-gray-400 w-32 text-center text-xs py-2">
+                                                    <div className="text-gray-500 border-b-2 border-dashed border-gray-400 w-full max-w-[128px] text-center text-xs py-2">
                                                         [tanda tangan]
                                                     </div>
                                                 )}

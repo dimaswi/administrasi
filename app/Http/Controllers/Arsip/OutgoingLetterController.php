@@ -47,11 +47,26 @@ class OutgoingLetterController extends Controller
             });
         }
 
-        $currentUserId = Auth::id();
+        $currentUser = Auth::user();
+        $currentUserId = $currentUser->id;
         
-        $letters = $query->paginate($request->input('perPage', 15))->through(function ($letter) use ($currentUserId) {
-            // Check if current user is a signatory for this letter
-            $userSignatory = $letter->signatories->firstWhere('user_id', $currentUserId);
+        $letters = $query->paginate($request->input('perPage', 15))->through(function ($letter) use ($currentUser, $currentUserId) {
+            // Check all signatory slots for current user
+            $userSignatories = $letter->signatories->where('user_id', $currentUserId);
+            $isSignatory = $userSignatories->isNotEmpty();
+            $hasPending = $userSignatories->contains('status', LetterSignatory::STATUS_PENDING);
+            $hasRejected = $userSignatories->contains('status', LetterSignatory::STATUS_REJECTED);
+
+            $signatoryStatus = null;
+            if ($isSignatory) {
+                if ($hasRejected) {
+                    $signatoryStatus = LetterSignatory::STATUS_REJECTED;
+                } elseif ($hasPending) {
+                    $signatoryStatus = LetterSignatory::STATUS_PENDING;
+                } else {
+                    $signatoryStatus = LetterSignatory::STATUS_APPROVED;
+                }
+            }
             
             return [
                 'id' => $letter->id,
@@ -71,9 +86,9 @@ class OutgoingLetterController extends Controller
                 ],
                 'approval_progress' => $letter->getApprovalProgress(),
                 // Signatory info for current user
-                'is_signatory' => $userSignatory !== null,
-                'signatory_status' => $userSignatory?->status,
-                'can_sign' => $userSignatory && $userSignatory->status === 'pending' && !in_array($letter->status, ['fully_signed', 'rejected', 'revision_requested']),
+                'is_signatory' => $isSignatory,
+                'signatory_status' => $signatoryStatus,
+                'can_sign' => $hasPending && $letter->canBeSignedBy($currentUser),
             ];
         });
 
@@ -217,11 +232,17 @@ class OutgoingLetterController extends Controller
             'revisionRequester',
         ]);
 
-        // Check if current user can sign
-        $canSign = $outgoingLetter->canBeSignedBy(Auth::user());
-        $userSignatory = $outgoingLetter->signatories
-            ->where('user_id', Auth::id())
-            ->first();
+        // Check if current user can sign and which slots are signable right now
+        $currentUser = Auth::user();
+        $signableSignatoryIds = $outgoingLetter->getSignableSignatoryIdsForUser($currentUser);
+        $canSign = count($signableSignatoryIds) > 0;
+        $userSignatories = $outgoingLetter->signatories->where('user_id', Auth::id())->values();
+        $hasPendingSignatory = $userSignatories->contains('status', LetterSignatory::STATUS_PENDING);
+
+        // Prioritize currently signable slot, then any pending slot, then first assigned slot
+        $userSignatory = $userSignatories->firstWhere('id', $signableSignatoryIds[0] ?? null)
+            ?? $userSignatories->firstWhere('status', LetterSignatory::STATUS_PENDING)
+            ?? $userSignatories->first();
 
         // Transform signatories to include slot_id and slot_info
         $signatories = $outgoingLetter->signatories->map(function ($signatory) {
@@ -268,9 +289,8 @@ class OutgoingLetterController extends Controller
         $canArchive = $outgoingLetter->status === OutgoingLetter::STATUS_SIGNED && 
                       !$outgoingLetter->archive;
 
-        // Check if user can request revision (signatory with pending status, letter not yet fully signed)
-        $canRequestRevision = $userSignatory && 
-                              $userSignatory->status === 'pending' && 
+        // Check if user can request revision (has any pending signatory slot, letter not yet fully signed)
+        $canRequestRevision = $hasPendingSignatory && 
                               !in_array($outgoingLetter->status, [OutgoingLetter::STATUS_SIGNED, OutgoingLetter::STATUS_REJECTED]) &&
                               !$outgoingLetter->revision_requested;
 
@@ -287,6 +307,7 @@ class OutgoingLetterController extends Controller
             'can_submit_revision' => $canSubmitRevision,
             'is_creator' => $isCreator,
             'user_signatory' => $userSignatory,
+            'signable_signatory_ids' => $signableSignatoryIds,
             'paper_sizes' => DocumentTemplate::paperSizes(),
         ]);
     }
@@ -408,19 +429,60 @@ class OutgoingLetterController extends Controller
      */
     public function sign(Request $request, OutgoingLetter $outgoingLetter)
     {
-        $signatory = $outgoingLetter->signatories()
-            ->where('user_id', Auth::id())
-            ->first();
-
-        if (!$signatory || !$signatory->canSign()) {
-            return back()->with('error', 'Anda tidak dapat menandatangani surat ini');
+        if (
+            $outgoingLetter->status === OutgoingLetter::STATUS_REVISION
+            || $outgoingLetter->revision_requested
+            || in_array($outgoingLetter->status, [OutgoingLetter::STATUS_SIGNED, OutgoingLetter::STATUS_REJECTED], true)
+        ) {
+            return back()->with('error', 'Surat tidak dapat ditandatangani saat ini');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'signature_image' => 'nullable|string', // base64 image
+            'signatory_ids' => 'nullable|array|min:1',
+            'signatory_ids.*' => 'integer|exists:letter_signatories,id',
         ]);
 
-        $signatory->approve($request->signature_image);
+        $requestedIds = isset($validated['signatory_ids'])
+            ? array_values(array_unique(array_map('intval', $validated['signatory_ids'])))
+            : null;
+        $signedCount = 0;
+
+        try {
+            DB::transaction(function () use ($outgoingLetter, $validated, $requestedIds, &$signedCount) {
+                $pendingForUser = $outgoingLetter->signatories()
+                    ->where('user_id', Auth::id())
+                    ->where('status', LetterSignatory::STATUS_PENDING)
+                    ->orderBy('sign_order')
+                    ->get();
+
+                if ($requestedIds !== null) {
+                    $requestedLookup = array_flip($requestedIds);
+                    $targets = $pendingForUser->filter(fn ($s) => isset($requestedLookup[$s->id]))->values();
+
+                    if ($targets->count() !== count($requestedIds)) {
+                        throw new \RuntimeException('Slot tanda tangan tidak valid atau sudah ditandatangani.');
+                    }
+                } else {
+                    $targets = $pendingForUser;
+                }
+
+                foreach ($targets as $signatory) {
+                    if ($signatory->canSign()) {
+                        $signatory->approve($validated['signature_image'] ?? null);
+                        $signedCount++;
+                    } elseif ($requestedIds !== null) {
+                        throw new \RuntimeException('Slot tanda tangan belum mencapai gilirannya.');
+                    }
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ($signedCount === 0) {
+            return back()->with('error', 'Anda tidak dapat menandatangani surat ini');
+        }
 
         // Refresh letter to get updated status
         $outgoingLetter->refresh();
@@ -434,7 +496,11 @@ class OutgoingLetterController extends Controller
             NotificationService::notifyLetterSigned($outgoingLetter, Auth::user());
         }
 
-        return back()->with('success', 'Surat berhasil ditandatangani');
+        $message = $signedCount > 1
+            ? "Surat berhasil ditandatangani ({$signedCount} posisi TTD)"
+            : 'Surat berhasil ditandatangani';
+
+        return back()->with('success', $message);
     }
 
     /**
@@ -442,22 +508,29 @@ class OutgoingLetterController extends Controller
      */
     public function reject(Request $request, OutgoingLetter $outgoingLetter)
     {
-        $signatory = $outgoingLetter->signatories()
-            ->where('user_id', Auth::id())
-            ->first();
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+            'signatory_id' => 'nullable|integer|exists:letter_signatories,id',
+        ]);
 
-        if (!$signatory || $signatory->status !== LetterSignatory::STATUS_PENDING) {
+        $query = $outgoingLetter->signatories()
+            ->where('user_id', Auth::id())
+            ->where('status', LetterSignatory::STATUS_PENDING);
+
+        if (!empty($validated['signatory_id'])) {
+            $query->where('id', $validated['signatory_id']);
+        }
+
+        $signatory = $query->orderBy('sign_order')->first();
+
+        if (!$signatory) {
             return back()->with('error', 'Anda tidak dapat menolak surat ini');
         }
 
-        $request->validate([
-            'rejection_reason' => 'required|string|max:1000',
-        ]);
-
-        $signatory->reject($request->rejection_reason);
+        $signatory->reject($validated['rejection_reason']);
 
         // Send notification to creator
-        NotificationService::notifyLetterRejected($outgoingLetter, Auth::user(), $request->rejection_reason);
+        NotificationService::notifyLetterRejected($outgoingLetter, Auth::user(), $validated['rejection_reason']);
 
         return back()->with('success', 'Surat berhasil ditolak');
     }

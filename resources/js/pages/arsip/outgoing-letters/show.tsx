@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
     SelectContent,
@@ -58,6 +59,7 @@ interface Signatory {
     notes: string | null;
     signed_at: string | null;
     slot_info?: {
+        column?: number;
         label_above?: string;
         label_position?: string;
     } | null;
@@ -114,6 +116,7 @@ interface Props {
     can_submit_revision: boolean;
     is_creator: boolean;
     user_signatory: Signatory | null;
+    signable_signatory_ids?: number[];
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; color: string }> = {
@@ -130,16 +133,52 @@ const signatoryStatusIcons: Record<string, React.ReactNode> = {
     rejected: <XCircle className="h-4 w-4 text-red-600" />,
 };
 
-export default function Show({ letter, can_edit, can_sign, can_archive, can_request_revision, can_submit_revision, is_creator, user_signatory }: Props) {
+const EMPTY_SIGNATORY_IDS: number[] = [];
+
+export default function Show({ letter, can_edit, can_sign, can_archive, can_request_revision, can_submit_revision, is_creator, user_signatory, signable_signatory_ids = EMPTY_SIGNATORY_IDS }: Props) {
     const [activeTab, setActiveTab] = useState('info');
     const [previewScale, setPreviewScale] = useState(0.5);
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
     const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
     const [signDialogOpen, setSignDialogOpen] = useState(false);
+    const [selectedSignatoryIds, setSelectedSignatoryIds] = useState<number[]>(signable_signatory_ids);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const previewContainerRef = useRef<HTMLDivElement>(null);
     const previewRef = useRef<HTMLDivElement>(null);
+
+    const signableSignatories = (letter.signatories || [])
+        .filter(s => signable_signatory_ids.includes(s.id))
+        .sort((a, b) => a.sign_order - b.sign_order);
+
+    const currentUserId = user_signatory?.user?.id;
+    const waitingUserSignatories = currentUserId
+        ? (letter.signatories || [])
+            .filter(s => s.user?.id === currentUserId && s.status === 'pending' && !signable_signatory_ids.includes(s.id))
+            .sort((a, b) => a.sign_order - b.sign_order)
+        : [];
+
+    const signableIdsKey = signable_signatory_ids.join(',');
+
+    useEffect(() => {
+        setSelectedSignatoryIds(signable_signatory_ids);
+    }, [signableIdsKey, signDialogOpen]);
+
+    const toggleSignatorySelection = (signatory: Signatory, checked: boolean) => {
+        if (checked) {
+            const idsToSelect = signableSignatories
+                .filter(s => s.id === signatory.id || s.sign_order < signatory.sign_order)
+                .map(s => s.id);
+            setSelectedSignatoryIds(prev => Array.from(new Set([...prev, ...idsToSelect])));
+        } else {
+            const idsToRemove = new Set(
+                signableSignatories
+                    .filter(s => s.id === signatory.id || s.sign_order > signatory.sign_order)
+                    .map(s => s.id)
+            );
+            setSelectedSignatoryIds(prev => prev.filter(id => !idsToRemove.has(id)));
+        }
+    };
 
     const archiveForm = useForm({
         category: '',
@@ -182,7 +221,12 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
     }, []);
 
     const handleSign = () => {
-        router.post(`/arsip/outgoing-letters/${letter.id}/sign`, {}, {
+        if (signableSignatories.length > 0 && selectedSignatoryIds.length === 0) {
+            return;
+        }
+        router.post(`/arsip/outgoing-letters/${letter.id}/sign`, {
+            signatory_ids: selectedSignatoryIds.length > 0 ? selectedSignatoryIds : undefined,
+        }, {
             onSuccess: () => setSignDialogOpen(false),
         });
     };
@@ -296,7 +340,7 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                                 </Link>
                             </Button>
                         )}
-                        {can_sign && user_signatory?.status === 'pending' && (
+                        {can_sign && (signable_signatory_ids.length > 0 || user_signatory?.status === 'pending') && (
                             <>
                                 <Button variant="outline" size="sm" onClick={() => setRejectDialogOpen(true)}>
                                     <XCircle className="h-4 w-4 mr-1.5" />
@@ -314,7 +358,7 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                                 )}
                                 <Button size="sm" onClick={() => setSignDialogOpen(true)}>
                                     <PenTool className="h-4 w-4 mr-1.5" />
-                                    Tandatangani
+                                    {signable_signatory_ids.length > 1 ? `Tandatangani (${signable_signatory_ids.length})` : 'Tandatangani'}
                                 </Button>
                             </>
                         )}
@@ -564,9 +608,16 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                                                                 </span>
                                                                 {signatoryStatusIcons[signatory.status]}
                                                             </div>
-                                                            <p className="text-[10px] text-muted-foreground">
-                                                                {signatory.slot_info?.label_position || `Penanda Tangan ${index + 1}`}
-                                                            </p>
+                                                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                                <p className="text-[10px] text-muted-foreground">
+                                                                    {signatory.slot_info?.label_position || `Penanda Tangan ${index + 1}`}
+                                                                </p>
+                                                                {signatory.slot_info?.column !== undefined && (
+                                                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                                                                        Kolom {signatory.slot_info.column + 1}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
                                                             {signatory.user?.nip && (
                                                                 <p className="text-[10px] text-muted-foreground">
                                                                     NIP. {signatory.user.nip}
@@ -928,11 +979,78 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                             Anda akan menandatangani surat ini. Pastikan Anda telah membaca dan menyetujui isi surat.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
+                    <div className="py-4 space-y-4">
                         <div className="rounded-lg bg-muted p-4">
                             <p className="text-sm font-medium">{letter.subject}</p>
                             <p className="text-sm text-muted-foreground">No: {letter.letter_number}</p>
                         </div>
+
+                        {signableSignatories.length > 0 && (
+                            <div className="space-y-2">
+                                <Label className="text-xs font-medium">
+                                    {signableSignatories.length > 1
+                                        ? `Pilih Posisi Tanda Tangan (${selectedSignatoryIds.length}/${signableSignatories.length})`
+                                        : 'Posisi Tanda Tangan'}
+                                </Label>
+                                <div className="space-y-2 max-h-56 overflow-y-auto">
+                                    {signableSignatories.map((sig, idx) => {
+                                        const isChecked = selectedSignatoryIds.includes(sig.id);
+                                        const label = sig.slot_info?.label_position || `Penanda Tangan #${sig.sign_order + 1}`;
+                                        const colBadge = sig.slot_info?.column !== undefined ? `Kolom ${sig.slot_info.column + 1}` : null;
+                                        return (
+                                            <label
+                                                key={sig.id}
+                                                className="flex items-start gap-2.5 rounded-md border p-2.5 text-xs cursor-pointer hover:bg-muted/40"
+                                            >
+                                                {signableSignatories.length > 1 ? (
+                                                    <Checkbox
+                                                        checked={isChecked}
+                                                        onCheckedChange={(checked) => toggleSignatorySelection(sig, checked === true)}
+                                                        className="mt-0.5"
+                                                    />
+                                                ) : (
+                                                    <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <span className="font-medium">{label}</span>
+                                                        {colBadge && (
+                                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                                                {colBadge}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    {sig.slot_info?.label_above && (
+                                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                            {sig.slot_info.label_above}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+
+                                    {waitingUserSignatories.map((sig) => (
+                                        <div
+                                            key={sig.id}
+                                            className="flex items-start gap-2.5 rounded-md border border-dashed p-2.5 text-xs opacity-60"
+                                        >
+                                            <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="font-medium">
+                                                        {sig.slot_info?.label_position || `Penanda Tangan #${sig.sign_order + 1}`}
+                                                    </span>
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                                                        Menunggu giliran
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button
@@ -941,9 +1059,14 @@ export default function Show({ letter, can_edit, can_sign, can_archive, can_requ
                         >
                             Batal
                         </Button>
-                        <Button onClick={handleSign}>
+                        <Button
+                            onClick={handleSign}
+                            disabled={signableSignatories.length > 0 && selectedSignatoryIds.length === 0}
+                        >
                             <PenTool className="h-4 w-4 mr-1.5" />
-                            Ya, Tandatangani
+                            {selectedSignatoryIds.length > 1
+                                ? `Ya, Tandatangani (${selectedSignatoryIds.length} Posisi)`
+                                : 'Ya, Tandatangani'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

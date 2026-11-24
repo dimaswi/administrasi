@@ -162,6 +162,7 @@ class OutgoingLetter extends Model
         return [
             'total' => $total,
             'approved' => $approved,
+            'signed' => $approved,
             'pending' => $pending,
             'rejected' => $rejected,
             'percentage' => $total > 0 ? round(($approved / $total) * 100) : 0,
@@ -180,31 +181,61 @@ class OutgoingLetter extends Model
     }
 
     /**
+     * Get ordered IDs of pending signatory slots that the user can sign right now,
+     * including consecutive slots that unlock as earlier slots in the sequence are signed.
+     */
+    public function getSignableSignatoryIdsForUser(User $user): array
+    {
+        if (
+            $this->status === self::STATUS_REVISION
+            || $this->revision_requested
+            || in_array($this->status, [self::STATUS_SIGNED, self::STATUS_REJECTED], true)
+        ) {
+            return [];
+        }
+
+        $signatories = ($this->relationLoaded('signatories')
+            ? $this->signatories
+            : $this->signatories()->get()
+        )->sortBy('sign_order')->values();
+
+        $simulatedApprovedIds = $signatories
+            ->where('status', LetterSignatory::STATUS_APPROVED)
+            ->pluck('id')
+            ->all();
+
+        $signableIds = [];
+
+        foreach ($signatories as $signatory) {
+            if ($signatory->status !== LetterSignatory::STATUS_PENDING) {
+                continue;
+            }
+
+            $blockedByEarlier = $signatories
+                ->where('sign_order', '<', $signatory->sign_order)
+                ->where('status', LetterSignatory::STATUS_PENDING)
+                ->reject(fn ($s) => in_array($s->id, $simulatedApprovedIds, true))
+                ->isNotEmpty();
+
+            if ($blockedByEarlier) {
+                continue;
+            }
+
+            if ((int) $signatory->user_id === (int) $user->id) {
+                $signableIds[] = $signatory->id;
+                $simulatedApprovedIds[] = $signatory->id;
+            }
+        }
+
+        return $signableIds;
+    }
+
+    /**
      * Check if user can sign this letter
      */
     public function canBeSignedBy(User $user): bool
     {
-        // Cannot sign if letter is in revision status
-        if ($this->status === self::STATUS_REVISION || $this->revision_requested) {
-            return false;
-        }
-
-        $signatory = $this->signatories()
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->first();
-        
-        if (!$signatory) {
-            return false;
-        }
-        
-        // Check if it's their turn (all previous signatories have signed)
-        $pendingBefore = $this->signatories()
-            ->where('sign_order', '<', $signatory->sign_order)
-            ->where('status', 'pending')
-            ->count();
-        
-        return $pendingBefore === 0;
+        return count($this->getSignableSignatoryIdsForUser($user)) > 0;
     }
 
     /**

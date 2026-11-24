@@ -47,13 +47,17 @@ class NotificationService
     {
         $letter->load(['signatories.user', 'creator']);
         
-        foreach ($letter->signatories as $signatory) {
-            if ($signatory->user && $signatory->user->id !== $letter->created_by) {
+        foreach ($letter->signatories->groupBy('user_id') as $slots) {
+            $user = $slots->first()?->user;
+            if ($user && $user->id !== $letter->created_by) {
+                $slotCount = $slots->count();
+                $slotSuffix = $slotCount > 1 ? " ({$slotCount} posisi TTD)" : '';
+
                 self::create(
-                    user: $signatory->user,
+                    user: $user,
                     type: 'letter_assigned',
                     title: 'Ditunjuk Sebagai Penanda Tangan',
-                    message: "Anda ditunjuk menandatangani surat: {$letter->subject}",
+                    message: "Anda ditunjuk menandatangani surat: {$letter->subject}{$slotSuffix}",
                     actionUrl: "/arsip/outgoing-letters/{$letter->id}",
                     data: [
                         'letter_id' => $letter->id,
@@ -224,10 +228,11 @@ class NotificationService
     {
         $letter->load(['signatories.user', 'creator']);
         
-        foreach ($letter->signatories as $signatory) {
-            if ($signatory->user && $signatory->user->id !== $letter->created_by) {
+        foreach ($letter->signatories->groupBy('user_id') as $slots) {
+            $user = $slots->first()?->user;
+            if ($user && $user->id !== $letter->created_by) {
                 self::create(
-                    user: $signatory->user,
+                    user: $user,
                     type: 'letter_revised',
                     title: 'Surat Telah Direvisi',
                     message: "Surat \"{$letter->subject}\" telah direvisi dan siap ditandatangani kembali",
